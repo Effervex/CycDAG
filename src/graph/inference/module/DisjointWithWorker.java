@@ -42,6 +42,7 @@ public class DisjointWithWorker extends QueryWorker {
 
 		Collection<DAGNode> genlResults = genlResults1.getCompleted();
 		Collection<DAGNode> larger = null;
+		boolean swapped = false;
 
 		// For proofs, work out the smaller set of the two.
 		if (queryObj.isProof()) {
@@ -57,6 +58,7 @@ public class DisjointWithWorker extends QueryWorker {
 				Collection<DAGNode> temp = genlResults;
 				genlResults = larger;
 				larger = temp;
+				swapped = true;
 			}
 
 			// Not disjoint
@@ -73,14 +75,24 @@ public class DisjointWithWorker extends QueryWorker {
 					disjointWithEdges);
 			for (Edge e : node1Edges) {
 				Node[] edgeNodes = e.getNodes();
-				DAGNode thisNode = (DAGNode) ((edgeNodes[1].equals(nodeA)) ? edgeNodes[1]
-						: edgeNodes[2]);
-				DAGNode otherNode = (DAGNode) ((edgeNodes[1].equals(nodeA)) ? edgeNodes[2]
-						: edgeNodes[1]);
+				Node thisNode, otherNode = null;
+				if (edgeNodes[1].equals(nodeA)) {
+					thisNode = edgeNodes[1];
+					otherNode = edgeNodes[2];
+				} else if (edgeNodes[2].equals(nodeA)) {
+					thisNode = edgeNodes[2];
+					otherNode = edgeNodes[1];
+				} else
+					continue;
 
 				if (queryObj.isProof() && larger.contains(otherNode)) {
 					// Disjoint found!
 					// Add genl justifications either side.
+					if (swapped) {
+						Node temp = thisNode;
+						thisNode = otherNode;
+						otherNode = temp;
+					}
 					queryObj.getJustification().addAll(
 							alterGenlJustification(genlResults1, thisNode,
 									false));
@@ -91,8 +103,8 @@ public class DisjointWithWorker extends QueryWorker {
 
 					return;
 				} else if (!queryObj.isProof())
-					queryObj.addResult(new Substitution(varNode, otherNode),
-							edgeNodes);
+					queryObj.addResult(new Substitution(varNode,
+							(DAGNode) otherNode), edgeNodes);
 			}
 		}
 
@@ -131,11 +143,12 @@ public class DisjointWithWorker extends QueryWorker {
 			return;
 		VariableNode queryVar = new VariableNode("?_DISJ_");
 		QueryObject qo = new QueryObject(CommonConcepts.AND.getNode(dag_),
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), queryObj.getNode(1),
-						queryVar), // First
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), queryObj.getNode(2),
-						queryVar), // Second
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), queryVar,
+				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+						queryObj.getNode(1), queryVar), // First
+				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+						queryObj.getNode(2), queryVar), // Second
+				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+						queryVar,
 						CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
 								.getNode(dag_)));
 		Collection<Substitution> siblingDisjoints = querier_.execute(qo);

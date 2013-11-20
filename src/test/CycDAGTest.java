@@ -140,8 +140,8 @@ public class CycDAGTest {
 				"cat"), mammal);
 		assertEquals(edge, CycDAGErrorEdge.SEMANTIC_CONFLICT);
 
-		edge = sut_.findOrCreateEdge(creator, false, genls, new PrimitiveNode(
-				567), mammal);
+		edge = sut_.findOrCreateEdge(creator, false, genls,
+				PrimitiveNode.parseNode("567"), mammal);
 		assertEquals(edge, CycDAGErrorEdge.SEMANTIC_CONFLICT);
 	}
 

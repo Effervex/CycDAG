@@ -354,6 +354,17 @@ public class QueryModuleTest {
 		assertEquals(results.size(), 2);
 		assertTrue(results.contains(new Substitution(x, dog)));
 		assertTrue(results.contains(new Substitution(x, nonliving)));
+		
+		qo = new QueryObject(disjoint, tomcat, boxer);
+		assertNotNull(sut_.execute(qo));
+		justification = qo.getJustification();
+		assertEquals(justification.size(), 3);
+		assertArrayEquals(justification.get(0), new Node[] { genls, tomcat,
+				cat });
+		assertArrayEquals(justification.get(1), new Node[] { disjoint, cat,
+				dog });
+		assertArrayEquals(justification.get(2), new Node[] { genls, boxer,
+				dog });
 
 		// SiblingDisjointCollectionType
 		Edge edge = dag_.findOrCreateEdge(creator, false, disjoint, cat, dog);

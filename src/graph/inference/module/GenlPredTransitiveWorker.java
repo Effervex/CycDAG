@@ -30,7 +30,7 @@ public class GenlPredTransitiveWorker extends QueryWorker {
 		ArrayList<Object> nonPreds = new ArrayList<>();
 		Node[] nodes = queryObj.getNodes();
 		for (int i = 1; i < nodes.length; i++) {
-			if (nodes[i] instanceof DAGNode) {
+			if (!(nodes[i] instanceof VariableNode)) {
 				nonPreds.add(nodes[i]);
 				nonPreds.add(i + 1);
 			}

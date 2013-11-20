@@ -118,14 +118,15 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				ISA.getNode(dag), BINARY_PREDICATE.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
-				ISA.getNode(dag), new PrimitiveNode(2), COLLECTION.getNode(dag));
+				ISA.getNode(dag), PrimitiveNode.parseNode("2"),
+				COLLECTION.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				GENLS.getNode(dag), BINARY_PREDICATE.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
-				GENLS.getNode(dag), new PrimitiveNode(1),
+				GENLS.getNode(dag), PrimitiveNode.parseNode("1"),
 				COLLECTION.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
-				GENLS.getNode(dag), new PrimitiveNode(2),
+				GENLS.getNode(dag), PrimitiveNode.parseNode("2"),
 				COLLECTION.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, GENLS.getNode(dag),
 				BINARY_PREDICATE.getNode(dag), PREDICATE.getNode(dag));

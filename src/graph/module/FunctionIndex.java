@@ -34,10 +34,7 @@ public class FunctionIndex extends DAGModule<OntologyFunction> {
 		if (vals == null || vals.isEmpty())
 			return null;
 		OntologyFunction func = vals.iterator().next();
-		if (idModule_ && func != null)
-			return (OntologyFunction) dag_.getNodeByID(func.getID());
-		else
-			return func;
+		return func;
 	}
 
 	@Override

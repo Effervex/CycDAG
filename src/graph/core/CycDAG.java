@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.regex.Pattern;
 
-import util.FileBasedTrieCollection;
 import util.UtilityMethods;
 
 public class CycDAG extends DirectedAcyclicGraph {
@@ -37,10 +36,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	public CycDAG(File rootDir) {
 		super(rootDir);
-		nodes_ = new FileBasedTrieCollection<>(rootDir, "nodes",
-				DEFAULT_NUM_NODES);
-		edges_ = new FileBasedTrieCollection<>(rootDir, "edges",
-				DEFAULT_NUM_EDGES);
 		querier_ = (QueryModule) getModule(QueryModule.class);
 	}
 
@@ -384,7 +379,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 		String edgeStr = null;
 		int duplicateCount = 0;
 		int nullCount = 0;
-		@SuppressWarnings("unused")
 		int count = 0;
 		while ((edgeStr = reader.readLine()) != null) {
 			count++;
@@ -416,9 +410,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 				e.printStackTrace();
 			}
 
-			// if (count % 100 == 0) {
-			// saveState();
-			// }
+//			if (count % 1000 == 0) {
+//				saveState();
+//				System.exit(0);
+//			}
 		}
 
 		System.out.println("\nNull count: " + nullCount + ", Duplicate count: "

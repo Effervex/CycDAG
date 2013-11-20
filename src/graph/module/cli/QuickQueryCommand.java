@@ -7,17 +7,24 @@ import graph.module.QueryModule;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import util.UtilityMethods;
 import core.Command;
 
 public class QuickQueryCommand extends Command {
+	private static final Pattern ARG_PATTERN = Pattern
+			.compile("^(\\S+)(.+?)( \\[(\\d+), *(\\d+)\\))?$");
+
 	@Override
 	public String helpText() {
 		StringBuffer buffer = new StringBuffer(
-				"{0} shortCommand nodeArgs : Poses a query to the DAG using the "
-						+ "CommonQuery enum. Each query returns a set of nodes. "
-						+ "Queries include: ");
+				"{0} <shortCommand> <nodeArgs> [A,B) : Poses a query "
+						+ "to the DAG using the CommonQuery enum. "
+						+ "Each query returns a set of nodes. Use A "
+						+ "and B to define a subset of results "
+						+ "returned [incl-excl).\nQueries include: ");
 		boolean first = true;
 		for (CommonQuery cq : CommonQuery.values()) {
 			if (!first)
@@ -49,10 +56,15 @@ public class QuickQueryCommand extends Command {
 			return;
 		}
 
-		ArrayList<String> split = UtilityMethods.split(data, ' ');
+		Matcher m = ARG_PATTERN.matcher(data.trim());
+		if (!m.matches()) {
+			print("-1|Could not parse arguments.\n");
+			return;
+		}
+
 		CommonQuery cq;
 		try {
-			cq = CommonQuery.valueOf(split.get(0).toUpperCase());
+			cq = CommonQuery.valueOf(m.group(1).toUpperCase());
 		} catch (IllegalArgumentException e) {
 			print("-1|Quick Query not found.\n");
 			return;
@@ -64,12 +76,25 @@ public class QuickQueryCommand extends Command {
 			return;
 		}
 
-		Node[] args = new Node[split.size() - 1];
+		ArrayList<String> split = UtilityMethods.split(m.group(2).trim(), ' ');
+		Node[] args = new Node[split.size()];
 		for (int i = 0; i < args.length; i++) {
-			args[i] = dagHandler.getDAG().findOrCreateNode(split.get(i + 1),
-					null, false, false, false);
+			args[i] = dagHandler.getDAG().findOrCreateNode(split.get(i), null,
+					false, false, false);
 			if (args[i] == null) {
 				print("-1|Could not parse arguments.\n");
+				return;
+			}
+		}
+
+		// Subset args
+		int start = 0;
+		int end = Integer.MAX_VALUE;
+		if (m.group(3) != null) {
+			start = Integer.parseInt(m.group(4));
+			end = Integer.parseInt(m.group(5));
+			if (end <= start) {
+				print("-2|Invalid range argument.\n");
 				return;
 			}
 		}
@@ -78,11 +103,16 @@ public class QuickQueryCommand extends Command {
 		if (result == null || result.isEmpty()) {
 			print("0|NIL\n");
 			return;
-		} else
-			print(result.size() + "|");
-		for (Node n : result) {
-			if (n != null)
-				print(dagHandler.textIDObject(n));
+		} else {
+			int size = result.size();
+			size = Math.min(size, Math.min(size, end) - start);
+			print(size + "|");
+		}
+
+		Node[] resultArray = result.toArray(new Node[result.size()]);
+		for (int i = start; i < resultArray.length && i < end; i++) {
+			if (resultArray[i] != null)
+				print(dagHandler.textIDObject(resultArray[i]));
 			print("|");
 		}
 		print("\n");

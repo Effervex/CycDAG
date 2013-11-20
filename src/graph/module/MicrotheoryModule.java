@@ -28,12 +28,6 @@ public class MicrotheoryModule extends DAGModule<Collection<DAGEdge>> {
 		String microtheory = (String) args[0];
 
 		Collection<DAGEdge> mtEdges = microtheoryMap_.get(microtheory);
-		if (idModule_ && mtEdges != null) {
-			Collection<DAGEdge> dagEdges = new ArrayList<>(mtEdges.size());
-			for (DAGEdge edge : mtEdges)
-				dagEdges.add(dag_.getEdgeByID(edge.getID()));
-			return dagEdges;
-		}
 		return mtEdges;
 	}
 

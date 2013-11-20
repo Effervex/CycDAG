@@ -14,6 +14,10 @@ public class OntologyFunction extends DAGNode implements Edge {
 	private static final long serialVersionUID = 473544398260462641L;
 	protected Node[] nodes_;
 	private Boolean anonymous_;
+	
+	public OntologyFunction() {
+		super();
+	}
 
 	public OntologyFunction(Node... nodes) {
 		super();

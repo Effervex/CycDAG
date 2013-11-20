@@ -47,7 +47,9 @@ public class RemoveCommand extends Command {
 			String[] resultBSplit = resultB.split("\\|");
 			Collection<String> resultBCol = new HashSet<>();
 			for (int i = 1; i < resultBSplit.length; i++) {
-				resultBCol.add(resultBSplit[i]);
+				String single = resultBSplit[i].trim();
+				if (!single.isEmpty())
+					resultACol.add(single);
 			}
 
 			resultACol.removeAll(resultBCol);

@@ -160,6 +160,8 @@ public class NLPToStringModule extends DAGModule<String> {
 	@Override
 	public String execute(Object... args) throws IllegalArgumentException,
 			ModuleException {
+		if (args == null)
+			return null;
 		if (args.length > 1 && args instanceof Node[])
 			return edgeToString(new QueryObject((Node[]) args), false);
 		else if (args[0] instanceof Node)
