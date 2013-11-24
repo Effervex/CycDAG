@@ -120,7 +120,7 @@ public class NLPToStringModule extends DAGModule<String> {
 		Collection<Node> predicateStrings = querier_.executeAndParseVar(
 				new QueryObject(CommonConcepts.NLP_PREDICATE_STRING
 						.getNode(dag_), queryObject.getNode(0),
-						new VariableNode("?X")), "?X");
+						VariableNode.DEFAULT), "?X");
 		boolean hasNLPString = !predicateStrings.isEmpty();
 		String predicateString = (!hasNLPString) ? "'"
 				+ queryObject.getNode(0).getName() + "' relation to"
@@ -184,7 +184,7 @@ public class NLPToStringModule extends DAGModule<String> {
 		// Use prettyString-Canonical where possible
 		Collection<Node> canonicalStrs = querier_.executeAndParseVar(
 				new QueryObject(CommonConcepts.PRETTY_STRING_CANONICAL
-						.getNode(dag_), node, new VariableNode("?X")), "?X");
+						.getNode(dag_), node, VariableNode.DEFAULT), "?X");
 		if (!canonicalStrs.isEmpty())
 			return UtilityMethods.shrinkString(
 					returnSmallestString(canonicalStrs), 1);
@@ -192,7 +192,7 @@ public class NLPToStringModule extends DAGModule<String> {
 		// Use any termStrings
 		Collection<Node> termStrings = querier_.executeAndParseVar(
 				new QueryObject(CommonConcepts.TERM_STRING.getNode(dag_), node,
-						new VariableNode("?X")), "?X");
+						VariableNode.DEFAULT), "?X");
 		if (!termStrings.isEmpty())
 			return UtilityMethods.shrinkString(
 					returnSmallestString(termStrings), 1);

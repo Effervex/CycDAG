@@ -14,7 +14,7 @@ public class OntologyFunction extends DAGNode implements Edge {
 	private static final long serialVersionUID = 473544398260462641L;
 	protected Node[] nodes_;
 	private Boolean anonymous_;
-	
+
 	public OntologyFunction() {
 		super();
 	}
@@ -22,6 +22,15 @@ public class OntologyFunction extends DAGNode implements Edge {
 	public OntologyFunction(Node... nodes) {
 		super();
 		nodes_ = nodes;
+	}
+
+	@Override
+	public int compareTo(DAGObject o) {
+		int result = super.compareTo(o);
+		if (result != 0)
+			return result;
+
+		return toString().compareTo(o.toString());
 	}
 
 	@Override
@@ -39,6 +48,9 @@ public class OntologyFunction extends DAGNode implements Edge {
 
 	@Override
 	public String getIdentifier() {
+		if (!isAnonymous())
+			return id_ + "";
+
 		StringBuffer buffer = new StringBuffer("(");
 		boolean first = true;
 		for (Node n : nodes_) {

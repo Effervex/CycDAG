@@ -11,6 +11,7 @@ import graph.core.CycDAG;
 import graph.core.CycDAGErrorEdge;
 import graph.core.DAGNode;
 import graph.core.Edge;
+import graph.core.ErrorEdge;
 import graph.core.Node;
 import graph.core.PrimitiveNode;
 import graph.core.StringNode;
@@ -70,33 +71,40 @@ public class CycDAGTest {
 		assertEquals(sut_.getNumEdges(), base + 1);
 
 		Node isa = CommonConcepts.ISA.getNode(sut_);
+		Node collection = sut_.findOrCreateNode("Collection", creator, true,
+				true, true);
+		sut_.findOrCreateEdge(creator, false, isa, person, collection);
+		assertEquals(sut_.getNumEdges(), base + 2);
 		Edge isaPerson = sut_.findOrCreateEdge(creator, false, isa, umaT,
 				person);
 		assertNotNull(isaPerson);
-		assertEquals(sut_.getNumEdges(), base + 2);
+		assertEquals(sut_.getNumEdges(), base + 3);
 		edge = sut_.findOrCreateEdge(creator, false, occupation, umaT, actor);
 		assertFalse(edge instanceof CycDAGErrorEdge);
 		assertTrue(sut_.removeEdge(edge));
-		assertEquals(sut_.getNumEdges(), base + 2);
+		assertEquals(sut_.getNumEdges(), base + 3);
 
+		Node genls = CommonConcepts.GENLS.getNode(sut_);
 		Node personType = sut_.findOrCreateNode("PersonTypeByOccupation",
 				creator, true, true, true);
 		constraintEdge = sut_.findOrCreateEdge(creator, false, argIsa,
 				occupation, PrimitiveNode.parseNode("2"), personType);
+		assertFalse(sut_.findOrCreateEdge(creator, false, isa, personType,
+				collection) instanceof CycDAGErrorEdge);
+		assertFalse(sut_.findOrCreateEdge(creator, false, genls, personType,
+				collection) instanceof CycDAGErrorEdge);
 		assertFalse(constraintEdge instanceof CycDAGErrorEdge);
 		edge = sut_.findOrCreateEdge(creator, false, occupation, umaT, actor);
 		assertEquals(edge, CycDAGErrorEdge.SEMANTIC_CONFLICT);
 
 		Node entertainerType = sut_.findOrCreateNode(
 				"EntertainerTypeByActivity", creator, true, true, true);
-		Node genls = CommonConcepts.GENLS.getNode(sut_);
-		assertNotNull(sut_.findOrCreateEdge(creator, false, isa, actor,
-				entertainerType));
-		assertEquals(
-				sut_.findOrCreateEdge(creator, false, occupation, umaT, actor),
-				CycDAGErrorEdge.SEMANTIC_CONFLICT);
-		assertNotNull(sut_.findOrCreateEdge(creator, false, genls,
-				entertainerType, personType));
+		assertFalse(sut_.findOrCreateEdge(creator, false, isa, entertainerType,
+				collection) instanceof CycDAGErrorEdge);
+		assertFalse(sut_.findOrCreateEdge(creator, false, genls,
+				entertainerType, personType) instanceof CycDAGErrorEdge);
+		assertFalse(sut_.findOrCreateEdge(creator, false, isa, actor,
+				entertainerType) instanceof CycDAGErrorEdge);
 		edge = sut_.findOrCreateEdge(creator, false, occupation, umaT, actor);
 		assertFalse(edge instanceof CycDAGErrorEdge);
 		assertTrue(sut_.removeEdge(edge));
@@ -115,7 +123,6 @@ public class CycDAGTest {
 		assertTrue(sut_.removeEdge(edge));
 
 		// New node
-		DAGNode collection = CommonConcepts.COLLECTION.getNode(sut_);
 		constraintEdge = sut_.findOrCreateEdge(creator, false, argIsa, isa,
 				PrimitiveNode.parseNode("2"), collection);
 		Node sam = sut_.findOrCreateNode("SamSarjant", creator, true, true,
@@ -159,19 +166,27 @@ public class CycDAGTest {
 		Node appleTree = sut_.findOrCreateNode("AppleTree", creator, true,
 				true, true);
 		Node plant = sut_.findOrCreateNode("Plant", creator, true, true, true);
-		assertNotNull(sut_.findOrCreateEdge(creator, false,
+		Node genls = CommonConcepts.GENLS.getNode(sut_);
+		Node isa = CommonConcepts.ISA.getNode(sut_);
+		Node collection = CommonConcepts.COLLECTION.getNode(sut_);
+		assertEdge(sut_
+				.findOrCreateEdge(creator, false, isa, fruit, collection));
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, appleTree,
+				collection));
+		assertEdge(sut_
+				.findOrCreateEdge(creator, false, isa, plant, collection));
+		assertEdge(sut_.findOrCreateEdge(creator, false,
 				CommonConcepts.ARGGENL.getNode(sut_), fruitFn,
 				PrimitiveNode.parseNode("1"), plant));
-		assertNotNull(sut_.findOrCreateEdge(creator, false,
+		assertEdge(sut_.findOrCreateEdge(creator, false,
 				CommonConcepts.ARITY.getNode(sut_), fruitFn,
 				PrimitiveNode.parseNode("1")));
-		assertNotNull(sut_.findOrCreateEdge(creator, false,
-				CommonConcepts.GENLS.getNode(sut_), fruit, plant));
+		assertEdge(sut_.findOrCreateEdge(creator, false, genls, fruit, plant));
 		Node fruitFnNAT = sut_.findOrCreateNode("(FruitFn AppleTree)", creator,
 				true, true, true);
 		assertNull(fruitFnNAT);
-		assertNotNull(sut_.findOrCreateEdge(creator, false,
-				CommonConcepts.GENLS.getNode(sut_), appleTree, plant));
+		assertEdge(sut_.findOrCreateEdge(creator, false, genls, appleTree,
+				plant));
 		fruitFnNAT = sut_.findOrCreateNode("(FruitFn AppleTree)", creator,
 				true, true, true);
 		assertNotNull(fruitFnNAT);
@@ -193,36 +208,44 @@ public class CycDAGTest {
 		Node disjoint = CommonConcepts.DISJOINTWITH.getNode(sut_);
 		Node isa = CommonConcepts.ISA.getNode(sut_);
 		Node genls = CommonConcepts.GENLS.getNode(sut_);
+		Node collection = CommonConcepts.COLLECTION.getNode(sut_);
 		Node dog = sut_.findOrCreateNode("Dog", creator, true, true, true);
 		Node mammal = sut_
 				.findOrCreateNode("Mammal", creator, true, true, true);
-		sut_.findOrCreateEdge(creator, false, genls, dog, mammal);
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, dog, collection));
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, mammal, collection));
+		assertEdge(sut_.findOrCreateEdge(creator, false, genls, dog, mammal));
 		Node fido = sut_.findOrCreateNode("Fido", creator, true, true, true);
 		Edge edge = sut_.findOrCreateEdge(creator, false, isa, fido, dog);
 		assertNotNull(edge);
 
 		Node cat = sut_.findOrCreateNode("Cat", creator, true, true, true);
-		sut_.findOrCreateEdge(creator, false, genls, cat, mammal);
-		sut_.findOrCreateEdge(creator, false, disjoint, cat, dog);
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, cat, collection));
+		assertEdge(sut_.findOrCreateEdge(creator, false, genls, cat, mammal));
+		assertEdge(sut_.findOrCreateEdge(creator, false, disjoint, cat, dog));
 		edge = sut_.findOrCreateEdge(creator, false, isa, fido, cat);
 		assertEquals(edge, CycDAGErrorEdge.DISJOINT_EDGE);
 
 		Node donkey = sut_
 				.findOrCreateNode("Donkey", creator, true, true, true);
-		sut_.findOrCreateEdge(creator, false, genls, donkey, mammal);
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, donkey, collection));
+		assertEdge(sut_.findOrCreateEdge(creator, false, genls, donkey, mammal));
 		Node species = sut_.findOrCreateNode("BiologicalSpecies", creator,
 				true, true, true);
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, species, collection));
 		Node siblingDisjoint = CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
 				.getNode(sut_);
-		sut_.findOrCreateEdge(creator, false, isa, species, siblingDisjoint);
-		sut_.findOrCreateEdge(creator, false, isa, dog, species);
-		sut_.findOrCreateEdge(creator, false, isa, cat, species);
-		sut_.findOrCreateEdge(creator, false, isa, donkey, species);
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, siblingDisjoint, collection));
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, species, siblingDisjoint));
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, dog, species));
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, cat, species));
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, donkey, species));
 		edge = sut_.findOrCreateEdge(creator, false, isa, fido, donkey);
 		assertEquals(edge, CycDAGErrorEdge.DISJOINT_EDGE);
 
 		Node tomcat = sut_
 				.findOrCreateNode("Tomcat", creator, true, true, true);
+		assertEdge(sut_.findOrCreateEdge(creator, false, isa, tomcat, collection));
 		edge = sut_.findOrCreateEdge(creator, false, genls, tomcat, cat);
 		assertNotNull(edge);
 		edge = sut_.findOrCreateEdge(creator, false, isa, fido, tomcat);
@@ -232,6 +255,10 @@ public class CycDAGTest {
 		edge = sut_.findOrCreateEdge(creator, false, isa, tomcat, donkey);
 		assertNotNull(edge);
 		sut_.removeEdge(edge);
+	}
+
+	private void assertEdge(Edge edge) {
+		assertFalse(edge instanceof ErrorEdge);
 	}
 
 	@Test

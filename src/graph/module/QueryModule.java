@@ -1,7 +1,11 @@
 package graph.module;
 
+import graph.core.CommonConcepts;
+import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
+import graph.core.PrimitiveNode;
+import graph.core.StringNode;
 import graph.inference.QueryObject;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
@@ -149,5 +153,60 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		initInferenceModules();
 		for (QueryWorker qw : inferenceModules_.values())
 			qw.setDAG(directedAcyclicGraph);
+	}
+
+	/**
+	 * Gets the expanded set of nodes that all represent the input node. This is
+	 * used for decoding functions, Strings and primitives.
+	 * 
+	 * @param node
+	 *            The node to expand.
+	 * @return The set of nodes representing the expanded node.
+	 */
+	public DAGNode getExpanded(Node node) {
+		if (node == null)
+			return null;
+		if (node instanceof StringNode) {
+			return stringToDAGNode(node.getName());
+		} else if (node instanceof PrimitiveNode) {
+			PrimitiveNode primNode = (PrimitiveNode) node;
+			if (primNode.getPrimitive() instanceof Integer
+					|| primNode.getPrimitive() instanceof Short
+					|| primNode.getPrimitive() instanceof Long)
+				return integerToDAGNode((Number) primNode.getPrimitive());
+			else if (primNode.getPrimitive() instanceof Boolean) {
+				if ((Boolean) primNode.getPrimitive())
+					return CommonConcepts.TRUE.getNode(dag_);
+				else
+					return CommonConcepts.FALSE.getNode(dag_);
+			} else if (primNode.getPrimitive() instanceof Double
+					|| primNode.getPrimitive() instanceof Float)
+				return rationalToDAGNode((Number) primNode.getPrimitive());
+			else if (primNode.getPrimitive() instanceof Character)
+				return stringToDAGNode(node.getName());
+		}
+		return (DAGNode) node;
+	}
+
+	private DAGNode rationalToDAGNode(Number primitive) {
+		if (primitive.intValue() == 0)
+			return CommonConcepts.ZERO.getNode(dag_);
+		else if (primitive.intValue() > 0)
+			return CommonConcepts.POSITIVE_NUMBER.getNode(dag_);
+		else
+			return CommonConcepts.NEGATIVE_NUMBER.getNode(dag_);
+	}
+
+	private DAGNode integerToDAGNode(Number primitive) {
+		if (primitive.intValue() == 0)
+			return CommonConcepts.ZERO.getNode(dag_);
+		else if (primitive.intValue() > 0)
+			return CommonConcepts.POSITIVE_INTEGER.getNode(dag_);
+		else
+			return CommonConcepts.NEGATIVE_INTEGER.getNode(dag_);
+	}
+
+	private DAGNode stringToDAGNode(String name) {
+		return CommonConcepts.STRING.getNode(dag_);
 	}
 }

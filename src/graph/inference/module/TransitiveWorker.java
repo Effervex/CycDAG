@@ -38,20 +38,6 @@ public class TransitiveWorker extends QueryWorker {
 		DAGNode atomic = queryObj.getAtomic();
 		if (atomic == null)
 			return;
-		if (atomicIndex == 1 && atomic instanceof OntologyFunction) {
-			// Function chasing
-			Node[] resultGenl = { CommonConcepts.RESULTGENL.getNode(dag_),
-					((OntologyFunction) atomic).getNodes()[0],
-					queryObj.getNode(varIndex) };
-			QueryObject functionQuery = queryObj.modifyNodes(resultGenl);
-			querier_.applyModule(CommonConcepts.RESULTGENL.getNodeName(),
-					functionQuery);
-			if (queryObj.isProof() && queryObj.getResults() != null) {
-				queryObj.getJustification().addAll(
-						functionQuery.getJustification());
-				return;
-			}
-		}
 
 		Queue<DAGNode> toCheck = new LinkedList<>();
 		toCheck.add(atomic);
@@ -59,7 +45,22 @@ public class TransitiveWorker extends QueryWorker {
 				.findEdgeByNodes((DAGNode) queryObj.getNode(0));
 
 		while (!toCheck.isEmpty()) {
-			DAGNode n = toCheck.poll();
+			DAGNode n = querier_.getExpanded(toCheck.poll());
+			if (atomicIndex == 1 && n instanceof OntologyFunction) {
+				// Function chasing
+				Node[] resultGenl = { CommonConcepts.RESULTGENL.getNode(dag_),
+						((OntologyFunction) n).getNodes()[0],
+						queryObj.getNode(varIndex) };
+				QueryObject functionQuery = queryObj.modifyNodes(resultGenl);
+				querier_.applyModule(CommonConcepts.RESULTGENL.getNodeName(),
+						functionQuery);
+				if (queryObj.getResults() != null) {
+					queryObj.getJustification().addAll(
+							functionQuery.getJustification());
+					return;
+				}
+			}
+
 			if (queryObj.isCompleted(n))
 				continue;
 			queryObj.addCompleted(n);
@@ -73,11 +74,11 @@ public class TransitiveWorker extends QueryWorker {
 			if (n == atomic) {
 				Collection<Edge> selfEdges = nodeEdges;
 				if (selfEdges.isEmpty()) {
-					selfEdges = relatedModule_.execute(n, varIndex + 1);
+					selfEdges = relatedModule_.execute(atomic, varIndex + 1);
 					selfEdges = CollectionUtils.retainAll(selfEdges, genlEdges);
 				}
 				if (!selfEdges.isEmpty()) {
-					if (queryObj.addResult(queryObj.getNode(0), atomic, atomic))
+					if (queryObj.addResult(queryObj.getNode(0), atomic, n))
 						return;
 				}
 			}

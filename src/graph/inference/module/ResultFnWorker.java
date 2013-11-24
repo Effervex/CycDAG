@@ -26,6 +26,8 @@ public class ResultFnWorker extends QueryWorker {
 			if (e.getNodes()[2].equals(queryObj.getNode(2))) {
 				queryObj.addResult(new Substitution(), queryObj.getNodes());
 				return;
+			} else if (!queryObj.isProof()) {
+				queryObj.addResult(e.getNodes());
 			}
 			Node[] transitiveNodes = { CommonConcepts.GENLS.getNode(dag_),
 					e.getNodes()[2], queryObj.getNode(2) };
@@ -33,7 +35,7 @@ public class ResultFnWorker extends QueryWorker {
 					.modifyNodes(transitiveNodes);
 			querier_.applyModule(CommonConcepts.GENLS.getNodeName(),
 					transitiveSearch);
-			if (queryObj.isProof() && queryObj.getResults() != null) {
+			if (queryObj.getResults() != null) {
 				queryObj.getJustification().add(e.getNodes());
 				queryObj.getJustification().addAll(
 						transitiveSearch.getJustification());

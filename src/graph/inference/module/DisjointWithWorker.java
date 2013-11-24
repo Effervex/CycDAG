@@ -32,7 +32,7 @@ public class DisjointWithWorker extends QueryWorker {
 			Collection<Edge> disjointWithEdges) {
 		if (queryObj.getAtomic() == null)
 			return;
-		VariableNode varNode = (queryObj.isProof()) ? new VariableNode("?X")
+		VariableNode varNode = (queryObj.isProof()) ? VariableNode.DEFAULT
 				: queryObj.getVariable();
 		QueryObject genlResults1 = new QueryObject(
 				CommonConcepts.GENLS.getNode(dag_), queryObj.getAtomic(),

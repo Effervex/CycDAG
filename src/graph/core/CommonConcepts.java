@@ -49,6 +49,7 @@ public enum CommonConcepts {
 	SYMMETRIC_BINARY("SymmetricBinaryPredicate"),
 	TERM_STRING("termStrings"),
 	THEYEAR("TheYear-Indexical"),
+	THEFN("TheFn"),
 	THING("Thing"),
 	TRUE("True"),
 	UNREIFIABLE_FUNCTION("UnreifiableFunction"),
@@ -152,6 +153,8 @@ public enum CommonConcepts {
 		// Function
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				FUNCTION.getNode(dag), COLLECTION.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
+				THEFN.getNode(dag), FUNCTION.getNode(dag));
 
 		// NLP Predicates
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),

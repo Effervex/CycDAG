@@ -183,11 +183,11 @@ public class NLPToStringModuleTest {
 				"does 'Samuel L Jackson' have 'isa' relation to 'Actor'?");
 
 		// Substitutions
-		qo = new QueryObject(isa, samuel, new VariableNode("?X"));
+		qo = new QueryObject(isa, samuel, VariableNode.DEFAULT);
 		result = sut_.edgeToString(qo, true);
 		assertEquals(result,
 				"'Samuel L Jackson' has 'isa' relation to what things?");
-		qo = new QueryObject(isa, new VariableNode("?X"), actor);
+		qo = new QueryObject(isa, VariableNode.DEFAULT, actor);
 		result = sut_.edgeToString(qo, true);
 		assertEquals(result, "what things have 'isa' relation to 'Actor'?");
 
@@ -212,14 +212,14 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "is 'Actor' broader than 'Samuel L Jackson'?");
 
 		// Substitutions
-		qo = new QueryObject(isa, samuel, new VariableNode("?X"));
+		qo = new QueryObject(isa, samuel, VariableNode.DEFAULT);
 		result = sut_.edgeToString(qo, true);
 		assertEquals(result,
 				"'Samuel L Jackson' is an instance of what things?");
 		qo = new QueryObject(isa, new VariableNode("?Y"), actor);
 		result = sut_.edgeToString(qo, true);
 		assertEquals(result, "what things are an instance of 'Actor'?");
-		qo = new QueryObject(broader, samuel, new VariableNode("?X"));
+		qo = new QueryObject(broader, samuel, VariableNode.DEFAULT);
 		result = sut_.edgeToString(qo, true);
 		assertEquals(result, "what things are broader than 'Samuel L Jackson'?");
 		qo = new QueryObject(broader, new VariableNode("?Y"), actor);
@@ -227,9 +227,9 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "'Actor' is broader than what things?");
 
 		// Conjunctions
-		OntologyFunction firstPart = new OntologyFunction(isa, new VariableNode("?X"),
+		OntologyFunction firstPart = new OntologyFunction(isa, VariableNode.DEFAULT,
 				actor);
-		OntologyFunction secondPart = new OntologyFunction(broader, new VariableNode("?X"),
+		OntologyFunction secondPart = new OntologyFunction(broader, VariableNode.DEFAULT,
 				new VariableNode("?Y"));
 		DAGNode and = CommonConcepts.AND.getNode(dag_);
 		qo = new QueryObject(and, firstPart, secondPart);
@@ -240,7 +240,7 @@ public class NLPToStringModuleTest {
 		// Multi-conjunctions
 		DAGNode or = CommonConcepts.OR.getNode(dag_);
 		qo = new QueryObject(or, firstPart, new OntologyFunction(and, new OntologyFunction(isa, samuel, actor),
-				new OntologyFunction(broader, new VariableNode("?X"), new VariableNode("?Y"))));
+				new OntologyFunction(broader, VariableNode.DEFAULT, new VariableNode("?Y"))));
 		result = sut_.edgeToString(qo, true);
 		assertEquals(result, "what things ?X are an instance of 'Actor' OR "
 				+ "is 'Samuel L Jackson' an instance of 'Actor' AND "

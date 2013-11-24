@@ -39,13 +39,13 @@ public class CycDAG extends DirectedAcyclicGraph {
 		querier_ = (QueryModule) getModule(QueryModule.class);
 	}
 
-	private boolean checkArity(DAGNode predNode, Node[] edgeNodes,
-			VariableNode varNode) {
+	private boolean checkArity(DAGNode predNode, Node[] edgeNodes) {
 		Collection<Substitution> subs = querier_.execute(
-				CommonConcepts.ARITY.getNode(this), predNode, varNode);
+				CommonConcepts.ARITY.getNode(this), predNode,
+				VariableNode.DEFAULT);
 		for (Substitution sub : subs) {
-			if (!((PrimitiveNode) sub.getSubstitution(varNode)).getName()
-					.equals("" + (edgeNodes.length - 1)))
+			if (!((PrimitiveNode) sub.getSubstitution(VariableNode.DEFAULT))
+					.getName().equals("" + (edgeNodes.length - 1)))
 				return false;
 		}
 		return true;
@@ -58,21 +58,14 @@ public class CycDAG extends DirectedAcyclicGraph {
 				argTest.getNode(this), predNode,
 				PrimitiveNode.parseNode("" + i), varNode);
 
-		Collection<Node> testNodes = determineTestNode(testNode, argResult,
-				varNode);
-		if (testNodes.isEmpty())
-			return false;
-
 		for (Substitution sub : constraints) {
 			// Skip 'Thing'
 			if (sub.getSubstitution(varNode).equals(
 					CommonConcepts.THING.getNode(this)))
 				continue;
-			for (Node n : testNodes) {
-				if (!querier_.prove(argQuery.getNode(this), n,
-						sub.getSubstitution(varNode)))
-					return false;
-			}
+			if (!querier_.prove(argQuery.getNode(this), testNode,
+					sub.getSubstitution(varNode)))
+				return false;
 		}
 		return true;
 	}
@@ -89,66 +82,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 				return true;
 		}
 		return false;
-	}
-
-	private Collection<Node> determineTestNode(Node node,
-			CommonConcepts resultPredicate, VariableNode varNode) {
-		Collection<Node> testNodes = new ArrayList<>();
-		if (node instanceof OntologyFunction) {
-			Collection<Substitution> subs = querier_.execute(
-					resultPredicate.getNode(this),
-					((OntologyFunction) node).getNodes()[0], varNode);
-			for (Substitution sub : subs)
-				testNodes.add(sub.getSubstitution(varNode));
-
-			if (testNodes.isEmpty())
-				testNodes.add(CommonConcepts.THING.getNode(this));
-		} else if (node instanceof DAGNode) {
-			testNodes.add(node);
-		} else if (node instanceof StringNode) {
-			testNodes.add(stringToDAGNode(node.getName()));
-		} else if (node instanceof PrimitiveNode) {
-			PrimitiveNode primNode = (PrimitiveNode) node;
-			if (primNode.getPrimitive() instanceof Integer
-					|| primNode.getPrimitive() instanceof Short
-					|| primNode.getPrimitive() instanceof Long)
-				testNodes
-						.add(integerToDAGNode((Number) primNode.getPrimitive()));
-			else if (primNode.getPrimitive() instanceof Boolean) {
-				if ((Boolean) primNode.getPrimitive())
-					testNodes.add(CommonConcepts.TRUE.getNode(this));
-				else
-					testNodes.add(CommonConcepts.FALSE.getNode(this));
-			} else if (primNode.getPrimitive() instanceof Double
-					|| primNode.getPrimitive() instanceof Float)
-				testNodes.add(rationalToDAGNode((Number) primNode
-						.getPrimitive()));
-			else if (primNode.getPrimitive() instanceof Character)
-				testNodes.add(stringToDAGNode(node.getName()));
-		}
-		return testNodes;
-	}
-
-	private Node rationalToDAGNode(Number primitive) {
-		if (primitive.intValue() == 0)
-			return CommonConcepts.ZERO.getNode(this);
-		else if (primitive.intValue() > 0)
-			return CommonConcepts.POSITIVE_NUMBER.getNode(this);
-		else
-			return CommonConcepts.NEGATIVE_NUMBER.getNode(this);
-	}
-
-	private Node integerToDAGNode(Number primitive) {
-		if (primitive.intValue() == 0)
-			return CommonConcepts.ZERO.getNode(this);
-		else if (primitive.intValue() > 0)
-			return CommonConcepts.POSITIVE_INTEGER.getNode(this);
-		else
-			return CommonConcepts.NEGATIVE_INTEGER.getNode(this);
-	}
-
-	private Node stringToDAGNode(String name) {
-		return CommonConcepts.STRING.getNode(this);
 	}
 
 	private boolean isDisjoint(Node[] edgeNodes) {
@@ -356,11 +289,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 				// ((FileBasedTrieCollection) edges_)
 				//
 				// .setSerialisationMechanism(FileBasedTrieCollection.SerialisationMechanism.DEFAULT);
-
-				// TODO Calculate 'distance' from Thing (based on recursive
-				// maximal distance)
-				// To be stored as a node property, and used as a sorting,
-				// mechanic
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.exit(1);
@@ -410,10 +338,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 				e.printStackTrace();
 			}
 
-//			if (count % 1000 == 0) {
-//				saveState();
-//				System.exit(0);
-//			}
+			// if (count % 1000 == 0) {
+			// saveState();
+			// System.exit(0);
+			// }
 		}
 
 		System.out.println("\nNull count: " + nullCount + ", Duplicate count: "
@@ -461,26 +389,16 @@ public class CycDAG extends DirectedAcyclicGraph {
 			Node... edgeNodes) {
 		if (noChecks_)
 			return true;
-		VariableNode varNode = new VariableNode("?X");
 		DAGNode predNode = (DAGNode) edgeNodes[0];
 		// Check arity
-		if (!checkArity(predNode, edgeNodes, varNode))
+		if (!checkArity(predNode, edgeNodes))
 			return false;
 
 		// Check args
 		Collection<Node[]> forwardEdges = (forwardChainCreate) ? new ArrayList<Node[]>()
 				: null;
 		for (int i = 1; i < edgeNodes.length; i++) {
-			// argNIsa
-			if (!checkSingleArg(predNode, edgeNodes[i], i,
-					CommonConcepts.ARGISA, CommonConcepts.ISA,
-					CommonConcepts.RESULTISA, varNode))
-				return false;
-
-			// argNGenls
-			if (!checkSingleArg(predNode, edgeNodes[i], i,
-					CommonConcepts.ARGGENL, CommonConcepts.GENLS,
-					CommonConcepts.RESULTGENL, varNode))
+			if (!singleArgCheck(predNode, i, edgeNodes[i]))
 				return false;
 		}
 
@@ -507,6 +425,21 @@ public class CycDAG extends DirectedAcyclicGraph {
 			}
 		}
 
+		return true;
+	}
+
+	public boolean singleArgCheck(DAGNode predNode, int i, Node arg) {
+		// argNIsa
+		if (!checkSingleArg(predNode, arg, i, CommonConcepts.ARGISA,
+				CommonConcepts.ISA, CommonConcepts.RESULTISA,
+				VariableNode.DEFAULT))
+			return false;
+
+		// argNGenls
+		if (!checkSingleArg(predNode, arg, i, CommonConcepts.ARGGENL,
+				CommonConcepts.GENLS, CommonConcepts.RESULTGENL,
+				VariableNode.DEFAULT))
+			return false;
 		return true;
 	}
 }

@@ -2,6 +2,7 @@ package test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import graph.core.CommonConcepts;
 import graph.core.CycDAG;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
@@ -28,6 +29,7 @@ public class OntologyEdgeModuleTest {
 		dag_ = new CycDAG(new File("test"));
 		sut_ = (OntologyEdgeModule) dag_.getModule(OntologyEdgeModule.class);
 		sut_.clear();
+		CommonConcepts.initialise((CycDAG) dag_);
 	}
 
 	@After

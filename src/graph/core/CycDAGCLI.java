@@ -3,6 +3,7 @@ package graph.core;
 import graph.core.cli.DAGCommandLineInterface;
 import graph.module.cli.RandomCycEdgeCommand;
 import graph.module.cli.RandomCycNodeCommand;
+import graph.module.cli.ValidArgCommand;
 import core.CommandParser;
 
 public class CycDAGCLI extends DAGCommandLineInterface {
@@ -13,6 +14,7 @@ public class CycDAGCLI extends DAGCommandLineInterface {
 
 		CommandParser.addCommand("randomNode", RandomCycNodeCommand.class);
 		CommandParser.addCommand("randomEdge", RandomCycEdgeCommand.class);
+		CommandParser.addCommand("validArg", ValidArgCommand.class);
 	}
 
 	public static void main(String[] args) {
