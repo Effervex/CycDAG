@@ -3,7 +3,6 @@ package graph.inference.module;
 import graph.core.CommonConcepts;
 import graph.core.DAGNode;
 import graph.core.Edge;
-import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
 import graph.inference.QueryWorker;
@@ -47,18 +46,9 @@ public class TransitiveWorker extends QueryWorker {
 		while (!toCheck.isEmpty()) {
 			DAGNode n = querier_.getExpanded(toCheck.poll());
 			if (atomicIndex == 1 && n instanceof OntologyFunction) {
-				// Function chasing
-				Node[] resultGenl = { CommonConcepts.RESULTGENL.getNode(dag_),
-						((OntologyFunction) n).getNodes()[0],
-						queryObj.getNode(varIndex) };
-				QueryObject functionQuery = queryObj.modifyNodes(resultGenl);
-				querier_.applyModule(CommonConcepts.RESULTGENL.getNodeName(),
-						functionQuery);
-				if (queryObj.getResults() != null) {
-					queryObj.getJustification().addAll(
-							functionQuery.getJustification());
+				if (querier_.functionResult((OntologyFunction) n, varIndex,
+						CommonConcepts.RESULT_GENL, queryObj))
 					return;
-				}
 			}
 
 			if (queryObj.isCompleted(n))

@@ -13,6 +13,7 @@ public enum CommonConcepts {
 	ARITY("arity"),
 	ASSERTED_SENTENCE("assertedSentence"),
 	BINARY_PREDICATE("BinaryPredicate"),
+	CHARACTER_STRING("CharacterString"),
 	COLLECTION("Collection"),
 	COMMENT("comment"),
 	DATE("Date"),
@@ -40,16 +41,18 @@ public enum CommonConcepts {
 	PREDICATE("Predicate"),
 	PRETTY_STRING_CANONICAL("prettyString-Canonical"),
 	QUOTED_ISA("quotedIsa"),
-	RESULTGENL("resultGenl"),
-	RESULTISA("resultIsa"),
-	REVERSED_NLP("ReversedNLPStringPredicate"),
+	RESULT_GENL("resultGenl"),
+	RESULT_ISA("resultIsa"),
+	RESULT_ISA_ARG("resultIsaArg"),
+	RESULT_GENL_ARG("resultGenlArg"),
+	REVERSED_NLP("ReversedNLPPredicateString"),
 	SIBLING_DISJOINT_COLLECTION_TYPE("SiblingDisjointCollectionType"),
 	SIBLING_DISJOINT_EXCEPTION("siblingDisjointExceptions"),
 	STRING("(TheFn ControlCharacterFreeString)"),
 	SYMMETRIC_BINARY("SymmetricBinaryPredicate"),
 	TERM_STRING("termStrings"),
-	THEYEAR("TheYear-Indexical"),
-	THEFN("TheFn"),
+	THE_YEAR("TheYear-Indexical"),
+	THE_FN("TheFn"),
 	THING("Thing"),
 	TRUE("True"),
 	UNREIFIABLE_FUNCTION("UnreifiableFunction"),
@@ -104,18 +107,16 @@ public enum CommonConcepts {
 	}
 
 	private static void nlpPredicates(CommonConcepts cc, String nlpPred,
-			boolean reversed, CycDAG dag) {
+			CycDAG dag) {
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false,
 				NLP_PREDICATE_STRING.getNode(dag), cc.getNode(dag),
 				new StringNode(nlpPred));
-		if (reversed)
-			dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
-					cc.getNode(dag), REVERSED_NLP.getNode(dag));
 	}
 
 	public static void createCommonAssertions(CycDAG dag) {
 		boolean checks = dag.noChecks_;
 		dag.noChecks_ = true;
+		// isa, genls
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				ISA.getNode(dag), BINARY_PREDICATE.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
@@ -154,17 +155,59 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				FUNCTION.getNode(dag), COLLECTION.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
-				THEFN.getNode(dag), FUNCTION.getNode(dag));
+				THE_FN.getNode(dag), FUNCTION.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false,
+				RESULT_ISA_ARG.getNode(dag), THE_FN.getNode(dag),
+				PrimitiveNode.parseNode("1"));
+
+		// resultIsa/genls (+arg)
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
+				RESULT_GENL.getNode(dag), BINARY_PREDICATE.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
+				RESULT_GENL.getNode(dag), PrimitiveNode.parseNode("1"),
+				FUNCTION.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
+				RESULT_GENL.getNode(dag), PrimitiveNode.parseNode("2"),
+				COLLECTION.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
+				RESULT_ISA.getNode(dag), BINARY_PREDICATE.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
+				RESULT_ISA.getNode(dag), PrimitiveNode.parseNode("1"),
+				FUNCTION.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
+				RESULT_ISA.getNode(dag), PrimitiveNode.parseNode("2"),
+				COLLECTION.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
+				RESULT_GENL_ARG.getNode(dag), PREDICATE.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
+				RESULT_GENL_ARG.getNode(dag), PrimitiveNode.parseNode("1"),
+				FUNCTION.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
+				RESULT_GENL_ARG.getNode(dag), PrimitiveNode.parseNode("2"),
+				POSITIVE_INTEGER.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
+				RESULT_ISA_ARG.getNode(dag), PREDICATE.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
+				RESULT_ISA_ARG.getNode(dag), PrimitiveNode.parseNode("1"),
+				FUNCTION.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
+				RESULT_ISA_ARG.getNode(dag), PrimitiveNode.parseNode("2"),
+				POSITIVE_INTEGER.getNode(dag));
 
 		// NLP Predicates
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
+				CHARACTER_STRING.getNode(dag), COLLECTION.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
+				STRING.getNode(dag), CHARACTER_STRING.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				NLP_PREDICATE_STRING.getNode(dag),
 				BINARY_PREDICATE.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
 				NLP_PREDICATE_STRING.getNode(dag),
 				PrimitiveNode.parseNode("1"), PREDICATE.getNode(dag));
-		dag.findOrCreateEdge(_COMMON_CONCEPT, false, GENLPREDS.getNode(dag),
-				NLP_PREDICATE_STRING.getNode(dag), TERM_STRING.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ARGISA.getNode(dag),
+				NLP_PREDICATE_STRING.getNode(dag),
+				PrimitiveNode.parseNode("2"), CHARACTER_STRING.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, COMMENT.getNode(dag),
 				NLP_PREDICATE_STRING.getNode(dag), new StringNode(
 						"A predicate for converting binary assertions into "
@@ -174,23 +217,6 @@ public enum CommonConcepts {
 								+ "described using NLPSTR in the context of "
 								+ "an adverb (e.g. 'an instance of', 'broader "
 								+ "than', etc)."));
-
-		// Reversed NLP
-		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
-				REVERSED_NLP.getNode(dag), COLLECTION.getNode(dag));
-		dag.findOrCreateEdge(_COMMON_CONCEPT, false, GENLS.getNode(dag),
-				REVERSED_NLP.getNode(dag), dag.findOrCreateNode("NLRelation",
-						_COMMON_CONCEPT, true, true, false));
-		dag.findOrCreateEdge(
-				_COMMON_CONCEPT,
-				false,
-				COMMENT.getNode(dag),
-				REVERSED_NLP.getNode(dag),
-				new StringNode(
-						"A collection containing binary predicates which have "
-								+ "'reversed' NLP descriptions. That is, they are more easily "
-								+ "explained by introducing the second arg, then the predicate, "
-								+ "followed by the first argument."));
 
 		// First Order Collection
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, GENLS.getNode(dag),
@@ -219,15 +245,15 @@ public enum CommonConcepts {
 				DATE.getNode(dag), COLLECTION.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				DAYFN.getNode(dag), UNREIFIABLE_FUNCTION.getNode(dag));
-		dag.findOrCreateEdge(_COMMON_CONCEPT, false, RESULTISA.getNode(dag),
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, RESULT_ISA.getNode(dag),
 				DAYFN.getNode(dag), DATE.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				MONTHFN.getNode(dag), UNREIFIABLE_FUNCTION.getNode(dag));
-		dag.findOrCreateEdge(_COMMON_CONCEPT, false, RESULTISA.getNode(dag),
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, RESULT_ISA.getNode(dag),
 				MONTHFN.getNode(dag), DATE.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				YEARFN.getNode(dag), UNREIFIABLE_FUNCTION.getNode(dag));
-		dag.findOrCreateEdge(_COMMON_CONCEPT, false, RESULTISA.getNode(dag),
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, RESULT_ISA.getNode(dag),
 				YEARFN.getNode(dag), DATE.getNode(dag));
 
 		// Temporal Concepts
@@ -245,20 +271,50 @@ public enum CommonConcepts {
 				INTERVAL_FUNCTION.getNode(dag),
 				UNREIFIABLE_FUNCTION.getNode(dag));
 
-		nlpPredicates(COMMENT, "described as", false, dag);
-		nlpPredicates(DISJOINTWITH, "disjoint with", false, dag);
-		nlpPredicates(GENLINVERSE, "the supertype of", false, dag);
-		nlpPredicates(GENLMT, "a sub-microtheory of", false, dag);
-		nlpPredicates(GENLPREDS, "a sub-predicate of", false, dag);
-		nlpPredicates(GENLS, "a subtype of", false, dag);
-		nlpPredicates(ISA, "an instance of", false, dag);
-		nlpPredicates(NLP_PREDICATE_STRING, "the NL predicate for", true, dag);
-		nlpPredicates(PRETTY_STRING_CANONICAL, "the preferred term for", true,
+		// $1 |1(is)|(are)| <text string> $2
+		nlpPredicates(
+				ARGGENL,
+				"|2(argument $2)|(what arguments)| of $1 |1(is)|(is)| a type of $3",
 				dag);
-		nlpPredicates(QUOTED_ISA, "implicitly an instance of", false, dag);
-		nlpPredicates(RESULTGENL, "the type produced by", false, dag);
-		nlpPredicates(RESULTISA, "the instance produced by", false, dag);
-		nlpPredicates(TERM_STRING, "also known as", false, dag);
+		nlpPredicates(
+				ARGISA,
+				"|2(argument $2)|(what arguments)| of $1 |1(is)|(is)| an instance of $3",
+				dag);
+		nlpPredicates(ARITY, "$1 |1(has)|(have)| arity |2($2)|(what)|", dag);
+		nlpPredicates(ASSERTED_SENTENCE, "$1 |1(is)|(are)| asserted directly",
+				dag);
+		nlpPredicates(COMMENT,
+				"$1 |1(has)|(have)| |2(comment $2)|(what comment)|", dag);
+		nlpPredicates(DIFFERENT, "$1 |1(is)|(are)| different to $2", dag);
+		nlpPredicates(DISJOINTWITH, "$1 |1(is)|(are)| disjoint with $2", dag);
+		nlpPredicates(GENLINVERSE, "$1 |1(is)|(are)| a supertype of $2", dag);
+		nlpPredicates(GENLMT, "$1 |1(is)|(are)| a sub-microtheory of $2", dag);
+		nlpPredicates(GENLPREDS, "$1 |1(is)|(are)| a sub-predicate of $2", dag);
+		nlpPredicates(GENLS, "$1 |1(is)|(are)| a subtype of $2", dag);
+		nlpPredicates(ISA, "$1 |1(is)|(are)| an instance of $2", dag);
+		nlpPredicates(LATER_PREDICATE, "$1 |1(is)|(are)| later than $2", dag);
+		nlpPredicates(NLP_PREDICATE_STRING,
+				"$2 |2(is)|(are)| the NL predicate for $1", dag);
+		nlpPredicates(NOT, "$1 |1(is)|(are)| not true", dag);
+		nlpPredicates(PRETTY_STRING_CANONICAL,
+				"$1 |1(is)|(are)| typically referred to as $2", dag);
+		nlpPredicates(QUOTED_ISA,
+				"$1 |1(is)|(are)| implicitly an instance of $2", dag);
+		nlpPredicates(RESULT_GENL, "$2 |2(is)|(are)| the type produced by $1",
+				dag);
+		nlpPredicates(RESULT_ISA,
+				"$2 |2(is)|(are)| the instance produced by $1", dag);
+		nlpPredicates(
+				RESULT_GENL_ARG,
+				"the type produced by $1 |1(is)|(are)| the same as |2(argument $2)|(what arguments)|",
+				dag);
+		nlpPredicates(
+				RESULT_ISA_ARG,
+				"the instance produced by $1 |1(is)|(are)| the same as |2(argument $2)|(what arguments)|",
+				dag);
+		nlpPredicates(SIBLING_DISJOINT_EXCEPTION,
+				"$1 |1(is)|(are)| exempt from disjointness with $2", dag);
+		nlpPredicates(TERM_STRING, "$1 |1(is)|(are)| also known as $2", dag);
 		dag.noChecks_ = checks;
 	}
 

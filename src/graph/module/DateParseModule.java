@@ -107,7 +107,7 @@ public class DateParseModule extends DAGModule<Collection<DAGNode>> {
 						+ (date.getYear() + 1900));
 				brackets++;
 			} else if (addFurther)
-				buffer.append(CommonConcepts.THEYEAR.getID());
+				buffer.append(CommonConcepts.THE_YEAR.getID());
 			for (int i = 0; i < brackets; i++)
 				buffer.append(")");
 			return (DAGNode) dag_.findOrCreateNode(buffer.toString(), null,

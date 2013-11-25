@@ -10,6 +10,7 @@ import graph.inference.VariableNode;
 
 import java.util.Collection;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import util.UtilityMethods;
 
@@ -18,6 +19,7 @@ public class NLPToStringModule extends DAGModule<String> {
 	public static final byte EDGE = 1;
 	public static final byte NODE = 0;
 	public static final byte QUERY = 2;
+	private static final String WHAT_THINGS = "what things";
 
 	private transient QueryModule querier_;
 
@@ -27,17 +29,14 @@ public class NLPToStringModule extends DAGModule<String> {
 		StringBuffer buffer = new StringBuffer();
 		for (int i = 1; i < conjuncted.length; i++) {
 			if (i > 1) {
-				buffer.deleteCharAt(buffer.length() - 1);
+				if (isQuery)
+					buffer.deleteCharAt(buffer.length() - 1);
 				buffer.append(" "
 						+ queryObject.getNode(0).getName().toUpperCase() + " ");
 			}
 			QueryObject conjQO = new QueryObject(
 					((OntologyFunction) conjuncted[i]).getNodes());
-			String conjStr = edgeToString(conjQO, isQuery);
-			// Insert variables for clarification of language
-			if (conjQO.getVariableIndex() != -1)
-				conjStr = conjStr.replaceAll("what things", "what things "
-						+ conjQO.getVariable(conjQO.getVariableIndex() - 1));
+			String conjStr = edgeToString(conjQO, isQuery, true);
 			buffer.append(conjStr);
 		}
 		return buffer.toString();
@@ -46,53 +45,6 @@ public class NLPToStringModule extends DAGModule<String> {
 	private void initQuerier() {
 		if (querier_ == null)
 			querier_ = (QueryModule) dag_.getModule(QueryModule.class);
-	}
-
-	private String proofEdgeToString(boolean isQuery, boolean hasNLPString,
-			String predicateString, boolean reversed, String firstArg,
-			String secondArg) {
-		// Proof queries
-		if (hasNLPString) {
-			if (reversed) {
-				String temp = firstArg;
-				firstArg = secondArg;
-				secondArg = temp;
-			}
-
-			if (isQuery)
-				return "is " + firstArg + " " + predicateString + " "
-						+ secondArg + "?";
-			else
-				return firstArg + " is " + predicateString + " " + secondArg;
-		} else {
-			if (isQuery)
-				return "does " + firstArg + " have " + predicateString + " "
-						+ secondArg + "?";
-			else
-				return firstArg + " has " + predicateString + " " + secondArg;
-		}
-	}
-
-	private String queryEdgeToString(QueryObject queryObject,
-			boolean hasNLPString, String predicateString, boolean reversed,
-			String firstArg, String secondArg) {
-		// Substitution queries
-		int varIndex = queryObject.getVariableIndex();
-
-		if (hasNLPString) {
-			String nonVar = (varIndex == 1) ? secondArg : firstArg;
-			if ((varIndex == 1 && !reversed) || (varIndex == 2 && reversed))
-				return "what things are " + predicateString + " " + nonVar
-						+ "?";
-			else
-				return nonVar + " is " + predicateString + " what things?";
-		} else {
-			if (varIndex == 1)
-				return "what things have " + predicateString + " " + secondArg
-						+ "?";
-			else
-				return firstArg + " has " + predicateString + " what things?";
-		}
 	}
 
 	private String returnSmallestString(Collection<? extends Object> objs) {
@@ -105,55 +57,96 @@ public class NLPToStringModule extends DAGModule<String> {
 		return smallest;
 	}
 
-	public String edgeToString(QueryObject queryObject, boolean isQuery) {
-		if (queryObject.getNodes().length < 3)
-			return "Cannot process unary predicates: " + queryObject.toString();
+	public String edgeToString(QueryObject queryObject, boolean isQuery,
+			boolean includeVariables) {
 		initQuerier();
 
 		if (queryObject.getNode(0).equals(CommonConcepts.AND.getNode(dag_))
 				|| queryObject.getNode(0).equals(
 						CommonConcepts.OR.getNode(dag_))) {
-			return conjunctedEdgeToString(queryObject, isQuery);
+			String conj = conjunctedEdgeToString(queryObject, isQuery);
+			return conj;
 		}
 
-		// Check for NLP string
+		// Form the replacement strings
+		Node[] nodes = queryObject.getNodes();
+		String[] replacements = new String[nodes.length];
+		replacements[0] = "'" + nodes[0].getName() + "'";
+		for (int i = 1; i < replacements.length; i++) {
+			if (nodes[i] instanceof VariableNode) {
+				replacements[i] = WHAT_THINGS;
+				if (includeVariables)
+					replacements[i] += " " + nodes[i];
+			} else
+				replacements[i] = nodeToString(nodes[i]);
+			if (nodes[i] instanceof DAGNode)
+				replacements[i] = "'" + replacements[i] + "'";
+		}
+
 		Collection<Node> predicateStrings = querier_.executeAndParseVar(
 				new QueryObject(CommonConcepts.NLP_PREDICATE_STRING
 						.getNode(dag_), queryObject.getNode(0),
 						VariableNode.DEFAULT), "?X");
-		boolean hasNLPString = !predicateStrings.isEmpty();
-		String predicateString = (!hasNLPString) ? "'"
-				+ queryObject.getNode(0).getName() + "' relation to"
-				: UtilityMethods.shrinkString(predicateStrings.iterator()
-						.next().toString(), 1);
-
-		// Determine if reversed
-		boolean reversed = querier_.prove(
-				CommonConcepts.QUOTED_ISA.getNode(dag_),
-				queryObject.getNode(0),
-				CommonConcepts.REVERSED_NLP.getNode(dag_));
-		// Get node names
-		String firstArg = nodeToString(queryObject.getNode(1));
-		if (queryObject.getNode(1) instanceof DAGNode)
-			firstArg = "'" + firstArg + "'";
-
-		StringBuffer secondArg = new StringBuffer();
-		for (int i = 2; i < queryObject.getNodes().length; i++) {
-			if (secondArg.length() != 0)
-				secondArg.append(" and ");
-			Node n = queryObject.getNode(i);
-			String arg = nodeToString(n);
-			if (n instanceof DAGNode)
-				arg = "'" + arg + "'";
-			secondArg.append(arg);
-		}
-
-		if (queryObject.isProof()) {
-			return proofEdgeToString(isQuery, hasNLPString, predicateString,
-					reversed, firstArg, secondArg.toString());
+		if (predicateStrings.isEmpty()) {
+			// No NLP String, revert to default
+			StringBuffer buffer = new StringBuffer();
+			if (isQuery && queryObject.isProof())
+				buffer.append("does ");
+			buffer.append(replacements[1]);
+			if (isQuery
+					&& (nodes[1] instanceof VariableNode || queryObject
+							.isProof()))
+				buffer.append(" have ");
+			else
+				buffer.append(" has ");
+			buffer.append(replacements[0] + " relation");
+			for (int i = 2; i < nodes.length; i++) {
+				if (i == 2)
+					buffer.append(" to ");
+				else if (i == nodes.length - 1)
+					buffer.append(" and ");
+				else
+					buffer.append(", ");
+				buffer.append(replacements[i]);
+			}
+			if (isQuery)
+				buffer.append("?");
+			return buffer.toString();
 		} else {
-			return queryEdgeToString(queryObject, hasNLPString,
-					predicateString, reversed, firstArg, secondArg.toString());
+			// Replace elements in the NLP string
+			String nlpString = UtilityMethods.shrinkString(predicateStrings
+					.iterator().next().toString(), 1);
+			String replaced = UtilityMethods.replaceToken(nlpString,
+					replacements);
+
+			// Query checking
+			if (isQuery && queryObject.isProof()) {
+				// Remove the 1st arg pattern
+				int oldLength = replaced.length();
+				replaced = replaced.replaceAll(
+						" ?\\|1\\((.+?)\\)\\|\\((.+?)\\)\\| ?", " ");
+				if (replaced.length() == oldLength)
+					replaced = replaced.replaceFirst(
+							" ?\\|\\d+\\((.+?)\\)\\|\\((.+?)\\)\\| ?", " ");
+				replaced = "is " + replaced;
+			}
+
+			for (int i = 0; i < replacements.length; i++) {
+				Matcher m = Pattern.compile(
+						"\\|" + i + "\\((.+?)\\)\\|\\((.+?)\\)\\|").matcher(
+						replaced);
+				if (replacements[i].startsWith(WHAT_THINGS)) {
+					replaced = m.replaceAll("$2");
+					// Ensuring variable remains in
+					if (!replaced.contains(replacements[i]))
+						replaced = m.replaceAll("$2 " + nodes[i]);
+				} else
+					replaced = m.replaceAll("$1");
+			}
+
+			if (isQuery)
+				replaced += "?";
+			return replaced;
 		}
 	}
 
@@ -163,14 +156,14 @@ public class NLPToStringModule extends DAGModule<String> {
 		if (args == null)
 			return null;
 		if (args.length > 1 && args instanceof Node[])
-			return edgeToString(new QueryObject((Node[]) args), false);
+			return edgeToString(new QueryObject((Node[]) args), false, false);
 		else if (args[0] instanceof Node)
 			return nodeToString((Node) args[0]);
 		else if (args[0] instanceof Edge)
 			return edgeToString(new QueryObject(((Edge) args[0]).getNodes()),
-					false);
+					false, false);
 		else if (args[0] instanceof QueryObject)
-			return edgeToString((QueryObject) args[0], true);
+			return edgeToString((QueryObject) args[0], true, false);
 		return null;
 	}
 

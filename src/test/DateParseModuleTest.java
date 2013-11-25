@@ -54,7 +54,7 @@ public class DateParseModuleTest {
 		assertTrue(nodes.contains(dag_.findOrCreateNode("(YearFn '2)", creator,
 				false, true, false)));
 		assertTrue(nodes.contains(dag_.findOrCreateNode("(MonthFn February "
-				+ CommonConcepts.THEYEAR.getID() + ")", creator, false, true,
+				+ CommonConcepts.THE_YEAR.getID() + ")", creator, false, true,
 				false)));
 		assertTrue(nodes.contains(dag_.findOrCreateNode("(YearFn '2)", creator,
 				false, true, false)));
@@ -63,19 +63,19 @@ public class DateParseModuleTest {
 		nodes = sut_.parseDate("February");
 		assertEquals(nodes.size(), 1);
 		assertTrue(nodes.contains(dag_.findOrCreateNode("(MonthFn February "
-				+ CommonConcepts.THEYEAR.getID() + ")", creator, false, true,
+				+ CommonConcepts.THE_YEAR.getID() + ")", creator, false, true,
 				false)));
 		nodes = sut_.parseDate("02");
 		assertEquals(nodes.size(), 2);
 		assertTrue(nodes.contains(dag_.findOrCreateNode("(MonthFn February "
-				+ CommonConcepts.THEYEAR.getID() + ")", creator, false, true,
+				+ CommonConcepts.THE_YEAR.getID() + ")", creator, false, true,
 				false)));
 		assertTrue(nodes.contains(dag_.findOrCreateNode("(YearFn '2)", creator,
 				false, true, false)));
 		nodes = sut_.parseDate("Feb");
 		assertEquals(nodes.size(), 1);
 		assertTrue(nodes.contains(dag_.findOrCreateNode("(MonthFn February "
-				+ CommonConcepts.THEYEAR.getID() + ")", creator, false, true,
+				+ CommonConcepts.THE_YEAR.getID() + ")", creator, false, true,
 				false)));
 
 		// Month-Year

@@ -4,11 +4,13 @@ import graph.core.CommonConcepts;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
+import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
 import graph.core.StringNode;
 import graph.inference.QueryObject;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
+import graph.inference.VariableNode;
 import graph.inference.module.AndWorker;
 import graph.inference.module.AssertedSentenceWorker;
 import graph.inference.module.DifferentWorker;
@@ -18,7 +20,6 @@ import graph.inference.module.GenlPredTransitiveWorker;
 import graph.inference.module.IsaWorker;
 import graph.inference.module.LaterThanWorker;
 import graph.inference.module.OrWorker;
-import graph.inference.module.ResultFnWorker;
 import graph.inference.module.TransitiveWorker;
 
 import java.util.ArrayList;
@@ -54,8 +55,8 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		inferenceModules_.put("disjointWith", new DisjointWithWorker(this));
 		inferenceModules_.put("and", new AndWorker(this));
 		inferenceModules_.put("or", new OrWorker(this));
-		inferenceModules_.put("resultIsa", new ResultFnWorker(this));
-		inferenceModules_.put("resultGenl", new ResultFnWorker(this));
+		inferenceModules_.put("resultIsa", new IsaWorker(this));
+		inferenceModules_.put("resultGenl", new IsaWorker(this));
 		inferenceModules_.put("laterThan", new LaterThanWorker(this));
 		inferenceModules_.put(DEFAULT_WORKER,
 				new GenlPredTransitiveWorker(this));
@@ -186,6 +187,60 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				return stringToDAGNode(node.getName());
 		}
 		return (DAGNode) node;
+	}
+
+	/**
+	 * Queries a function for its resultIsa/Genls and adds the results to the
+	 * query object.
+	 * 
+	 * @param functionNode
+	 *            The function node.
+	 * @param varIndex
+	 *            The other node in the query.
+	 * @param resultQuery
+	 *            The result query to run for the function.
+	 * @param queryObj
+	 *            The query object in which to store results.
+	 * @return True if the function addition completes the proof.
+	 */
+	public boolean functionResult(OntologyFunction functionNode, int varIndex,
+			CommonConcepts resultQuery, QueryObject queryObj) {
+		// Function chasing
+		QueryObject functionQuery = queryObj.modifyNodes(
+				resultQuery.getNode(dag_), functionNode.getNodes()[0],
+				queryObj.getNode(varIndex));
+		applyModule(resultQuery.getNodeName(), functionQuery);
+		if (queryObj.getResults() != null) {
+			queryObj.getJustification()
+					.addAll(functionQuery.getJustification());
+			return true;
+		}
+
+		// resultArgs
+		CommonConcepts resultArgConcept = (resultQuery == CommonConcepts.RESULT_GENL) ? CommonConcepts.RESULT_GENL_ARG
+				: (resultQuery == CommonConcepts.RESULT_ISA) ? CommonConcepts.RESULT_ISA_ARG
+						: null;
+		QueryObject resultArgQuery = new QueryObject(
+				resultArgConcept.getNode(dag_), functionNode.getNodes()[0],
+				VariableNode.DEFAULT);
+		Collection<Substitution> subs = execute(resultArgQuery);
+		for (Substitution sub : subs) {
+			PrimitiveNode resultIndex = (PrimitiveNode) sub
+					.getSubstitution(VariableNode.DEFAULT);
+			DAGNode resultType = (DAGNode) functionNode.getNodes()[((Number) resultIndex
+					.getPrimitive()).intValue()];
+			QueryObject transitiveQuery = queryObj.modifyNodes(
+					CommonConcepts.GENLS.getNode(dag_), resultType,
+					queryObj.getNode(varIndex));
+			applyModule(CommonConcepts.GENLS.getNodeName(), transitiveQuery);
+			if (queryObj.getResults() != null) {
+				queryObj.getJustification().addAll(
+						functionQuery.getJustification());
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private DAGNode rationalToDAGNode(Number primitive) {

@@ -71,17 +71,9 @@ public class IsaWorker extends QueryWorker {
 		if (atomic == null)
 			return;
 		if (atomicIndex == 1 && atomic instanceof OntologyFunction) {
-			// Function chasing
-			Node[] resultIsa = { CommonConcepts.RESULTISA.getNode(dag_),
-					((OntologyFunction) atomic).getNodes()[0],
-					queryObj.getNode(varIndex) };
-			QueryObject functionQuery = queryObj.modifyNodes(resultIsa);
-			querier_.applyModule(CommonConcepts.RESULTISA.getNodeName(),
-					functionQuery);
-			if (queryObj.isProof() && queryObj.getResults() != null) {
-				queryObj.getJustification().addAll(functionQuery.getJustification());
+			if (querier_.functionResult((OntologyFunction) atomic, varIndex,
+					CommonConcepts.RESULT_ISA, queryObj))
 				return;
-			}
 		}
 
 		VariableNode varNode = new VariableNode("?_T_");

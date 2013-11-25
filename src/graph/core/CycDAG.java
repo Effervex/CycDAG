@@ -63,7 +63,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 			if (sub.getSubstitution(varNode).equals(
 					CommonConcepts.THING.getNode(this)))
 				continue;
-			if (!querier_.prove(argQuery.getNode(this), testNode,
+			if (!querier_.prove(argQuery.getNode(this),
+					querier_.getExpanded(testNode),
 					sub.getSubstitution(varNode)))
 				return false;
 		}
@@ -431,13 +432,13 @@ public class CycDAG extends DirectedAcyclicGraph {
 	public boolean singleArgCheck(DAGNode predNode, int i, Node arg) {
 		// argNIsa
 		if (!checkSingleArg(predNode, arg, i, CommonConcepts.ARGISA,
-				CommonConcepts.ISA, CommonConcepts.RESULTISA,
+				CommonConcepts.ISA, CommonConcepts.RESULT_ISA,
 				VariableNode.DEFAULT))
 			return false;
 
 		// argNGenls
 		if (!checkSingleArg(predNode, arg, i, CommonConcepts.ARGGENL,
-				CommonConcepts.GENLS, CommonConcepts.RESULTGENL,
+				CommonConcepts.GENLS, CommonConcepts.RESULT_GENL,
 				VariableNode.DEFAULT))
 			return false;
 		return true;
