@@ -1,15 +1,14 @@
 package graph.module.cli;
 
-import java.util.ArrayList;
-
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
 import graph.core.cli.DAGPortHandler;
 import graph.inference.QueryObject;
 import graph.module.NLPToStringModule;
 
-import util.UtilityMethods;
+import java.util.ArrayList;
 
+import util.UtilityMethods;
 import core.Command;
 
 public class NLPCommand extends Command {

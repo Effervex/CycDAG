@@ -58,6 +58,8 @@ public class TransitiveWorker extends QueryWorker {
 			// Intersect the collections
 			Collection<Edge> nodeEdges = relatedModule_.execute(n,
 					atomicIndex + 1);
+			if (nodeEdges == null || genlEdges == null)
+				continue;
 			nodeEdges = CollectionUtils.retainAll(nodeEdges, genlEdges);
 
 			// Self genls check

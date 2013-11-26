@@ -1,12 +1,13 @@
 package graph.module.cli;
 
-import java.util.ArrayList;
-
-import util.UtilityMethods;
 import graph.core.CycDAG;
 import graph.core.DAGNode;
 import graph.core.Node;
 import graph.core.cli.DAGPortHandler;
+
+import java.util.ArrayList;
+
+import util.UtilityMethods;
 import core.Command;
 
 public class ValidArgCommand extends Command {

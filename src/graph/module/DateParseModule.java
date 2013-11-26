@@ -45,6 +45,7 @@ public class DateParseModule extends DAGModule<Collection<DAGNode>> {
 		acceptedFormats_.add(new SimpleDateFormat("EEEE dd MM yyyy"));
 		acceptedFormats_.add(new SimpleDateFormat("EEEE dd MMMM yyyy"));
 		acceptedFormats_.add(new SimpleDateFormat("dd MMMM"));
+		acceptedFormats_.add(new SimpleDateFormat("MMMM dd"));
 		acceptedFormats_.add(new SimpleDateFormat("dd MM"));
 
 		for (SimpleDateFormat sdf : acceptedFormats_) {

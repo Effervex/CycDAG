@@ -5,7 +5,7 @@ import graph.core.Edge;
 
 import java.util.Collection;
 
-import util.MultiMap;
+import util.collection.MultiMap;
 
 // TODO Make this class an index of node depths for quick access to certain levels of node depth.
 public class DepthModule extends DAGModule<Collection<DAGNode>> {

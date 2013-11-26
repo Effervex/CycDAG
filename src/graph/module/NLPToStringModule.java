@@ -8,7 +8,6 @@ import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
 import graph.inference.VariableNode;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

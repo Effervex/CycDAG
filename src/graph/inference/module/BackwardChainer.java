@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import util.MultiMap;
+import util.collection.MultiMap;
 
 public class BackwardChainer extends QueryWorker {
 	private static final long serialVersionUID = -3759651304054753667L;

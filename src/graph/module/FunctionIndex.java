@@ -6,7 +6,7 @@ import graph.core.OntologyFunction;
 
 import java.util.Set;
 
-import util.Trie;
+import util.collection.Trie;
 
 public class FunctionIndex extends DAGModule<OntologyFunction> {
 	private static final long serialVersionUID = -2107172826877208005L;

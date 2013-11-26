@@ -18,21 +18,21 @@ public enum CommonQuery {
 	ALLISA("(isa $0 ?X)"),
 	ARGNGENL("(or (argGenl $0 $1 ?X) (arg$1Genl $0 ?X))"),
 	ARGNISA("(or (argIsa $0 $1 ?X) (arg$1Isa $0 ?X))"),
-	DIRECTISA("(assertedSentence (isa $0 ?X))"),
+	COMMENT("(comment $0 ?X)"),
 	DIRECTGENLS("(assertedSentence (genls $0 ?X))"),
 	DIRECTINSTANCE("(assertedSentence (isa ?X $0))"),
+	DIRECTISA("(assertedSentence (isa $0 ?X))"),
 	DIRECTSPECS("(assertedSentence (genls ?X $0))"),
 	DISJOINT("(disjointWith $0 $1)"),
-	COMMENT("(comment $0 ?X)"),
+	GENLSIBLINGS("(assertedSentence (genls $0 ?X))", true),
 	INSTANCES("(isa ?X $0)"),
+	ISASIBLINGS("(assertedSentence (isa $0 ?X))", true),
 	MAXINSTANCES("(assertedSentence (isa ?X $0))", true),
 	MAXSPECS("(assertedSentence (genls ?X $0))", true),
 	MINARGNGENL("(or (argGenl $0 $1 ?X) " + "(arg$1Genl $0 ?X))", true),
 	MINARGNISA("(or (argIsa $0 $1 ?X) " + "(arg$1Isa $0 ?X))", true),
 	MINGENLS("(assertedSentence (genls $0 ?X))", true),
 	MINISA("(assertedSentence (isa $0 ?X))", true),
-	SIBLINGS("(assertedSentence (isa $0 ?X))", true),
-	SPECSIBLINGS("(assertedSentence (genls $0 ?X))", true),
 	SPECS("(genls ?X $0)");
 
 	private String queryStr_;
@@ -65,10 +65,10 @@ public enum CommonQuery {
 	private Collection<Node> runSpecial(Collection<Node> results,
 			QueryModule querier, DirectedAcyclicGraph dag, Node[] args) {
 		switch (this) {
-		case SPECSIBLINGS:
+		case GENLSIBLINGS:
 		case MINGENLS:
 			results.remove(args[0]);
-		case SIBLINGS:
+		case ISASIBLINGS:
 		case MINISA:
 		case MINARGNISA:
 		case MINARGNGENL:
@@ -89,11 +89,11 @@ public enum CommonQuery {
 			results.removeAll(removed);
 
 			// Run the Siblings
-			if (this == SIBLINGS || this == SPECSIBLINGS) {
+			if (this == ISASIBLINGS || this == GENLSIBLINGS) {
 				Collection<Node> parents = new ArrayList<>(results);
 				results.clear();
 				for (Node sibParent : parents) {
-					CommonQuery downCQ = (this == SIBLINGS) ? CommonQuery.INSTANCES
+					CommonQuery downCQ = (this == ISASIBLINGS) ? CommonQuery.INSTANCES
 							: CommonQuery.SPECS;
 					results.addAll(downCQ.runQuery(dag, sibParent));
 				}

@@ -5,11 +5,10 @@ import graph.core.DAGEdge;
 import graph.core.DAGObject;
 import graph.core.Edge;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Set;
 
-import util.MultiMap;
+import util.collection.MultiMap;
 
 public class MicrotheoryModule extends DAGModule<Collection<DAGEdge>> {
 	private static final long serialVersionUID = -7361095570749061667L;
