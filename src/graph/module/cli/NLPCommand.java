@@ -1,22 +1,25 @@
 package graph.module.cli;
 
+import java.util.ArrayList;
+
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
 import graph.core.cli.DAGPortHandler;
 import graph.inference.QueryObject;
 import graph.module.NLPToStringModule;
 
-import org.apache.commons.lang3.StringUtils;
+import util.UtilityMethods;
 
 import core.Command;
 
 public class NLPCommand extends Command {
 	@Override
 	public String helpText() {
-		return "{0} [N/E/Q] [node/edge/query] : Given a node edge or query "
+		return "{0} N/E/Q node/edge/query [markup] : Given a node edge or query "
 				+ "(distinguished by either N, E, or Q as the first argument), "
 				+ "this command attempts to find the best natural language "
-				+ "description of it.";
+				+ "description of it. Optional markup argument for marking "
+				+ "up natural text representations in [[Wiki syntax|Syntax]].";
 	}
 
 	@Override
@@ -40,31 +43,37 @@ public class NLPCommand extends Command {
 			return;
 		}
 
+		// Parse markup
+		ArrayList<String> args = UtilityMethods.split(data, ' ');
+		String typeStr = args.get(0);
+		String nlpData = args.get(1);
+		boolean markup = false;
+		if (args.size() >= 3)
+			markup = (args.get(2).equalsIgnoreCase("T")) ? true : false;
+
 		// Parse the nodes
-		int space = data.indexOf(' ');
 		Object dagObject = null;
-		String nlpData = data.substring(space + 1).trim();
 		String result = null;
-		if (data.substring(0, space).toUpperCase().equals("N")) {
+		if (typeStr.equals("N")) {
 			dagObject = dag.findOrCreateNode(nlpData, null, false, false, true);
-			result = nlpModule.execute(dagObject);
-		} else if (data.substring(0, space).toUpperCase().equals("E")) {
+			result = nlpModule.execute(markup, dagObject);
+		} else if (typeStr.equals("E")) {
 			if (nlpData.matches("\\d+"))
 				dagObject = dag.getEdgeByID(Long.parseLong(nlpData));
 			else
 				dagObject = dag.parseNodes(nlpData, null, false, false);
-			result = nlpModule.execute(dagObject);
-		} else if (data.substring(0, space).toUpperCase().equals("Q")) {
+			result = nlpModule.execute(markup, dagObject);
+		} else if (typeStr.equals("Q")) {
 			Node[] nodes = dag.parseNodes(nlpData, null, false, true);
 			if (nodes != null) {
 				dagObject = new QueryObject(nodes);
-				result = StringUtils.capitalize(nlpModule.execute(dagObject));
+				result = nlpModule.execute(markup, dagObject);
 			}
 		}
 
 		if (result == null)
 			print("-1|Could not convert into natural language.\n");
 		else
-			print("1|" + StringUtils.capitalize(result) + "\n");
+			print("1|" + result + "\n");
 	}
 }

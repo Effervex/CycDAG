@@ -8,6 +8,7 @@ import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
 import graph.inference.VariableNode;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,7 +37,7 @@ public class NLPToStringModule extends DAGModule<String> {
 			}
 			QueryObject conjQO = new QueryObject(
 					((OntologyFunction) conjuncted[i]).getNodes());
-			String conjStr = edgeToString(conjQO, isQuery, true);
+			String conjStr = edgeToString(conjQO, isQuery, true, false);
 			buffer.append(conjStr);
 		}
 		return buffer.toString();
@@ -58,7 +59,7 @@ public class NLPToStringModule extends DAGModule<String> {
 	}
 
 	public String edgeToString(QueryObject queryObject, boolean isQuery,
-			boolean includeVariables) {
+			boolean includeVariables, boolean markup) {
 		initQuerier();
 
 		if (queryObject.getNode(0).equals(CommonConcepts.AND.getNode(dag_))
@@ -78,9 +79,7 @@ public class NLPToStringModule extends DAGModule<String> {
 				if (includeVariables)
 					replacements[i] += " " + nodes[i];
 			} else
-				replacements[i] = nodeToString(nodes[i]);
-			if (nodes[i] instanceof DAGNode)
-				replacements[i] = "'" + replacements[i] + "'";
+				replacements[i] = nodeToString(nodes[i], markup);
 		}
 
 		Collection<Node> predicateStrings = querier_.executeAndParseVar(
@@ -155,25 +154,29 @@ public class NLPToStringModule extends DAGModule<String> {
 			ModuleException {
 		if (args == null)
 			return null;
-		if (args.length > 1 && args instanceof Node[])
-			return edgeToString(new QueryObject((Node[]) args), false, false);
-		else if (args[0] instanceof Node)
-			return nodeToString((Node) args[0]);
-		else if (args[0] instanceof Edge)
-			return edgeToString(new QueryObject(((Edge) args[0]).getNodes()),
-					false, false);
-		else if (args[0] instanceof QueryObject)
-			return edgeToString((QueryObject) args[0], true, false);
+
+		// Check for markup boolean
+		boolean markup = false;
+		int i = 0;
+		if (args[0] instanceof Boolean) {
+			markup = (boolean) args[0];
+			i++;
+		}
+
+		// Parse and execute the object
+		if (args[i] instanceof Node[]) {
+			return edgeToString(new QueryObject((Node[]) args[i]), false, false, markup);
+		} else if (args[i] instanceof Node)
+			return nodeToString((Node) args[i], markup);
+		else if (args[i] instanceof Edge)
+			return edgeToString(new QueryObject(((Edge) args[i]).getNodes()),
+					false, false, markup);
+		else if (args[i] instanceof QueryObject)
+			return edgeToString((QueryObject) args[i], true, false, markup);
 		return null;
 	}
 
-	public String nodeToString(Node node) {
-		if (!(node instanceof DAGNode))
-			return node.toString();
-
-		// Hierarchy
-		initQuerier();
-
+	private String nodeToStringInternal(Node node) {
 		// Use prettyString-Canonical where possible
 		Collection<Node> canonicalStrs = querier_.executeAndParseVar(
 				new QueryObject(CommonConcepts.PRETTY_STRING_CANONICAL
@@ -197,11 +200,11 @@ public class NLPToStringModule extends DAGModule<String> {
 			for (int i = 1; i < args.length; i++) {
 				if (argString.length() != 0)
 					argString.append(" & ");
-				argString.append(nodeToString(args[i]));
+				argString.append(nodeToStringInternal(args[i]));
 			}
 
 			// Function string
-			String function = nodeToString(args[0]);
+			String function = nodeToStringInternal(args[0]);
 			if (function.contains("___")) {
 				return function.replaceAll("___+",
 						Matcher.quoteReplacement(argString.toString()));
@@ -213,6 +216,18 @@ public class NLPToStringModule extends DAGModule<String> {
 		} else {
 			return conceptToPlainText(node.getName());
 		}
+	}
+
+	public String nodeToString(Node node, boolean markup) {
+		if (!(node instanceof DAGNode))
+			return node.toString();
+
+		// Hierarchy
+		initQuerier();
+		String result = nodeToStringInternal(node);
+		if (markup)
+			return "[[" + node.toString() + "|" + result + "]]";
+		return result;
 	}
 
 	// TODO Refactor this method
