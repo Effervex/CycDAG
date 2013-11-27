@@ -26,7 +26,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	private static final Node FORWARD_CHAIN = new StringNode("ForwardChain");
 
-	private static final Pattern SUBL_PATTERN = Pattern.compile("[A-Z].+");
+	private static final Pattern SUBL_PATTERN = Pattern.compile("[:A-Z].+");
 
 	private transient QueryModule querier_;
 

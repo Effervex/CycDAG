@@ -34,13 +34,13 @@ public enum CommonConcepts {
 	ISA("isa"),
 	LATER_PREDICATE("laterThan"),
 	MONTHFN("MonthFn"),
-	NEGATIVE_INTEGER("(TheFn NegativeInteger)"),
-	NEGATIVE_NUMBER("(TheFn NegativeNumber)"),
+	NEGATIVE_INTEGER("NegativeInteger"),
+	NEGATIVE_NUMBER("NegativeNumber"),
 	NLP_PREDICATE_STRING("nlpPredicateString"),
 	NOT("not"),
 	OR("or"),
-	POSITIVE_INTEGER("(TheFn PositiveInteger)"),
-	POSITIVE_NUMBER("(TheFn PositiveNumber)"),
+	POSITIVE_INTEGER("PositiveInteger"),
+	POSITIVE_NUMBER("PositiveNumber"),
 	PREDICATE("Predicate"),
 	PRETTY_STRING_CANONICAL("prettyString-Canonical"),
 	QUOTED_ISA("quotedIsa"),
@@ -48,10 +48,9 @@ public enum CommonConcepts {
 	RESULT_GENL_ARG("resultGenlArg"),
 	RESULT_ISA("resultIsa"),
 	RESULT_ISA_ARG("resultIsaArg"),
-	REVERSED_NLP("ReversedNLPPredicateString"),
 	SIBLING_DISJOINT_COLLECTION_TYPE("SiblingDisjointCollectionType"),
 	SIBLING_DISJOINT_EXCEPTION("siblingDisjointExceptions"),
-	STRING("(TheFn ControlCharacterFreeString)"),
+	STRING("ControlCharacterFreeString"),
 	SYMMETRIC_BINARY("SymmetricBinaryPredicate"),
 	TERM_STRING("termStrings"),
 	THE_FN("TheFn"),
@@ -197,8 +196,11 @@ public enum CommonConcepts {
 		// NLP Predicates
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				CHARACTER_STRING.getNode(dag), COLLECTION.getNode(dag));
-		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, GENLS.getNode(dag),
 				STRING.getNode(dag), CHARACTER_STRING.getNode(dag));
+		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
+				new OntologyFunction(THE_FN.getNode(dag), STRING.getNode(dag)),
+				STRING.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				NLP_PREDICATE_STRING.getNode(dag),
 				BINARY_PREDICATE.getNode(dag));
@@ -224,17 +226,17 @@ public enum CommonConcepts {
 
 		// Primitives
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
-				STRING.getNode(dag), INDIVIDUAL.getNode(dag));
+				STRING.getNode(dag), COLLECTION.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
-				POSITIVE_INTEGER.getNode(dag), INDIVIDUAL.getNode(dag));
+				POSITIVE_INTEGER.getNode(dag), COLLECTION.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
-				NEGATIVE_INTEGER.getNode(dag), INDIVIDUAL.getNode(dag));
+				NEGATIVE_INTEGER.getNode(dag), COLLECTION.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				ZERO.getNode(dag), INDIVIDUAL.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
-				POSITIVE_NUMBER.getNode(dag), INDIVIDUAL.getNode(dag));
+				POSITIVE_NUMBER.getNode(dag), COLLECTION.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
-				NEGATIVE_NUMBER.getNode(dag), INDIVIDUAL.getNode(dag));
+				NEGATIVE_NUMBER.getNode(dag), COLLECTION.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				TRUE.getNode(dag), INDIVIDUAL.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),

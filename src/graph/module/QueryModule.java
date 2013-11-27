@@ -247,21 +247,26 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		if (primitive.intValue() == 0)
 			return CommonConcepts.ZERO.getNode(dag_);
 		else if (primitive.intValue() > 0)
-			return CommonConcepts.POSITIVE_NUMBER.getNode(dag_);
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+					CommonConcepts.POSITIVE_NUMBER.getNode(dag_));
 		else
-			return CommonConcepts.NEGATIVE_NUMBER.getNode(dag_);
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+					CommonConcepts.NEGATIVE_NUMBER.getNode(dag_));
 	}
 
 	private DAGNode integerToDAGNode(Number primitive) {
 		if (primitive.intValue() == 0)
 			return CommonConcepts.ZERO.getNode(dag_);
 		else if (primitive.intValue() > 0)
-			return CommonConcepts.POSITIVE_INTEGER.getNode(dag_);
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+					CommonConcepts.POSITIVE_INTEGER.getNode(dag_));
 		else
-			return CommonConcepts.NEGATIVE_INTEGER.getNode(dag_);
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+					CommonConcepts.NEGATIVE_INTEGER.getNode(dag_));
 	}
 
 	private DAGNode stringToDAGNode(String name) {
-		return CommonConcepts.STRING.getNode(dag_);
+		return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+				CommonConcepts.STRING.getNode(dag_));
 	}
 }

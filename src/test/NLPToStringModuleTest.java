@@ -14,8 +14,6 @@ import graph.core.StringNode;
 import graph.inference.QueryObject;
 import graph.inference.VariableNode;
 import graph.module.NLPToStringModule;
-import graph.module.QueryModule;
-
 import java.io.File;
 
 import org.junit.After;
@@ -220,10 +218,6 @@ public class NLPToStringModuleTest {
 				CommonConcepts.PREDICATE.getNode(dag_)) instanceof ErrorEdge);
 		assertFalse(dag_.findOrCreateEdge(creator, false, nlpPred, broader,
 				new StringNode("$2 |2(is)|(are)| broader than $1")) instanceof ErrorEdge);
-		DAGNode quotedIsa = CommonConcepts.QUOTED_ISA.getNode(dag_);
-		DAGNode reversed = CommonConcepts.REVERSED_NLP.getNode(dag_);
-		assertFalse(dag_.findOrCreateEdge(creator, false, quotedIsa, broader,
-				reversed) instanceof ErrorEdge);
 		qo = new QueryObject(broader, samuel, actor);
 		result = sut_.edgeToString(qo, true, false, false);
 		assertEquals(result, "is 'Actor' broader than 'Samuel L Jackson'?");
@@ -272,7 +266,6 @@ public class NLPToStringModuleTest {
 		StringNode strB = new StringNode("B");
 		StringNode strC = new StringNode("C");
 		VariableNode var = new VariableNode("?X");
-		QueryModule querier = (QueryModule) dag_.getModule(QueryModule.class);
 		for (CommonConcepts cc : CommonConcepts.values()) {
 			if (!Character.isLowerCase(cc.getNodeName().charAt(0)))
 				continue;
@@ -284,19 +277,23 @@ public class NLPToStringModuleTest {
 						+ sut_.edgeToString(queryObject, false, false, false));
 				// Proof
 				System.out.println("Query (proof): " + queryObject.toString()
-						+ "\n\t" + sut_.edgeToString(queryObject, true, false, false));
+						+ "\n\t"
+						+ sut_.edgeToString(queryObject, true, false, false));
 				// Var A
 				queryObject = new QueryObject(cc.getNode(dag_), var, strB, strC);
 				System.out.println("Query (1): " + queryObject.toString()
-						+ "\n\t" + sut_.edgeToString(queryObject, true, false, false));
+						+ "\n\t"
+						+ sut_.edgeToString(queryObject, true, false, false));
 				// Var B
 				queryObject = new QueryObject(cc.getNode(dag_), strA, var, strC);
 				System.out.println("Query (2): " + queryObject.toString()
-						+ "\n\t" + sut_.edgeToString(queryObject, true, false, false));
+						+ "\n\t"
+						+ sut_.edgeToString(queryObject, true, false, false));
 				// Var C
 				queryObject = new QueryObject(cc.getNode(dag_), strA, strB, var);
 				System.out.println("Query (3): " + queryObject.toString()
-						+ "\n\t" + sut_.edgeToString(queryObject, true, false, false));
+						+ "\n\t"
+						+ sut_.edgeToString(queryObject, true, false, false));
 			} catch (Exception e) {
 				System.out
 						.println("Could not print '" + cc.getNodeName() + "'");
