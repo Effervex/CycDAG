@@ -14,6 +14,7 @@ import graph.core.StringNode;
 import graph.inference.QueryObject;
 import graph.inference.VariableNode;
 import graph.module.NLPToStringModule;
+
 import java.io.File;
 
 import org.junit.After;
@@ -65,20 +66,20 @@ public class NLPToStringModuleTest {
 				true, true, true);
 		DAGNode appleTree = (DAGNode) dag_.findOrCreateNode("AppleTree",
 				creator, true, true, true);
-		OntologyFunction apple = new OntologyFunction(fruitFn, appleTree);
+		OntologyFunction apple = new OntologyFunction(dag_, fruitFn, appleTree);
 		result = sut_.nodeToString(apple, false);
 		assertEquals(result, "Apple Tree (Fruit)");
 
 		DAGNode fermentedFn = (DAGNode) dag_.findOrCreateNode("FermentedFn",
 				creator, true, true, true);
-		OntologyFunction fermentedAppleTree = new OntologyFunction(fermentedFn,
-				appleTree);
+		OntologyFunction fermentedAppleTree = new OntologyFunction(dag_,
+				fermentedFn, appleTree);
 		result = sut_.nodeToString(fermentedAppleTree, false);
 		assertEquals(result, "Apple Tree (Fermented)");
 
 		// Double wrap
-		OntologyFunction fermentedApple = new OntologyFunction(fermentedFn,
-				apple);
+		OntologyFunction fermentedApple = new OntologyFunction(dag_,
+				fermentedFn, apple);
 		result = sut_.nodeToString(fermentedApple, false);
 		assertEquals(result, "Apple Tree (Fruit, Fermented)");
 
@@ -94,7 +95,7 @@ public class NLPToStringModuleTest {
 		result = sut_.nodeToString(fermentedApple, false);
 		assertEquals(result, "fermented fruit of the Apple Tree");
 
-		OntologyFunction samApple = new OntologyFunction(fruitFn, samuel);
+		OntologyFunction samApple = new OntologyFunction(dag_, fruitFn, samuel);
 		result = sut_.nodeToString(samApple, false);
 		assertEquals(result, "fruit of the Samuel L. Jackson");
 
@@ -238,9 +239,9 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "'Actor' is broader than what things?");
 
 		// Conjunctions
-		OntologyFunction firstPart = new OntologyFunction(isa2,
+		OntologyFunction firstPart = new OntologyFunction(true, isa2,
 				VariableNode.DEFAULT, actor);
-		OntologyFunction secondPart = new OntologyFunction(broader,
+		OntologyFunction secondPart = new OntologyFunction(true, broader,
 				VariableNode.DEFAULT, new VariableNode("?Y"));
 		DAGNode and = CommonConcepts.AND.getNode(dag_);
 		qo = new QueryObject(and, firstPart, secondPart);
@@ -250,9 +251,9 @@ public class NLPToStringModuleTest {
 
 		// Multi-conjunctions
 		DAGNode or = CommonConcepts.OR.getNode(dag_);
-		qo = new QueryObject(or, firstPart, new OntologyFunction(and,
-				new OntologyFunction(isa2, samuel, actor),
-				new OntologyFunction(broader, VariableNode.DEFAULT,
+		qo = new QueryObject(or, firstPart, new OntologyFunction(true, and,
+				new OntologyFunction(true, isa2, samuel, actor),
+				new OntologyFunction(true, broader, VariableNode.DEFAULT,
 						new VariableNode("?Y"))));
 		result = sut_.edgeToString(qo, true, false, false);
 		assertEquals(result, "what things ?X are an instance of 'Actor' OR "
@@ -303,10 +304,10 @@ public class NLPToStringModuleTest {
 
 		// And and Or
 		QueryObject queryObject = new QueryObject(
-				CommonConcepts.AND.getNode(dag_), new OntologyFunction(
+				CommonConcepts.AND.getNode(dag_), new OntologyFunction(true,
 						CommonConcepts.ISA.getNode(dag_), strA, strB),
-				new OntologyFunction(CommonConcepts.GENLS.getNode(dag_), strB,
-						strC));
+				new OntologyFunction(true, CommonConcepts.GENLS.getNode(dag_),
+						strB, strC));
 		System.out.println("Edge: " + queryObject.toString() + "\n\t"
 				+ sut_.edgeToString(queryObject, false, false, false));
 		// Proof
@@ -314,29 +315,29 @@ public class NLPToStringModuleTest {
 				+ sut_.edgeToString(queryObject, true, false, false));
 		// Var A
 		queryObject = new QueryObject(CommonConcepts.OR.getNode(dag_),
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), var,
-						strB), new OntologyFunction(
+				new OntologyFunction(true, CommonConcepts.ISA.getNode(dag_),
+						var, strB), new OntologyFunction(true,
 						CommonConcepts.GENLS.getNode(dag_), strB, strC));
 		System.out.println("Query (1): " + queryObject.toString() + "\n\t"
 				+ sut_.edgeToString(queryObject, true, false, false));
 		// Var B
 		queryObject = new QueryObject(CommonConcepts.AND.getNode(dag_),
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), strA,
-						var), new OntologyFunction(
+				new OntologyFunction(true, CommonConcepts.ISA.getNode(dag_),
+						strA, var), new OntologyFunction(true,
 						CommonConcepts.GENLS.getNode(dag_), var, strC));
 		System.out.println("Query (2): " + queryObject.toString() + "\n\t"
 				+ sut_.edgeToString(queryObject, true, false, false));
 		// Var C
 		queryObject = new QueryObject(CommonConcepts.OR.getNode(dag_),
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), strA,
-						strB), new OntologyFunction(
+				new OntologyFunction(true, CommonConcepts.ISA.getNode(dag_),
+						strA, strB), new OntologyFunction(true,
 						CommonConcepts.GENLS.getNode(dag_), strB, var));
 		System.out.println("Query (3): " + queryObject.toString() + "\n\t"
 				+ sut_.edgeToString(queryObject, true, false, false));
 		// Two vars
 		queryObject = new QueryObject(CommonConcepts.OR.getNode(dag_),
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), strA,
-						var), new OntologyFunction(
+				new OntologyFunction(true, CommonConcepts.ISA.getNode(dag_),
+						strA, var), new OntologyFunction(true,
 						CommonConcepts.GENLS.getNode(dag_), var,
 						new VariableNode("?Y")));
 		System.out.println("Query (4): " + queryObject.toString() + "\n\t"

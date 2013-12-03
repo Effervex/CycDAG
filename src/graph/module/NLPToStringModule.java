@@ -24,7 +24,7 @@ public class NLPToStringModule extends DAGModule<String> {
 	private transient QueryModule querier_;
 
 	private String conjunctedEdgeToString(QueryObject queryObject,
-			boolean isQuery) {
+			boolean isQuery, boolean markup) {
 		Node[] conjuncted = queryObject.getNodes();
 		StringBuffer buffer = new StringBuffer();
 		for (int i = 1; i < conjuncted.length; i++) {
@@ -36,7 +36,7 @@ public class NLPToStringModule extends DAGModule<String> {
 			}
 			QueryObject conjQO = new QueryObject(
 					((OntologyFunction) conjuncted[i]).getNodes());
-			String conjStr = edgeToString(conjQO, isQuery, true, false);
+			String conjStr = edgeToString(conjQO, isQuery, true, markup);
 			buffer.append(conjStr);
 		}
 		return buffer.toString();
@@ -64,7 +64,7 @@ public class NLPToStringModule extends DAGModule<String> {
 		if (queryObject.getNode(0).equals(CommonConcepts.AND.getNode(dag_))
 				|| queryObject.getNode(0).equals(
 						CommonConcepts.OR.getNode(dag_))) {
-			String conj = conjunctedEdgeToString(queryObject, isQuery);
+			String conj = conjunctedEdgeToString(queryObject, isQuery, markup);
 			return conj;
 		}
 

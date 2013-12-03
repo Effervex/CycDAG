@@ -30,7 +30,7 @@ public class NLPCommand extends Command {
 	protected void executeImpl() {
 		DAGPortHandler dagHandler = (DAGPortHandler) handler;
 		DirectedAcyclicGraph dag = dagHandler.getDAG();
-		NLPToStringModule nlpModule = (NLPToStringModule) dagHandler.getDAG()
+		NLPToStringModule nlpModule = (NLPToStringModule) dag
 				.getModule(NLPToStringModule.class);
 		if (nlpModule == null) {
 			print("-1|NLP To String Module is not in use for this DAG.\n");
@@ -45,7 +45,7 @@ public class NLPCommand extends Command {
 		// Parse markup
 		ArrayList<String> args = UtilityMethods.split(data, ' ');
 		String typeStr = args.get(0);
-		String nlpData = args.get(1);
+		String nlpData = args.get(1).trim();
 		boolean markup = false;
 		if (args.size() >= 3)
 			markup = (args.get(2).equalsIgnoreCase("T")) ? true : false;

@@ -31,6 +31,11 @@ public class MicrotheoryModule extends DAGModule<Collection<DAGEdge>> {
 	}
 
 	@Override
+	public void clear() {
+		microtheoryMap_.clear();
+	}
+
+	@Override
 	public boolean addEdge(Edge edge) {
 		if (edge instanceof DAGEdge) {
 			DAGEdge dagEdge = (DAGEdge) edge;

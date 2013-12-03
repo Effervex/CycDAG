@@ -28,6 +28,11 @@ public class FunctionIndex extends DAGModule<OntologyFunction> {
 	}
 
 	@Override
+	public void clear() {
+		index_.clear();
+	}
+
+	@Override
 	public OntologyFunction execute(Object... args)
 			throws IllegalArgumentException, ModuleException {
 		Set<OntologyFunction> vals = index_.getValue((Node[]) args, 0);

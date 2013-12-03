@@ -45,15 +45,29 @@ public class TransitiveWorker extends QueryWorker {
 
 		while (!toCheck.isEmpty()) {
 			DAGNode n = querier_.getExpanded(toCheck.poll());
-			if (atomicIndex == 1 && n instanceof OntologyFunction) {
-				if (querier_.functionResult((OntologyFunction) n, varIndex,
-						CommonConcepts.RESULT_GENL, queryObj))
-					return;
-			}
 
 			if (queryObj.isCompleted(n))
 				continue;
 			queryObj.addCompleted(n);
+
+			// Function checking
+			if (atomicIndex == 1 && n instanceof OntologyFunction) {
+				Collection<DAGNode> functionEdges = functionResults(
+						(OntologyFunction) n, CommonConcepts.RESULT_GENL);
+				for (DAGNode resultNode : functionEdges) {
+					if (queryObj.isProof()
+							&& resultNode.equals(queryObj.getNode(2))) {
+						queryObj.addResult(new Substitution(),
+								CommonConcepts.GENLS.getNode(dag_), n,
+								resultNode);
+						return;
+					}
+					if (queryObj.addResult(CommonConcepts.GENLS.getNode(dag_),
+							n, resultNode))
+						return;
+					toCheck.add(resultNode);
+				}
+			}
 
 			// Intersect the collections
 			Collection<Edge> nodeEdges = relatedModule_.execute(n,
@@ -75,22 +89,16 @@ public class TransitiveWorker extends QueryWorker {
 
 			// Create the subs
 			for (Edge e : nodeEdges) {
-				try {
-					DAGNode edgeNode = (DAGNode) e.getNodes()[varIndex];
+				DAGNode edgeNode = (DAGNode) e.getNodes()[varIndex];
 
-					if (queryObj.isProof()
-							&& e.getNodes()[varIndex].equals(queryObj
-									.getNode(2))) {
-						queryObj.addResult(new Substitution(), e.getNodes());
-						return;
-					}
-					if (queryObj.addResult(e.getNodes()))
-						return;
-					toCheck.add(edgeNode);
-				} catch (ClassCastException cce) {
-					System.err.print(e);
-					cce.printStackTrace();
+				if (queryObj.isProof()
+						&& e.getNodes()[varIndex].equals(queryObj.getNode(2))) {
+					queryObj.addResult(new Substitution(), e.getNodes());
+					return;
 				}
+				if (queryObj.addResult(e.getNodes()))
+					return;
+				toCheck.add(edgeNode);
 			}
 		}
 	}

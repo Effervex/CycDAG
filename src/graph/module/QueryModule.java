@@ -10,7 +10,6 @@ import graph.core.StringNode;
 import graph.inference.QueryObject;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
-import graph.inference.VariableNode;
 import graph.inference.module.AndWorker;
 import graph.inference.module.AssertedSentenceWorker;
 import graph.inference.module.DifferentWorker;
@@ -189,68 +188,16 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		return (DAGNode) node;
 	}
 
-	/**
-	 * Queries a function for its resultIsa/Genls and adds the results to the
-	 * query object.
-	 * 
-	 * @param functionNode
-	 *            The function node.
-	 * @param varIndex
-	 *            The other node in the query.
-	 * @param resultQuery
-	 *            The result query to run for the function.
-	 * @param queryObj
-	 *            The query object in which to store results.
-	 * @return True if the function addition completes the proof.
-	 */
-	public boolean functionResult(OntologyFunction functionNode, int varIndex,
-			CommonConcepts resultQuery, QueryObject queryObj) {
-		// Function chasing
-		QueryObject functionQuery = queryObj.modifyNodes(
-				resultQuery.getNode(dag_), functionNode.getNodes()[0],
-				queryObj.getNode(varIndex));
-		applyModule(resultQuery.getNodeName(), functionQuery);
-		if (queryObj.getResults() != null) {
-			queryObj.getJustification()
-					.addAll(functionQuery.getJustification());
-			return true;
-		}
-
-		// resultArgs
-		CommonConcepts resultArgConcept = (resultQuery == CommonConcepts.RESULT_GENL) ? CommonConcepts.RESULT_GENL_ARG
-				: (resultQuery == CommonConcepts.RESULT_ISA) ? CommonConcepts.RESULT_ISA_ARG
-						: null;
-		QueryObject resultArgQuery = new QueryObject(
-				resultArgConcept.getNode(dag_), functionNode.getNodes()[0],
-				VariableNode.DEFAULT);
-		Collection<Substitution> subs = execute(resultArgQuery);
-		for (Substitution sub : subs) {
-			PrimitiveNode resultIndex = (PrimitiveNode) sub
-					.getSubstitution(VariableNode.DEFAULT);
-			DAGNode resultType = (DAGNode) functionNode.getNodes()[((Number) resultIndex
-					.getPrimitive()).intValue()];
-			QueryObject transitiveQuery = queryObj.modifyNodes(
-					CommonConcepts.GENLS.getNode(dag_), resultType,
-					queryObj.getNode(varIndex));
-			applyModule(CommonConcepts.GENLS.getNodeName(), transitiveQuery);
-			if (queryObj.getResults() != null) {
-				queryObj.getJustification().addAll(
-						functionQuery.getJustification());
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	private DAGNode rationalToDAGNode(Number primitive) {
 		if (primitive.intValue() == 0)
 			return CommonConcepts.ZERO.getNode(dag_);
 		else if (primitive.intValue() > 0)
-			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+			return new OntologyFunction(false,
+					CommonConcepts.THE_FN.getNode(dag_),
 					CommonConcepts.POSITIVE_NUMBER.getNode(dag_));
 		else
-			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+			return new OntologyFunction(false,
+					CommonConcepts.THE_FN.getNode(dag_),
 					CommonConcepts.NEGATIVE_NUMBER.getNode(dag_));
 	}
 
@@ -258,15 +205,17 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		if (primitive.intValue() == 0)
 			return CommonConcepts.ZERO.getNode(dag_);
 		else if (primitive.intValue() > 0)
-			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+			return new OntologyFunction(false,
+					CommonConcepts.THE_FN.getNode(dag_),
 					CommonConcepts.POSITIVE_INTEGER.getNode(dag_));
 		else
-			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+			return new OntologyFunction(false,
+					CommonConcepts.THE_FN.getNode(dag_),
 					CommonConcepts.NEGATIVE_INTEGER.getNode(dag_));
 	}
 
 	private DAGNode stringToDAGNode(String name) {
-		return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+		return new OntologyFunction(false, CommonConcepts.THE_FN.getNode(dag_),
 				CommonConcepts.STRING.getNode(dag_));
 	}
 }

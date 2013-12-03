@@ -19,9 +19,25 @@ public class OntologyFunction extends DAGNode implements Edge {
 		super();
 	}
 
-	public OntologyFunction(Node... nodes) {
+	public OntologyFunction(DirectedAcyclicGraph dag, Node... nodes) {
 		super();
 		nodes_ = nodes;
+		anonymous_ = checkIfAnonymous(dag);
+		if (anonymous_)
+			id_ = -1;
+	}
+
+	@Override
+	public boolean isAnonymous() {
+		return anonymous_;
+	}
+
+	public OntologyFunction(boolean anonymous, Node... nodes) {
+		super();
+		nodes_ = nodes;
+		anonymous_ = anonymous;
+		if (anonymous_)
+			id_ = -1;
 	}
 
 	@Override
@@ -48,7 +64,7 @@ public class OntologyFunction extends DAGNode implements Edge {
 
 	@Override
 	public String getIdentifier() {
-		if (!isAnonymous())
+		if (id_ != -1)
 			return id_ + "";
 
 		StringBuffer buffer = new StringBuffer("(");
@@ -63,21 +79,15 @@ public class OntologyFunction extends DAGNode implements Edge {
 		return buffer.toString();
 	}
 
-	public boolean isAnonymous(DirectedAcyclicGraph dag) {
+	private boolean checkIfAnonymous(DirectedAcyclicGraph dag) {
 		// Check if function is unreifiable
-		if (anonymous_ == null) {
-			QueryModule queryModule = (QueryModule) dag
-					.getModule(QueryModule.class);
-			QueryObject queryObj = new QueryObject(
-					CommonConcepts.ISA.getNode(dag), nodes_[0],
-					CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag));
-			queryModule.applyModule(
-					CommonConcepts.ASSERTED_SENTENCE.getNodeName(), queryObj);
-			anonymous_ = queryObj.getResults() != null;
-			if (anonymous_)
-				id_ = -1;
-		}
-		return anonymous_;
+		QueryModule queryModule = (QueryModule) dag
+				.getModule(QueryModule.class);
+		QueryObject queryObj = new QueryObject(CommonConcepts.ISA.getNode(dag),
+				nodes_[0], CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag));
+		queryModule.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(),
+				queryObj);
+		return queryObj.getResults() != null;
 	}
 
 	@Override

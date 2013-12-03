@@ -274,7 +274,10 @@ public class QueryObject {
 		Node transitiveNode = null;
 		for (int i = justifications.size() - 1; i >= 0; i--) {
 			Node[] justNodes = justifications.get(i);
-			if (transitiveNode == null || justNodes[2].equals(transitiveNode)) {
+			if (transitiveNode == null
+					|| justNodes[2].equals(transitiveNode)
+					|| (justNodes[2] instanceof OntologyFunction && ((OntologyFunction) justNodes[2])
+							.getNodes()[0].equals(transitiveNode))) {
 				transitiveNode = justNodes[1];
 				transitiveJustification.add(justNodes);
 			}

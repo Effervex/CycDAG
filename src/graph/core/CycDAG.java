@@ -176,7 +176,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			if (!noChecks_ && isDisjoint(edgeNodes))
 				return CycDAGErrorEdge.DISJOINT_EDGE;
 
-			Edge edge = super.findOrCreateEdge(creator, true, edgeNodes);
+			Edge edge = super.findOrCreateEdge(creator, createNodes, edgeNodes);
 			if (!(edge instanceof ErrorEdge)) {
 				// Propagate subpreds
 				Edge propEdge = propagateEdge(edge, creator);
@@ -211,8 +211,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 					OntologyFunction ontFunc = functionIndexer
 							.execute((Object[]) subNodes);
 					if (ontFunc == null) {
-						ontFunc = new OntologyFunction(subNodes);
-						if (!ontFunc.isAnonymous(this) && createNew) {
+						ontFunc = new OntologyFunction(this, subNodes);
+						if (!ontFunc.isAnonymous() && createNew) {
 							boolean result = nodes_.add(ontFunc);
 							if (result) {
 								// Trigger modules
@@ -260,8 +260,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	@Override
-	public void initialise(String[] args) {
-		super.initialise(args);
+	public void initialiseInternal() {
+		super.initialiseInternal();
 		noChecks_ = true;
 		CommonConcepts.initialise(this);
 		CommonConcepts.createCommonAssertions(this);

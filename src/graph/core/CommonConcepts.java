@@ -199,7 +199,7 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, GENLS.getNode(dag),
 				STRING.getNode(dag), CHARACTER_STRING.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
-				new OntologyFunction(THE_FN.getNode(dag), STRING.getNode(dag)),
+				new OntologyFunction(dag, THE_FN.getNode(dag), STRING.getNode(dag)),
 				STRING.getNode(dag));
 		dag.findOrCreateEdge(_COMMON_CONCEPT, false, ISA.getNode(dag),
 				NLP_PREDICATE_STRING.getNode(dag),

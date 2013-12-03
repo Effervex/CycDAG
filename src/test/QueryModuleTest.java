@@ -41,7 +41,7 @@ public class QueryModuleTest {
 		dag_ = new CycDAG(new File("test"));
 		sut_ = (QueryModule) dag_.getModule(QueryModule.class);
 		assertNotNull(sut_);
-		CommonConcepts.initialise((CycDAG) dag_);
+		CommonConcepts.initialise(dag_);
 	}
 
 	@After
@@ -61,28 +61,28 @@ public class QueryModuleTest {
 		dag_.findOrCreateEdge(creator, false, genls, dog, canis);
 		VariableNode x = VariableNode.DEFAULT;
 		Collection<Substitution> results = sut_.execute(and,
-				new OntologyFunction(genls, dog, x), new OntologyFunction(
-						genls, dog, x));
+				new OntologyFunction(true, genls, dog, x),
+				new OntologyFunction(true, genls, dog, x));
 		assertEquals(results.size(), 2);
 		assertTrue(results.contains(new Substitution(x, dog)));
 		assertTrue(results.contains(new Substitution(x, canis)));
 
-		results = sut_.execute(and, new OntologyFunction(genls, x, dog),
-				new OntologyFunction(genls, dog, x));
+		results = sut_.execute(and, new OntologyFunction(true, genls, x, dog),
+				new OntologyFunction(true, genls, dog, x));
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(new Substitution(x, dog)));
 
 		DAGNode wolf = (DAGNode) dag_.findOrCreateNode("Wolf", creator, true,
 				true, true);
 		dag_.findOrCreateEdge(creator, false, genls, wolf, canis);
-		results = sut_.execute(and, new OntologyFunction(genls, x, dog),
-				new OntologyFunction(genls, x, wolf));
+		results = sut_.execute(and, new OntologyFunction(true, genls, x, dog),
+				new OntologyFunction(true, genls, x, wolf));
 		assertEquals(results.size(), 0);
 
 		// Multiple variables
 		VariableNode y = new VariableNode("?Y");
-		results = sut_.execute(and, new OntologyFunction(genls, dog, x),
-				new OntologyFunction(genls, wolf, y));
+		results = sut_.execute(and, new OntologyFunction(true, genls, dog, x),
+				new OntologyFunction(true, genls, wolf, y));
 		assertEquals(results.size(), 4);
 		Substitution s = new Substitution(x, dog);
 		s.addSubstitution(y, wolf);
@@ -99,9 +99,9 @@ public class QueryModuleTest {
 
 		// Different
 		DAGNode different = CommonConcepts.DIFFERENT.getNode(dag_);
-		results = sut_.execute(and, new OntologyFunction(genls, dog, x),
-				new OntologyFunction(genls, wolf, y), new OntologyFunction(
-						different, x, y));
+		results = sut_.execute(and, new OntologyFunction(true, genls, dog, x),
+				new OntologyFunction(true, genls, wolf, y),
+				new OntologyFunction(true, different, x, y));
 		assertEquals(results.size(), 3);
 		s = new Substitution(x, dog);
 		s.addSubstitution(y, wolf);
@@ -117,23 +117,23 @@ public class QueryModuleTest {
 		DAGNode species = (DAGNode) dag_.findOrCreateNode("BiologicalSpecies",
 				creator, true, true, true);
 		dag_.findOrCreateEdge(creator, false, isa, dog, species);
-		results = sut_.execute(and, new OntologyFunction(isa, dog, x),
-				new OntologyFunction(isa, dog, y), new OntologyFunction(
-						different, x, y));
+		results = sut_.execute(and, new OntologyFunction(true, isa, dog, x),
+				new OntologyFunction(true, isa, dog, y), new OntologyFunction(
+						true, different, x, y));
 		assertEquals(results.size(), 0);
 
 		// Equals
 		DAGNode equals = CommonConcepts.EQUALS.getNode(dag_);
-		results = sut_.execute(and, new OntologyFunction(genls, dog, x),
-				new OntologyFunction(genls, wolf, y), new OntologyFunction(
-						equals, x, y));
+		results = sut_.execute(and, new OntologyFunction(true, genls, dog, x),
+				new OntologyFunction(true, genls, wolf, y),
+				new OntologyFunction(true, equals, x, y));
 		assertEquals(results.size(), 1);
 		s = new Substitution(x, canis);
 		s.addSubstitution(y, canis);
 		assertTrue(results.contains(s));
 
-		results = sut_.execute(and, new OntologyFunction(genls, dog, x),
-				new OntologyFunction(genls, wolf, canis));
+		results = sut_.execute(and, new OntologyFunction(true, genls, dog, x),
+				new OntologyFunction(true, genls, wolf, canis));
 		assertEquals(results.size(), 2);
 		assertTrue(results.contains(new Substitution(x, dog)));
 		assertTrue(results.contains(new Substitution(x, canis)));
@@ -142,8 +142,8 @@ public class QueryModuleTest {
 		DAGNode fido = (DAGNode) dag_.findOrCreateNode("Fido", creator, true,
 				true, true);
 		dag_.findOrCreateEdge(creator, false, isa, fido, dog);
-		results = sut_.execute(and, new OntologyFunction(isa, fido, x),
-				new OntologyFunction(genls, wolf, x));
+		results = sut_.execute(and, new OntologyFunction(true, isa, fido, x),
+				new OntologyFunction(true, genls, wolf, x));
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(new Substitution(x, canis)));
 	}
@@ -925,27 +925,29 @@ public class QueryModuleTest {
 		QueryObject qo;
 		Collection<Substitution> results;
 
-		dag_.findOrCreateEdge(creator, false, resultGenl, fruitFn, fruit);
-		OntologyFunction apple = new OntologyFunction(fruitFn, appleTree);
+		assertEdge(dag_.findOrCreateEdge(creator, false, resultGenl, fruitFn,
+				fruit));
+		DAGNode apple = (DAGNode) dag_.findOrCreateNode("(FruitFn AppleTree)",
+				creator, true, true, true);
 		qo = new QueryObject(genls, apple, fruit);
 		results = sut_.execute(qo);
 		assertNotNull(results);
 		List<Node[]> justification = qo.getJustification();
 		assertEquals(justification.size(), 1);
-		assertArrayEquals(justification.get(0), new Node[] { resultGenl,
-				fruitFn, fruit });
+		assertArrayEquals(justification.get(0), new Node[] { genls, apple,
+				fruit });
 
 		// Genls
 		DAGNode plant = (DAGNode) dag_.findOrCreateNode("Plant", creator, true,
 				true, true);
-		dag_.findOrCreateEdge(creator, false, genls, fruit, plant);
+		assertEdge(dag_.findOrCreateEdge(creator, false, genls, fruit, plant));
 		qo = new QueryObject(genls, apple, plant);
 		results = sut_.execute(qo);
 		assertNotNull(results);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 2);
-		assertArrayEquals(justification.get(0), new Node[] { resultGenl,
-				fruitFn, fruit });
+		assertArrayEquals(justification.get(0), new Node[] { genls, apple,
+				fruit });
 		assertArrayEquals(justification.get(1), new Node[] { genls, fruit,
 				plant });
 
@@ -966,32 +968,35 @@ public class QueryModuleTest {
 		DAGNode person = (DAGNode) dag_.findOrCreateNode("Person", creator,
 				true, true, true);
 
-		dag_.findOrCreateEdge(creator, false, resultIsa, fatherFn, person);
-		qo = new QueryObject(isa, new OntologyFunction(fatherFn, sam), person);
+		assertEdge(dag_.findOrCreateEdge(creator, false, resultIsa, fatherFn,
+				person));
+		DAGNode samDad = (DAGNode) dag_.findOrCreateNode("(FatherFn Sam)",
+				creator, true, true, true);
+		qo = new QueryObject(isa, samDad, person);
 		results = sut_.execute(qo);
 		assertNotNull(results);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 1);
-		assertArrayEquals(justification.get(0), new Node[] { resultIsa,
-				fatherFn, person });
+		assertArrayEquals(justification.get(0), new Node[] { isa, samDad,
+				person });
 
 		DAGNode thing = (DAGNode) dag_.findOrCreateNode("Thing", creator, true,
 				true, true);
-		dag_.findOrCreateEdge(creator, false, genls, person, thing);
-		qo = new QueryObject(isa, new OntologyFunction(fatherFn, sam), thing);
+		assertEdge(dag_.findOrCreateEdge(creator, false, genls, person, thing));
+		qo = new QueryObject(isa, samDad, thing);
 		results = sut_.execute(qo);
 		assertNotNull(results);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 2);
-		assertArrayEquals(justification.get(0), new Node[] { resultIsa,
-				fatherFn, person });
+		assertArrayEquals(justification.get(0), new Node[] { isa, samDad,
+				person });
 		assertArrayEquals(justification.get(1), new Node[] { genls, person,
 				thing });
 
 		// Isa
-		Node myApple = (DAGNode) dag_.findOrCreateNode("SamsApple", creator,
+		Node myApple = dag_.findOrCreateNode("SamsApple", creator,
 				true, true, true);
-		dag_.findOrCreateEdge(creator, false, isa, myApple, apple);
+		assertEdge(dag_.findOrCreateEdge(creator, false, isa, myApple, apple));
 		qo = new QueryObject(isa, myApple, fruit);
 		results = sut_.execute(qo);
 		assertNotNull(results);
@@ -999,8 +1004,8 @@ public class QueryModuleTest {
 		assertEquals(justification.size(), 2);
 		assertArrayEquals(justification.get(0), new Node[] { isa, myApple,
 				apple });
-		assertArrayEquals(justification.get(1), new Node[] { resultGenl,
-				fruitFn, fruit });
+		assertArrayEquals(justification.get(1), new Node[] { genls, apple,
+				fruit });
 
 		qo = new QueryObject(isa, myApple, VariableNode.DEFAULT);
 		results = sut_.execute(qo);
@@ -1012,19 +1017,51 @@ public class QueryModuleTest {
 		// Disjoint
 		DAGNode disjoint = (DAGNode) dag_.findOrCreateNode("disjointWith",
 				creator, true, true, true);
-		Node vege = (DAGNode) dag_.findOrCreateNode("Vegetable", creator, true,
+		Node vege = dag_.findOrCreateNode("Vegetable", creator, true,
 				true, true);
-		dag_.findOrCreateEdge(creator, false, genls, vege, plant);
-		dag_.findOrCreateEdge(creator, false, disjoint, fruit, vege);
+		assertEdge(dag_.findOrCreateEdge(creator, false, genls, vege, plant));
+		assertEdge(dag_.findOrCreateEdge(creator, false, disjoint, fruit, vege));
 		qo = new QueryObject(disjoint, apple, vege);
 		results = sut_.execute(qo);
 		assertNotNull(results);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 2);
-		assertArrayEquals(justification.get(0), new Node[] { resultGenl,
-				fruitFn, fruit });
-		assertArrayEquals(justification.get(1), new Node[] { disjoint,
-			fruit, vege });
+		assertArrayEquals(justification.get(0), new Node[] { genls, apple,
+				fruit });
+		assertArrayEquals(justification.get(1), new Node[] { disjoint, fruit,
+				vege });
+
+		// Recursive definition
+		Node hardcore = dag_.findOrCreateNode("HardcoreFn", creator,
+				true, true, true);
+		Node hardcorePlant = dag_.findOrCreateNode(
+				"(HardcoreFn Plant)", creator, true, true, true);
+		assertEdge(dag_.findOrCreateEdge(creator, true, resultGenl, hardcore,
+				hardcorePlant));
+		qo = new QueryObject(genls, hardcorePlant, VariableNode.DEFAULT);
+		results = sut_.execute(qo);
+		assertEquals(results.size(), 1);
+
+		// Justification check
+		dag_.findOrCreateEdge(creator, false, genls, fruit, fruit);
+		Node redapple = dag_.findOrCreateNode("RedApple", creator,
+				true, true, true);
+		assertEdge(dag_.findOrCreateEdge(creator, false, isa, redapple, apple));
+		assertEdge(dag_
+				.findOrCreateEdge(creator, false, genls, redapple, apple));
+		qo = new QueryObject(genls, redapple, fruit);
+		results = sut_.execute(qo);
+		assertNotNull(results);
+		justification = qo.getJustification();
+		assertEquals(justification.size(), 2);
+		assertArrayEquals(justification.get(0), new Node[] { genls, redapple,
+				apple });
+		assertArrayEquals(justification.get(1), new Node[] { genls, apple,
+				fruit });
+	}
+
+	private void assertEdge(Edge edge) {
+		assertFalse(edge.toString(), edge instanceof ErrorEdge);
 	}
 
 	@Test

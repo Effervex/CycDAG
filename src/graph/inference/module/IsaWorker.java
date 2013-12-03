@@ -1,6 +1,7 @@
 package graph.inference.module;
 
 import graph.core.CommonConcepts;
+import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Edge;
@@ -70,11 +71,6 @@ public class IsaWorker extends QueryWorker {
 		DAGNode atomic = queryObj.getAtomic();
 		if (atomic == null)
 			return;
-		if (atomicIndex == 1 && atomic instanceof OntologyFunction) {
-			if (querier_.functionResult((OntologyFunction) atomic, varIndex,
-					CommonConcepts.RESULT_ISA, queryObj))
-				return;
-		}
 
 		VariableNode varNode = new VariableNode("?_T_");
 		// Find downwards transitive if atomic is not first arg.
@@ -94,8 +90,18 @@ public class IsaWorker extends QueryWorker {
 				.getNode(0));
 
 		for (Substitution s : genlsSubs) {
-			Collection<Edge> isas = atomicEdges(queryObj.getNodes(),
-					s.getSubstitution(varNode), atomicIndex, varIndex, isaPred);
+			Node n = s.getSubstitution(varNode);
+			Collection<Edge> isas = atomicEdges(queryObj.getNodes(), n,
+					atomicIndex, varIndex, isaPred);
+
+			// Checking functions
+			if (atomicIndex == 1 && n instanceof OntologyFunction) {
+				Collection<DAGNode> functionEdges = functionResults(
+						(OntologyFunction) atomic, CommonConcepts.RESULT_ISA);
+				for (DAGNode funcNode : functionEdges)
+					isas.add(new DAGEdge(CommonConcepts.ISA.getNode(dag_), n,
+							funcNode));
+			}
 			for (Edge e : isas) {
 				Node[] edgeNodes = e.getNodes();
 				if (queryObj.isCompleted(edgeNodes[varIndex]))

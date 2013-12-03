@@ -52,13 +52,13 @@ public class OntologyEdgeModuleTest {
 		DAGNode person = (DAGNode) dag_.findOrCreateNode("Person", creator,
 				true, true, true);
 		DAGEdge funcEdge = (DAGEdge) dag_.findOrCreateEdge(creator, false,
-				genls, place, new OntologyFunction(diffFn, thing, person));
+				genls, place, new OntologyFunction(dag_, diffFn, thing, person));
 		Collection<Edge> results = sut_.findEdgeByNodes(genls, place,
-				new OntologyFunction(diffFn, thing));
+				new OntologyFunction(dag_, diffFn, thing));
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(funcEdge));
 
-		results = sut_.execute(new OntologyFunction(diffFn, thing));
+		results = sut_.execute(new OntologyFunction(dag_, diffFn, thing));
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(funcEdge));
 
@@ -68,14 +68,14 @@ public class OntologyEdgeModuleTest {
 		DAGNode nz = (DAGNode) dag_.findOrCreateNode("NewZealand", creator,
 				true, true, true);
 		DAGEdge strEdge = (DAGEdge) dag_.findOrCreateEdge(creator, false,
-				genls, new OntologyFunction(cityNamedFn, new StringNode(
-						"Hamilton"), nz), place);
-		results = sut_.findEdgeByNodes(genls, new OntologyFunction(cityNamedFn,
-				new StringNode("Auckland"), nz), place);
+				genls, new OntologyFunction(dag_, cityNamedFn, new StringNode(
+								"Hamilton"), nz), place);
+		results = sut_.findEdgeByNodes(genls, new OntologyFunction(dag_,
+				cityNamedFn, new StringNode("Auckland"), nz), place);
 		assertEquals(results.size(), 0);
 
-		results = sut_.findEdgeByNodes(genls, new OntologyFunction(cityNamedFn,
-				new StringNode("Hamilton"), nz));
+		results = sut_.findEdgeByNodes(genls, new OntologyFunction(dag_,
+				cityNamedFn, new StringNode("Hamilton"), nz));
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(strEdge));
 	}
@@ -92,13 +92,13 @@ public class OntologyEdgeModuleTest {
 		DAGNode thingy = (DAGNode) dag_.findOrCreateNode("Thing", creator,
 				true, true, true);
 		DAGEdge funcEdge = (DAGEdge) dag_.findOrCreateEdge(creator, false,
-				genls, blah, new OntologyFunction(fn, thingy, new StringNode(
+				genls, blah, new OntologyFunction(dag_, fn, thingy, new StringNode(
 						"ABC")));
 		DAGEdge funcEdge2 = (DAGEdge) dag_.findOrCreateEdge(creator, false,
-				genls, blah, new OntologyFunction(fn, thingy, new StringNode(
+				genls, blah, new OntologyFunction(dag_, fn, thingy, new StringNode(
 						"123")));
-		Collection<Edge> results = sut_.execute(new OntologyFunction(fn,
-				thingy, new StringNode("123")), 3);
+		Collection<Edge> results = sut_.execute(new OntologyFunction(dag_,
+				fn, thingy, new StringNode("123")), 3);
 		assertEquals(results.toString(), results.size(), 1);
 		assertTrue(results.contains(funcEdge2));
 	}

@@ -1,6 +1,7 @@
 package graph.module.cli;
 
 import graph.core.Node;
+import graph.core.cli.CollectionCommand;
 import graph.core.cli.DAGPortHandler;
 import graph.inference.CommonQuery;
 import graph.module.QueryModule;
@@ -11,20 +12,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import util.UtilityMethods;
-import core.Command;
 
-public class QuickQueryCommand extends Command {
-	private static final Pattern ARG_PATTERN = Pattern
-			.compile("^(\\S+)(.+?)( \\[(\\d+), *(\\d+)\\))?$");
+public class QuickQueryCommand extends CollectionCommand {
+	private static final Pattern ARG_PATTERN = Pattern.compile("^(\\S+)(.+?)$");
 
 	@Override
 	public String helpText() {
 		StringBuffer buffer = new StringBuffer(
 				"{0} <shortCommand> <nodeArgs> [A,B) : Poses a query "
 						+ "to the DAG using the CommonQuery enum. "
-						+ "Each query returns a set of nodes. Use A "
-						+ "and B to define a subset of results "
-						+ "returned [incl-excl).\nQueries include: ");
+						+ "Each query returns a set of nodes."
+						+ "\nQueries include: ");
 		boolean first = true;
 		for (CommonQuery cq : CommonQuery.values()) {
 			if (!first)
@@ -43,6 +41,7 @@ public class QuickQueryCommand extends Command {
 
 	@Override
 	protected void executeImpl() {
+		super.executeImpl();
 		DAGPortHandler dagHandler = (DAGPortHandler) handler;
 		QueryModule queryModule = (QueryModule) dagHandler.getDAG().getModule(
 				QueryModule.class);
@@ -87,32 +86,22 @@ public class QuickQueryCommand extends Command {
 			}
 		}
 
-		// Subset args
-		int start = 0;
-		int end = Integer.MAX_VALUE;
-		if (m.group(3) != null) {
-			start = Integer.parseInt(m.group(4));
-			end = Integer.parseInt(m.group(5));
-			if (end <= start) {
-				print("-2|Invalid range argument.\n");
-				return;
-			}
-		}
-
 		Collection<Node> result = cq.runQuery(dagHandler.getDAG(), args);
+
+		// Sort results
+		result = dagHandler.sort(result, rangeStart_, rangeEnd_);
+
 		if (result == null || result.isEmpty()) {
 			print("0|NIL\n");
 			return;
 		} else {
 			int size = result.size();
-			size = Math.min(size, Math.min(size, end) - start);
 			print(size + "|");
 		}
 
-		Node[] resultArray = result.toArray(new Node[result.size()]);
-		for (int i = start; i < resultArray.length && i < end; i++) {
-			if (resultArray[i] != null)
-				print(dagHandler.textIDObject(resultArray[i]));
+		for (Node n : result) {
+			if (n != null)
+				print(dagHandler.textIDObject(n));
 			print("|");
 		}
 		print("\n");

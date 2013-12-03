@@ -143,11 +143,11 @@ public class DisjointWithWorker extends QueryWorker {
 			return;
 		VariableNode queryVar = new VariableNode("?_DISJ_");
 		QueryObject qo = new QueryObject(CommonConcepts.AND.getNode(dag_),
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+				new OntologyFunction(true, CommonConcepts.ISA.getNode(dag_),
 						queryObj.getNode(1), queryVar), // First
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+				new OntologyFunction(true, CommonConcepts.ISA.getNode(dag_),
 						queryObj.getNode(2), queryVar), // Second
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+				new OntologyFunction(true, CommonConcepts.ISA.getNode(dag_),
 						queryVar,
 						CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
 								.getNode(dag_)));

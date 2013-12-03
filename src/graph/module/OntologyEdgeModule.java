@@ -7,9 +7,11 @@ import graph.core.OntologyFunction;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 import util.Pair;
+import util.collection.MultiMap;
 
 public class OntologyEdgeModule extends RelatedEdgeModule {
 	private static final String FUNC_SPLIT = "F";
@@ -33,6 +35,12 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 				}
 			}
 
+			// Only function as index
+			if (index != null && index.equals(FUNC_SPLIT)) {
+				edgeCols.add(new EdgeCol(true, getFunctionEdges(n, additive)));
+				continue;
+			}
+
 			// TODO This is not ideal for functions.
 			String key = (index == null || functionPrefix == null) ? null
 					: functionPrefix + index;
@@ -47,6 +55,28 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 			}
 		}
 		return edgeCols;
+	}
+
+	/**
+	 * Gets the function edges (or edges containing the node NOT in functions).
+	 * 
+	 * @param n
+	 *            The node to get edges for.
+	 * @param functionOnly
+	 *            If only getting edges in which the node is in the function, or
+	 *            getting non-function edges.
+	 * @return The set of all edges (function or not).
+	 */
+	private Collection<Edge> getFunctionEdges(Node n, boolean functionOnly) {
+		Collection<Edge> funcEdges = new HashSet<>();
+		MultiMap<Object, Edge> nodeEdges = relatedEdges_.get(n);
+		for (Object key : nodeEdges.keySet()) {
+			if (functionOnly && key.toString().contains(FUNC_SPLIT))
+				funcEdges.addAll(nodeEdges.get(key));
+			else if (!functionOnly && !key.toString().contains(FUNC_SPLIT))
+				funcEdges.addAll(nodeEdges.get(key));
+		}
+		return funcEdges;
 	}
 
 	private ArrayList<Object> recurseIndexed(Node[] nodes, String prefix) {
