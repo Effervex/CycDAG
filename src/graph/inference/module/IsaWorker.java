@@ -96,7 +96,7 @@ public class IsaWorker extends QueryWorker {
 
 			// Checking functions
 			if (atomicIndex == 1 && n instanceof OntologyFunction) {
-				Collection<DAGNode> functionEdges = functionResults(
+				Collection<DAGNode> functionEdges = querier_.functionResults(
 						(OntologyFunction) atomic, CommonConcepts.RESULT_ISA);
 				for (DAGNode funcNode : functionEdges)
 					isas.add(new DAGEdge(CommonConcepts.ISA.getNode(dag_), n,

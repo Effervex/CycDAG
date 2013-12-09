@@ -22,6 +22,7 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	private MultiMap<Integer, DAGNode> depthMap_;
 
 	public DepthModule() {
+		super();
 		depthMap_ = MultiMap.createConcurrentHashSetMultiMap();
 	}
 
@@ -68,10 +69,10 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 			return 0;
 		}
 		if (seen.contains(node.getID()))
-			return Integer.MAX_VALUE - 1;
+			return 0;
 		seen.add(node.getID());
 
-		int depth = Integer.MAX_VALUE - 1;
+		int depth = 1;
 		String depthStr = node.getProperty(DEPTH_PROPERTY);
 		if (depthStr == null || depthStr.equals("-1")) {
 			Collection<Node> minCol = null;
@@ -83,7 +84,7 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 			minCol.remove(node);
 			for (Node superGenls : minCol) {
 				depth = Math
-						.min(processNode((DAGNode) superGenls, new HashSet<>(
+						.max(processNode((DAGNode) superGenls, new HashSet<>(
 								seen)) + 1, depth);
 			}
 			dag_.addProperty(node, DEPTH_PROPERTY, depth + "");
@@ -139,16 +140,24 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	}
 
 	@Override
-	public void initialisationComplete(Collection<DAGNode> nodes,
+	public boolean initialisationComplete(Collection<DAGNode> nodes,
 			Collection<DAGEdge> edges) {
 		if (depthCalculated_)
-			return;
+			return false;
 
 		// Compute the depths of each node in the graph
 		System.out.print("Calculating node depths... ");
-		for (DAGNode node : nodes)
+		int count = 0;
+		int tenPercent = nodes.size() / 10;
+		for (DAGNode node : nodes) {
+			count++;
 			processNode(node, new HashSet<Long>());
+			if (count % tenPercent == 0)
+				System.out.print((count / tenPercent * 10) + "% ");
+		}
 		System.out.println("Depth calculation complete!");
+		depthCalculated_ = true;
+		return true;
 	}
 
 	@Override

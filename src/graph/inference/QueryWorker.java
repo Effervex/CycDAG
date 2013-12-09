@@ -1,17 +1,12 @@
 package graph.inference;
 
-import graph.core.CommonConcepts;
-import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
-import graph.core.Edge;
 import graph.core.Node;
-import graph.core.OntologyFunction;
 import graph.module.ModuleException;
 import graph.module.OntologyEdgeModule;
 import graph.module.QueryModule;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collection;
 
 public abstract class QueryWorker implements Serializable {
@@ -32,41 +27,6 @@ public abstract class QueryWorker implements Serializable {
 		QueryObject queryObj = new QueryObject(nodes);
 		queryInternal(queryObj);
 		return queryObj.getResults();
-	}
-
-	/**
-	 * Returns all nodes that a function produces (either resultGenl or
-	 * resultIsa, and their expanded <X>Arg variants). Other methods can use
-	 * this in their calculations of a query result.
-	 * 
-	 * @param functionNode
-	 *            The function to return nodes for.
-	 * @param resultQuery
-	 *            The type of results to look for (resultGenl/resultIsa).
-	 * @return The collection of all results returned by the function.
-	 */
-	public Collection<DAGNode> functionResults(OntologyFunction functionNode,
-			CommonConcepts resultQuery) {
-		Collection<DAGNode> results = new ArrayList<>();
-		Collection<Edge> resultEdges = relatedModule_.findEdgeByNodes(
-				resultQuery.getNode(dag_), functionNode.getNodes()[0]);
-		for (Edge e : resultEdges)
-			results.add((DAGNode) e.getNodes()[2]);
-
-		// resultArgs
-		CommonConcepts resultArgConcept = (resultQuery == CommonConcepts.RESULT_GENL) ? CommonConcepts.RESULT_GENL_ARG
-				: (resultQuery == CommonConcepts.RESULT_ISA) ? CommonConcepts.RESULT_ISA_ARG
-						: null;
-		resultEdges = relatedModule_.findEdgeByNodes(resultArgConcept.getNode(dag_),
-				functionNode.getNodes()[0]);
-		for (Edge e : resultEdges) {
-			Integer argIndex = Integer.parseInt(e.getNodes()[2].toString());
-			Node n = functionNode.getNodes()[argIndex];
-			if (n instanceof DAGNode)
-				results.add((DAGNode) n);
-		}
-
-		return results;
 	}
 
 	/**

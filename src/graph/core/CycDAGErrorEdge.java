@@ -42,7 +42,6 @@ public enum CycDAGErrorEdge implements ErrorEdge {
 
 	@Override
 	public long getID() {
-		// TODO Auto-generated method stub
 		return -1;
 	}
 

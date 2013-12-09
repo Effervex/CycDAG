@@ -7,7 +7,6 @@ import graph.module.DAGModule;
 import graph.module.FunctionIndex;
 import graph.module.NodeAliasModule;
 import graph.module.QueryModule;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -216,8 +215,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 							boolean result = nodes_.add(ontFunc);
 							if (result) {
 								// Trigger modules
-								for (DAGModule<?> module : getModules()
-										.values())
+								for (DAGModule<?> module : getModules())
 									module.addNode(ontFunc);
 							}
 						}

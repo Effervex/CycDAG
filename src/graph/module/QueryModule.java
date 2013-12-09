@@ -3,6 +3,7 @@ package graph.module;
 import graph.core.CommonConcepts;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
+import graph.core.Edge;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
@@ -186,6 +187,43 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				return stringToDAGNode(node.getName());
 		}
 		return (DAGNode) node;
+	}
+
+	/**
+	 * Returns all nodes that a function produces (either resultGenl or
+	 * resultIsa, and their expanded <X>Arg variants). Other methods can use
+	 * this in their calculations of a query result.
+	 * 
+	 * @param functionNode
+	 *            The function to return nodes for.
+	 * @param resultQuery
+	 *            The type of results to look for (resultGenl/resultIsa).
+	 * @return The collection of all results returned by the function.
+	 */
+	public Collection<DAGNode> functionResults(OntologyFunction functionNode,
+			CommonConcepts resultQuery) {
+		Collection<DAGNode> results = new ArrayList<>();
+		RelatedEdgeModule relatedModule = (RelatedEdgeModule) dag_
+				.getModule(RelatedEdgeModule.class);
+		Collection<Edge> resultEdges = relatedModule.findEdgeByNodes(
+				resultQuery.getNode(dag_), functionNode.getNodes()[0]);
+		for (Edge e : resultEdges)
+			results.add((DAGNode) e.getNodes()[2]);
+
+		// resultArgs
+		CommonConcepts resultArgConcept = (resultQuery == CommonConcepts.RESULT_GENL) ? CommonConcepts.RESULT_GENL_ARG
+				: (resultQuery == CommonConcepts.RESULT_ISA) ? CommonConcepts.RESULT_ISA_ARG
+						: null;
+		resultEdges = relatedModule.findEdgeByNodes(
+				resultArgConcept.getNode(dag_), functionNode.getNodes()[0]);
+		for (Edge e : resultEdges) {
+			Integer argIndex = Integer.parseInt(e.getNodes()[2].toString());
+			Node n = functionNode.getNodes()[argIndex];
+			if (n instanceof DAGNode)
+				results.add((DAGNode) n);
+		}
+
+		return results;
 	}
 
 	private DAGNode rationalToDAGNode(Number primitive) {

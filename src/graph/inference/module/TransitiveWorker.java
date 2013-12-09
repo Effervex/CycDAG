@@ -2,32 +2,67 @@ package graph.inference.module;
 
 import graph.core.CommonConcepts;
 import graph.core.DAGNode;
+import graph.core.DirectedAcyclicGraph;
 import graph.core.Edge;
+import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
 import graph.module.QueryModule;
+import graph.module.TransitiveIntervalSchemaModule;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 import org.apache.commons.collections4.CollectionUtils;
 
 public class TransitiveWorker extends QueryWorker {
 	private static final long serialVersionUID = -7763389018408199476L;
+	private transient TransitiveIntervalSchemaModule transIntModule_;
 
 	public TransitiveWorker(QueryModule queryModule) {
 		super(queryModule);
 	}
 
-	@Override
-	public void queryInternal(QueryObject queryObj)
-			throws IllegalArgumentException {
-		transitiveSearch(queryObj);
-		if (queryObj.isProof())
-			queryObj.cleanTransitiveJustification(queryObj.getJustification());
+	/**
+	 * Runs the transitive interval module to efficiently compute the solution
+	 * to a query.
+	 * 
+	 * @param queryObj
+	 *            The query to run and store results in.
+	 */
+	private void runIntervalModule(QueryObject queryObj) {
+		if (queryObj.isProof()) {
+			// Find the proof and justify it.
+			Collection<DAGNode> result = transIntModule_.execute(true,
+					queryObj.getNode(1), queryObj.getNode(2));
+			if (result != null) {
+				queryObj.addResult(new Substitution(), queryObj.getNodes());
+				List<Node[]> justification = queryObj.getJustification();
+				justification.clear();
+				justification.addAll(transIntModule_.justifyTransitive(
+						(DAGNode) queryObj.getNode(1),
+						(DAGNode) queryObj.getNode(2)));
+			}
+		} else {
+			// Find the results and add them to the query object.
+			boolean upwards = queryObj.getAtomicIndex() == 1;
+			DAGNode baseNode = queryObj.getAtomic();
+			Collection<DAGNode> transitiveNodes = transIntModule_.execute(
+					upwards, baseNode);
+			if (transitiveNodes == null)
+				return;
+			for (DAGNode n : transitiveNodes) {
+				queryObj.addCompleted(n);
+				Node[] nodes = Arrays.copyOf(queryObj.getNodes(), 3);
+				nodes[queryObj.getVariableIndex()] = n;
+				queryObj.addResult(nodes);
+			}
+		}
 	}
 
 	protected void transitiveSearch(QueryObject queryObj) {
@@ -52,7 +87,7 @@ public class TransitiveWorker extends QueryWorker {
 
 			// Function checking
 			if (atomicIndex == 1 && n instanceof OntologyFunction) {
-				Collection<DAGNode> functionEdges = functionResults(
+				Collection<DAGNode> functionEdges = querier_.functionResults(
 						(OntologyFunction) n, CommonConcepts.RESULT_GENL);
 				for (DAGNode resultNode : functionEdges) {
 					if (queryObj.isProof()
@@ -101,5 +136,35 @@ public class TransitiveWorker extends QueryWorker {
 				toCheck.add(edgeNode);
 			}
 		}
+	}
+
+	@Override
+	public void queryInternal(QueryObject queryObj)
+			throws IllegalArgumentException {
+		// Use the interval module if available
+		if (transIntModule_ != null
+				&& transIntModule_.isReady()
+				&& transIntModule_.getTransitiveNode().equals(
+						queryObj.getNode(0)))
+			runIntervalModule(queryObj);
+		else {
+			transitiveSearch(queryObj);
+
+			if (queryObj.isProof())
+				queryObj.cleanTransitiveJustification(queryObj
+						.getJustification());
+		}
+	}
+
+	@Override
+	public void setDAG(DirectedAcyclicGraph dag) {
+		super.setDAG(dag);
+		transIntModule_ = (TransitiveIntervalSchemaModule) dag_
+				.getModule(TransitiveIntervalSchemaModule.class);
+		if (relatedModule_ == null)
+			System.out.println("Warning: QueryModule is more efficient "
+					+ "with Transitive Interval Schema Module active. "
+					+ "It is recommended to restart with the "
+					+ "Transitive Interval Schema Module active.");
 	}
 }

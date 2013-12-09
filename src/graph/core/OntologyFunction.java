@@ -129,19 +129,4 @@ public class OntologyFunction extends DAGNode implements Edge {
 			return false;
 		return true;
 	}
-
-	@Override
-	protected void writeFullObject(ObjectOutput out) throws IOException {
-		super.writeFullObject(out);
-		out.writeObject(nodes_);
-		out.writeBoolean(anonymous_);
-	}
-
-	@Override
-	protected void readFullObject(ObjectInput in) throws IOException,
-			ClassNotFoundException {
-		super.readFullObject(in);
-		nodes_ = (Node[]) in.readObject();
-		anonymous_ = in.readBoolean();
-	}
 }

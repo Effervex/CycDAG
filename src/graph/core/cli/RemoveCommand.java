@@ -49,7 +49,7 @@ public class RemoveCommand extends Command {
 			for (int i = 1; i < resultBSplit.length; i++) {
 				String single = resultBSplit[i].trim();
 				if (!single.isEmpty())
-					resultACol.add(single);
+					resultBCol.add(single);
 			}
 
 			resultACol.removeAll(resultBCol);
