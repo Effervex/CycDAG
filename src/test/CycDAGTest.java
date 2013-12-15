@@ -13,6 +13,7 @@ import graph.core.DAGNode;
 import graph.core.Edge;
 import graph.core.ErrorEdge;
 import graph.core.Node;
+import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
 import graph.core.StringNode;
 
@@ -291,5 +292,18 @@ public class CycDAGTest {
 			assertEquals(n1, n2);
 			assertSame(n1, n2);
 		}
+	}
+
+	@Test
+	public void testParseNodes() {
+		sut_.noChecks_ = true;
+		Node creator = new StringNode("TestCreator");
+		Node dog = sut_.findOrCreateNode("Dog", creator, true, true, false);
+		Node cat = sut_.findOrCreateNode("Cat", creator, true, true, false);
+		Node[] nodes = sut_.parseNodes("(not (genls Dog Cat))", creator, false,
+				false);
+		assertEquals(nodes.length, 2);
+		assertEquals(nodes[0], CommonConcepts.NOT.getNode(sut_));
+		assertTrue(nodes[1] instanceof OntologyFunction);
 	}
 }

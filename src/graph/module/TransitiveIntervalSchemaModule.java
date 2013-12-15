@@ -20,9 +20,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class TransitiveIntervalSchemaModule extends
 		DAGModule<Collection<DAGNode>> {
@@ -261,13 +265,17 @@ public class TransitiveIntervalSchemaModule extends
 		// From the base node, work through each parent node
 		DAGNode currentNode = null;
 		DAGNode nextNode = baseNode;
+		Set<DAGNode> seen = new HashSet<>();
 		do {
 			currentNode = nextNode;
 			for (DAGNode directNext : getTransitiveNodes(currentNode, true)) {
-				if (predecessorMap_.isTransitive(directNext, transNode)) {
+				if (!seen.contains(directNext)
+						&& predecessorMap_.isTransitive(directNext, transNode)) {
 					nextNode = directNext;
+					seen.add(directNext);
 					justification.add(new Node[] { transitiveNode_,
 							currentNode, nextNode });
+					break;
 				}
 			}
 		} while (!nextNode.equals(transNode));
@@ -376,11 +384,13 @@ public class TransitiveIntervalSchemaModule extends
 		private SortedMap<Integer, DAGNode> inverseMap_;
 		private int maxIndex_;
 		private Map<Integer, Collection<int[]>> schemaMap_;
+		private transient Lock schemaLock_;
 
 		public IntervalSchema(int size, String intervalIDKey) {
-			schemaMap_ = new HashMap<>(size);
+			schemaMap_ = new ConcurrentHashMap<>(size);
 			inverseMap_ = new TreeMap<>();
 			intervalIDKey_ = intervalIDKey;
+			schemaLock_ = new ReentrantLock();
 		}
 
 		/**
@@ -486,10 +496,14 @@ public class TransitiveIntervalSchemaModule extends
 		 *            The interval of transitive values to record for the node.
 		 */
 		private void recordID(DAGNode node, int id, int[] interval) {
+			if (schemaLock_ == null)
+				schemaLock_ = new ReentrantLock();
+			schemaLock_.lock();
 			inverseMap_.put(id, node);
 			Collection<int[]> intervals = new ArrayList<>(1);
 			intervals.add(interval);
 			schemaMap_.put(id, intervals);
+			schemaLock_.unlock();
 		}
 
 		/**
@@ -503,6 +517,8 @@ public class TransitiveIntervalSchemaModule extends
 		 * @return True if intervals were changed as a result of this call.
 		 */
 		private boolean removeIntervals(DAGNode n1, DAGNode n2) {
+			if (n1.equals(n2))
+				return false;
 			Integer n1ID = Integer.parseInt(n1.getProperty(intervalIDKey_));
 			Collection<int[]> n1Intervals = schemaMap_.get(n1ID);
 			Integer n2ID = Integer.parseInt(n2.getProperty(intervalIDKey_));
@@ -555,7 +571,7 @@ public class TransitiveIntervalSchemaModule extends
 		 * @return True if the node was added. False if the tree needs to be
 		 *         rebuilt.
 		 */
-		public boolean addNewLeafNode(DAGNode nodeSubj, int objKey) {
+		public synchronized boolean addNewLeafNode(DAGNode nodeSubj, int objKey) {
 			SortedMap<Integer, DAGNode> headMap = inverseMap_.headMap(objKey);
 			int prevIndex = (headMap != null && !headMap.isEmpty()) ? headMap
 					.lastKey() : 0;
@@ -577,7 +593,7 @@ public class TransitiveIntervalSchemaModule extends
 		 * @return True if the node was added. False if the tree needs to be
 		 *         rebuilt.
 		 */
-		public boolean addNewRootedNode(DAGNode node) {
+		public synchronized boolean addNewRootedNode(DAGNode node) {
 			int prevIndex = maxIndex_;
 			if (maxIndex_ > Integer.MAX_VALUE - interval_) {
 				// Too many indices. Reduce interval and restructure tree
@@ -728,6 +744,10 @@ public class TransitiveIntervalSchemaModule extends
 			// Propagate the intervals
 			Collection<DAGNode> predecessors = mirrorSchema
 					.getTransitivePredecessors(nodeObj, true);
+
+			if (schemaLock_ == null)
+				schemaLock_ = new ReentrantLock();
+			schemaLock_.lock();
 			for (DAGNode predecessor : predecessors) {
 				// Remove the subjIntervals from the obj
 				removeIntervals(predecessor, nodeSubj);
@@ -736,6 +756,7 @@ public class TransitiveIntervalSchemaModule extends
 				for (DAGNode n : transitives)
 					addIntervals(predecessor, n);
 			}
+			schemaLock_.unlock();
 		}
 	}
 

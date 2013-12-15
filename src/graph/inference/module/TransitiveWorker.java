@@ -145,9 +145,9 @@ public class TransitiveWorker extends QueryWorker {
 		if (transIntModule_ != null
 				&& transIntModule_.isReady()
 				&& transIntModule_.getTransitiveNode().equals(
-						queryObj.getNode(0)))
+						queryObj.getNode(0))) {
 			runIntervalModule(queryObj);
-		else {
+		} else {
 			transitiveSearch(queryObj);
 
 			if (queryObj.isProof())
@@ -161,7 +161,7 @@ public class TransitiveWorker extends QueryWorker {
 		super.setDAG(dag);
 		transIntModule_ = (TransitiveIntervalSchemaModule) dag_
 				.getModule(TransitiveIntervalSchemaModule.class);
-		if (relatedModule_ == null)
+		if (transIntModule_ == null)
 			System.out.println("Warning: QueryModule is more efficient "
 					+ "with Transitive Interval Schema Module active. "
 					+ "It is recommended to restart with the "

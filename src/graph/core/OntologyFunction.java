@@ -1,11 +1,7 @@
 package graph.core;
 
-import graph.inference.QueryObject;
 import graph.module.QueryModule;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 
 import org.apache.commons.lang3.StringUtils;
@@ -83,11 +79,14 @@ public class OntologyFunction extends DAGNode implements Edge {
 		// Check if function is unreifiable
 		QueryModule queryModule = (QueryModule) dag
 				.getModule(QueryModule.class);
-		QueryObject queryObj = new QueryObject(CommonConcepts.ISA.getNode(dag),
-				nodes_[0], CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag));
-		queryModule.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(),
-				queryObj);
-		return queryObj.getResults() != null;
+		// If nodes[0] is unreifiable OR is not a function
+		if (queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
+				CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag)))
+			return true;
+		if (!queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
+				CommonConcepts.FUNCTION.getNode(dag)))
+			return true;
+		return false;
 	}
 
 	@Override

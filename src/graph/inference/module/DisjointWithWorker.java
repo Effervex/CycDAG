@@ -12,6 +12,7 @@ import graph.inference.QueryWorker;
 import graph.inference.Substitution;
 import graph.inference.VariableNode;
 import graph.module.QueryModule;
+import graph.module.TransitiveIntervalSchemaModule;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -94,12 +95,12 @@ public class DisjointWithWorker extends QueryWorker {
 						otherNode = temp;
 					}
 					queryObj.getJustification().addAll(
-							alterGenlJustification(genlResults1, thisNode,
-									false));
+							alterGenlJustification(genlResults1,
+									(DAGNode) thisNode, false));
 					queryObj.addResult(new Substitution(), edgeNodes);
 					queryObj.getJustification().addAll(
-							alterGenlJustification(genlResults2, otherNode,
-									true));
+							alterGenlJustification(genlResults2,
+									(DAGNode) otherNode, true));
 
 					return;
 				} else if (!queryObj.isProof())
@@ -112,7 +113,18 @@ public class DisjointWithWorker extends QueryWorker {
 	}
 
 	private Collection<? extends Node[]> alterGenlJustification(
-			QueryObject genlResults, Node disjointNode, boolean isReversed) {
+			QueryObject genlResults, DAGNode disjointNode, boolean isReversed) {
+		if (dag_.getModule(TransitiveIntervalSchemaModule.class) != null) {
+			TransitiveIntervalSchemaModule transModule = (TransitiveIntervalSchemaModule) dag_
+					.getModule(TransitiveIntervalSchemaModule.class);
+			DAGNode baseNode = (DAGNode) genlResults.getNode(1);
+			List<Node[]> justification = transModule.justifyTransitive(
+					baseNode, disjointNode);
+			if (isReversed)
+				Collections.reverse(justification);
+			return justification;
+		}
+
 		List<Node[]> justifications = genlResults.getJustification();
 		int i = 0;
 		for (i = 0; i < justifications.size(); i++) {

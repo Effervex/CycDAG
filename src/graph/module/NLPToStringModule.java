@@ -6,6 +6,7 @@ import graph.core.Edge;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
+import graph.inference.Substitution;
 import graph.inference.VariableNode;
 
 import java.util.Collection;
@@ -20,6 +21,8 @@ public class NLPToStringModule extends DAGModule<String> {
 	public static final byte NODE = 0;
 	public static final byte QUERY = 2;
 	private static final String WHAT_THINGS = "what things";
+	private static final Pattern MARKUP_PATTERN = Pattern
+			.compile("\\[\\[(.+?)(?:\\|.+?)?\\]\\]");
 
 	private transient QueryModule querier_;
 
@@ -81,10 +84,10 @@ public class NLPToStringModule extends DAGModule<String> {
 				replacements[i] = nodeToString(nodes[i], markup);
 		}
 
-		Collection<Node> predicateStrings = querier_.executeAndParseVar(
-				new QueryObject(CommonConcepts.NLP_PREDICATE_STRING
+		Collection<Substitution> predicateStrings = querier_
+				.execute(new QueryObject(CommonConcepts.NLP_PREDICATE_STRING
 						.getNode(dag_), queryObject.getNode(0),
-						VariableNode.DEFAULT), "?X");
+						VariableNode.DEFAULT));
 		if (predicateStrings.isEmpty()) {
 			// No NLP String, revert to default
 			StringBuffer buffer = new StringBuffer();
@@ -113,7 +116,8 @@ public class NLPToStringModule extends DAGModule<String> {
 		} else {
 			// Replace elements in the NLP string
 			String nlpString = UtilityMethods.shrinkString(predicateStrings
-					.iterator().next().toString(), 1);
+					.iterator().next().getSubstitution(VariableNode.DEFAULT)
+					.toString(), 1);
 			String replaced = UtilityMethods.replaceToken(nlpString,
 					replacements);
 
@@ -164,7 +168,8 @@ public class NLPToStringModule extends DAGModule<String> {
 
 		// Parse and execute the object
 		if (args[i] instanceof Node[]) {
-			return edgeToString(new QueryObject((Node[]) args[i]), false, false, markup);
+			return edgeToString(new QueryObject((Node[]) args[i]), false,
+					false, markup);
 		} else if (args[i] instanceof Node)
 			return nodeToString((Node) args[i], markup);
 		else if (args[i] instanceof Edge)
@@ -172,14 +177,42 @@ public class NLPToStringModule extends DAGModule<String> {
 					false, false, markup);
 		else if (args[i] instanceof QueryObject)
 			return edgeToString((QueryObject) args[i], true, false, markup);
+		else if (args[i] instanceof String)
+			return markupToString((String) args[i], markup);
 		return null;
+	}
+
+	public String markupToString(String string, boolean markup) {
+		// Find all instances of [[text]] and swap it for dag-to-text, OR append
+		// it with dag-to-text if markup is active.
+		StringBuffer buffer = new StringBuffer();
+		int start = 0;
+		Matcher m = MARKUP_PATTERN.matcher(string);
+		while (m.find()) {
+			int index = m.start();
+			buffer.append(string.subSequence(start, index));
+			if (markup)
+				buffer.append("[[" + m.group(1) + "|");
+			Node node = dag_.findOrCreateNode(m.group(1), null, false, true,
+					false);
+			if (node == null)
+				buffer.append(m.group(1));
+			else
+				buffer.append(nodeToString(node, false));
+			if (markup)
+				buffer.append("]]");
+			start = m.end();
+		}
+		buffer.append(string.substring(start));
+		return buffer.toString();
 	}
 
 	private String nodeToStringInternal(Node node) {
 		// Use prettyString-Canonical where possible
 		Collection<Node> canonicalStrs = querier_.executeAndParseVar(
 				new QueryObject(CommonConcepts.PRETTY_STRING_CANONICAL
-						.getNode(dag_), node, VariableNode.DEFAULT), "?X");
+						.getNode(dag_), node, VariableNode.DEFAULT),
+				VariableNode.DEFAULT.toString());
 		if (!canonicalStrs.isEmpty())
 			return UtilityMethods.shrinkString(
 					returnSmallestString(canonicalStrs), 1);
@@ -187,7 +220,7 @@ public class NLPToStringModule extends DAGModule<String> {
 		// Use any termStrings
 		Collection<Node> termStrings = querier_.executeAndParseVar(
 				new QueryObject(CommonConcepts.TERM_STRING.getNode(dag_), node,
-						VariableNode.DEFAULT), "?X");
+						VariableNode.DEFAULT), VariableNode.DEFAULT.toString());
 		if (!termStrings.isEmpty())
 			return UtilityMethods.shrinkString(
 					returnSmallestString(termStrings), 1);

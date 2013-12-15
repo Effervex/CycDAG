@@ -14,16 +14,17 @@ import core.Command;
 public class NLPCommand extends Command {
 	@Override
 	public String helpText() {
-		return "{0} N/E/Q node/edge/query [markup] : Given a node edge or query "
-				+ "(distinguished by either N, E, or Q as the first argument), "
-				+ "this command attempts to find the best natural language "
-				+ "description of it. Optional markup argument for marking "
-				+ "up natural text representations in [[Wiki syntax|Syntax]].";
+		return "{0} N/E/Q/M node/edge/query/markup [markup] : Given a node, edge, "
+				+ "query, or marked-up string (distinguished by either N, E, Q, "
+				+ "or M as the first argument), this command attempts to find "
+				+ "the best natural language description of it. Optional markup "
+				+ "argument for marking up natural text representations in "
+				+ "[[Wiki syntax|Syntax]].";
 	}
 
 	@Override
 	public String shortDescription() {
-		return "Produces a NLP description of a node, edge, or query.";
+		return "Produces a NLP description of a node, edge, query, or marked-up string.";
 	}
 
 	@Override
@@ -68,6 +69,11 @@ public class NLPCommand extends Command {
 				dagObject = new QueryObject(nodes);
 				result = nlpModule.execute(markup, dagObject);
 			}
+		} else if (typeStr.equals("M")) {
+			String string = nlpData;
+			if (string.startsWith("\""))
+				string = UtilityMethods.shrinkString(string, 1);
+			result = nlpModule.execute(markup, string);
 		}
 
 		if (result == null)

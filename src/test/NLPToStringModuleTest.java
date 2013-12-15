@@ -121,8 +121,7 @@ public class NLPToStringModuleTest {
 				true, true);
 		QueryObject qo = new QueryObject(isa2, samuel, actor);
 		String result = sut_.edgeToString(qo, false, false, false);
-		assertEquals(result,
-				"'Samuel L Jackson' has 'isa2' relation to 'Actor'");
+		assertEquals(result, "Samuel L Jackson has 'isa2' relation to Actor");
 		Object[] edgeNodes = new Node[] { isa2, samuel, actor };
 		assertEquals(result, sut_.execute(edgeNodes));
 
@@ -131,7 +130,7 @@ public class NLPToStringModuleTest {
 		assertFalse(dag_.findOrCreateEdge(creator, false, nlpPred, isa2,
 				new StringNode("$1 |1(is)|(are)| an instance of $2")) instanceof ErrorEdge);
 		result = sut_.edgeToString(qo, false, false, false);
-		assertEquals(result, "'Samuel L Jackson' is an instance of 'Actor'");
+		assertEquals(result, "Samuel L Jackson is an instance of Actor");
 
 		// Broader term
 		DAGNode broader = (DAGNode) dag_.findOrCreateNode("broaderTerm",
@@ -142,13 +141,13 @@ public class NLPToStringModuleTest {
 		qo = new QueryObject(broader, samuel, actor);
 		result = sut_.edgeToString(qo, false, false, false);
 		assertEquals(result,
-				"'Samuel L Jackson' has 'broaderTerm' relation to 'Actor'");
+				"Samuel L Jackson has 'broaderTerm' relation to Actor");
 
 		// Markup predicate
 		assertFalse(dag_.findOrCreateEdge(creator, false, nlpPred, broader,
 				new StringNode("$2 |2(is)|(are)| broader than $1")) instanceof ErrorEdge);
 		result = sut_.edgeToString(qo, false, false, false);
-		assertEquals(result, "'Actor' is broader than 'Samuel L Jackson'");
+		assertEquals(result, "Actor is broader than Samuel L Jackson");
 
 		// Node strings
 		DAGNode canonical = CommonConcepts.PRETTY_STRING_CANONICAL
@@ -158,7 +157,7 @@ public class NLPToStringModuleTest {
 		assertFalse(dag_.findOrCreateEdge(creator, false, canonical, actor,
 				new StringNode("Actor")) instanceof ErrorEdge);
 		result = sut_.edgeToString(qo, false, false, false);
-		assertEquals(result, "'Actor' is broader than 'Samuel L. Jackson'");
+		assertEquals(result, "Actor is broader than Samuel L. Jackson");
 
 		// Non-binary edges
 		DAGNode argIsa2 = (DAGNode) dag_.findOrCreateNode("argIsa2", creator,
@@ -173,7 +172,7 @@ public class NLPToStringModuleTest {
 				thing);
 		result = sut_.edgeToString(qo, false, false, false);
 		assertEquals(result,
-				"'broader Term' has 'argIsa2' relation to 1 and 'Thing'");
+				"broader Term has 'argIsa2' relation to 1 and Thing");
 	}
 
 	@Test
@@ -192,16 +191,16 @@ public class NLPToStringModuleTest {
 		QueryObject qo = new QueryObject(isa2, samuel, actor);
 		String result = sut_.edgeToString(qo, true, false, false);
 		assertEquals(result,
-				"does 'Samuel L Jackson' have 'isa2' relation to 'Actor'?");
+				"does Samuel L Jackson have 'isa2' relation to Actor?");
 
 		// Substitutions
 		qo = new QueryObject(isa2, samuel, VariableNode.DEFAULT);
 		result = sut_.edgeToString(qo, true, false, false);
 		assertEquals(result,
-				"'Samuel L Jackson' has 'isa2' relation to what things?");
+				"Samuel L Jackson has 'isa2' relation to what things?");
 		qo = new QueryObject(isa2, VariableNode.DEFAULT, actor);
 		result = sut_.edgeToString(qo, true, false, false);
-		assertEquals(result, "what things have 'isa2' relation to 'Actor'?");
+		assertEquals(result, "what things have 'isa2' relation to Actor?");
 
 		// Markup predicate
 		DAGNode nlpPred = CommonConcepts.NLP_PREDICATE_STRING.getNode(dag_);
@@ -209,7 +208,7 @@ public class NLPToStringModuleTest {
 				new StringNode("$1 |1(is)|(are)| an instance of $2")) instanceof ErrorEdge);
 		qo = new QueryObject(isa2, samuel, actor);
 		result = sut_.edgeToString(qo, true, false, false);
-		assertEquals(result, "is 'Samuel L Jackson' an instance of 'Actor'?");
+		assertEquals(result, "is Samuel L Jackson an instance of Actor?");
 
 		// Broader term
 		DAGNode broader = (DAGNode) dag_.findOrCreateNode("broaderTerm",
@@ -221,22 +220,21 @@ public class NLPToStringModuleTest {
 				new StringNode("$2 |2(is)|(are)| broader than $1")) instanceof ErrorEdge);
 		qo = new QueryObject(broader, samuel, actor);
 		result = sut_.edgeToString(qo, true, false, false);
-		assertEquals(result, "is 'Actor' broader than 'Samuel L Jackson'?");
+		assertEquals(result, "is Actor broader than Samuel L Jackson?");
 
 		// Substitutions
 		qo = new QueryObject(isa2, samuel, VariableNode.DEFAULT);
 		result = sut_.edgeToString(qo, true, false, false);
-		assertEquals(result,
-				"'Samuel L Jackson' is an instance of what things?");
+		assertEquals(result, "Samuel L Jackson is an instance of what things?");
 		qo = new QueryObject(isa2, new VariableNode("?Y"), actor);
 		result = sut_.edgeToString(qo, true, false, false);
-		assertEquals(result, "what things are an instance of 'Actor'?");
+		assertEquals(result, "what things are an instance of Actor?");
 		qo = new QueryObject(broader, samuel, VariableNode.DEFAULT);
 		result = sut_.edgeToString(qo, true, false, false);
-		assertEquals(result, "what things are broader than 'Samuel L Jackson'?");
+		assertEquals(result, "what things are broader than Samuel L Jackson?");
 		qo = new QueryObject(broader, new VariableNode("?Y"), actor);
 		result = sut_.edgeToString(qo, true, false, false);
-		assertEquals(result, "'Actor' is broader than what things?");
+		assertEquals(result, "Actor is broader than what things?");
 
 		// Conjunctions
 		OntologyFunction firstPart = new OntologyFunction(true, isa2,
@@ -246,7 +244,7 @@ public class NLPToStringModuleTest {
 		DAGNode and = CommonConcepts.AND.getNode(dag_);
 		qo = new QueryObject(and, firstPart, secondPart);
 		result = sut_.edgeToString(qo, true, false, false);
-		assertEquals(result, "what things ?X are an instance of 'Actor' AND "
+		assertEquals(result, "what things ?X are an instance of Actor AND "
 				+ "what things ?Y are broader than what things ?X?");
 
 		// Multi-conjunctions
@@ -256,9 +254,64 @@ public class NLPToStringModuleTest {
 				new OntologyFunction(true, broader, VariableNode.DEFAULT,
 						new VariableNode("?Y"))));
 		result = sut_.edgeToString(qo, true, false, false);
-		assertEquals(result, "what things ?X are an instance of 'Actor' OR "
-				+ "is 'Samuel L Jackson' an instance of 'Actor' AND "
+		assertEquals(result, "what things ?X are an instance of Actor OR "
+				+ "is Samuel L Jackson an instance of Actor AND "
 				+ "what things ?Y are broader than what things ?X?");
+	}
+
+	@Test
+	public void testMarkupToString() {
+		Node creator = new StringNode("TestCreator");
+		String comment = "Test comment. Nothing to see here.";
+		String result = sut_.markupToString(comment, false);
+		assertEquals(result, comment);
+		result = sut_.markupToString(comment, true);
+		assertEquals(result, comment);
+
+		// No node
+		comment = "Test comment. [[Nothing]] to see here.";
+		result = sut_.markupToString(comment, false);
+		assertEquals(result, "Test comment. Nothing to see here.");
+		result = sut_.markupToString(comment, true);
+		assertEquals(result, "Test comment. [[Nothing|Nothing]] to see here.");
+
+		// Existing node
+		Node nothing = dag_.findOrCreateNode("Nothing", creator, true, true,
+				false);
+		comment = "Test comment. [[Nothing]] to see here.";
+		result = sut_.markupToString(comment, false);
+		assertEquals(result, "Test comment. Nothing to see here.");
+		result = sut_.markupToString(comment, true);
+		assertEquals(result, "Test comment. [[Nothing|Nothing]] to see here.");
+
+		// Pretty string for node
+		dag_.findOrCreateEdge(creator, false,
+				CommonConcepts.TERM_STRING.getNode(dag_), nothing,
+				new StringNode("nothin'"));
+		comment = "Test comment. [[Nothing]] to see here.";
+		result = sut_.markupToString(comment, false);
+		assertEquals(result, "Test comment. nothin' to see here.");
+		result = sut_.markupToString(comment, true);
+		assertEquals(result, "Test comment. [[Nothing|nothin']] to see here.");
+
+		// Multiple
+		Node test = dag_.findOrCreateNode("Test", creator, true, true, false);
+		dag_.findOrCreateEdge(creator, false, CommonConcepts.TERM_STRING
+				.getNode(dag_), test, new StringNode("tst"));
+		comment = "[[Test]] comment. [[Nothing]] to see here.";
+		result = sut_.markupToString(comment, false);
+		assertEquals(result, "tst comment. nothin' to see here.");
+		result = sut_.markupToString(comment, true);
+		assertEquals(result,
+				"[[Test|tst]] comment. [[Nothing|nothin']] to see here.");
+		
+		// Existing markup
+		comment = "[[Test|A]] comment. [[Nothing|Something]] to see here.";
+		result = sut_.markupToString(comment, false);
+		assertEquals(result, "tst comment. nothin' to see here.");
+		result = sut_.markupToString(comment, true);
+		assertEquals(result,
+				"[[Test|tst]] comment. [[Nothing|nothin']] to see here.");
 	}
 
 	@Test

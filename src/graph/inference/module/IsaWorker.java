@@ -25,27 +25,6 @@ public class IsaWorker extends QueryWorker {
 		super(queryModule);
 	}
 
-	protected Collection<Edge> atomicEdges(Node[] nodes, Node atomicNode,
-			int atomicIndex, int variableIndex, Collection<Edge> isaPred) {
-		Object[] args = new Object[2 * (nodes.length - 2)];
-		int a = 0;
-		for (int i = 1; i < nodes.length; i++) {
-			if (i != variableIndex) {
-				if (i == atomicIndex)
-					args[a * 2] = atomicNode;
-				else
-					args[a * 2] = nodes[i];
-				args[a * 2 + 1] = i + 1;
-				a++;
-				if (a * 2 == args.length)
-					break;
-			}
-		}
-		Collection<Edge> atomicEdges = relatedModule_.execute(args);
-		atomicEdges = CollectionUtils.retainAll(atomicEdges, isaPred);
-		return atomicEdges;
-	}
-
 	protected QueryObject composeTransitive(DAGNode transitivePred,
 			int atomicIndex, DAGNode atomicNode, Node varNode,
 			QueryObject queryObj) {
@@ -91,8 +70,8 @@ public class IsaWorker extends QueryWorker {
 
 		for (Substitution s : genlsSubs) {
 			Node n = s.getSubstitution(varNode);
-			Collection<Edge> isas = atomicEdges(queryObj.getNodes(), n,
-					atomicIndex, varIndex, isaPred);
+			Collection<Edge> isas = relatedModule_.execute(n, atomicIndex + 1);
+			isas = CollectionUtils.retainAll(isas, isaPred);
 
 			// Checking functions
 			if (atomicIndex == 1 && n instanceof OntologyFunction) {

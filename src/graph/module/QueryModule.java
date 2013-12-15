@@ -141,8 +141,7 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		Collection<Node> results = new ArrayList<>(subs.size());
 		for (Substitution s : subs) {
 			Node res = s.getSubstitution(var);
-			if (!results.contains(res))
-				results.add(res);
+			results.add(res);
 		}
 		return results;
 	}

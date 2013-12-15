@@ -309,6 +309,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		int count = 0;
 		while ((edgeStr = reader.readLine()) != null) {
 			count++;
+
 			// Check for multiline comments.
 			String[] split = edgeStr.split("\\t");
 			if (split.length > 2) {
@@ -318,12 +319,19 @@ public class CycDAG extends DirectedAcyclicGraph {
 			}
 
 			try {
+				// Remove SUBL edges
 				if (containsSubL(split[0])) {
 					nullCount++;
 					continue;
 				}
+
 				Node[] nodes = parseNodes(split[0], creator, true, false);
 				if (nodes != null) {
+					// Comment cleaning
+					if (nodes[0].equals(CommonConcepts.COMMENT.getNode(this)))
+						nodes[2] = new StringNode(nodes[2].toString().replaceAll(
+								"#\\$([\\w-:]+)", "[[$1]]"));
+					
 					Edge edge = findOrCreateEdge(CYC_IMPORT, false, nodes);
 					if (edge instanceof ErrorEdge) {
 						nullCount++;
