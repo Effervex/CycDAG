@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.inference;
 
 import graph.core.CommonConcepts;
@@ -141,7 +144,7 @@ public enum CommonQuery {
 		int i = 0;
 		Node[] nodes = new Node[split.size()];
 		for (String s : split) {
-			nodes[i++] = dag.findOrCreateNode(s, null, false, false, true);
+			nodes[i++] = dag.findOrCreateNode(s, null, false, false, false, true);
 		}
 		QueryObject qo = new QueryObject(nodes);
 		QueryModule querier = (QueryModule) dag.getModule(QueryModule.class);

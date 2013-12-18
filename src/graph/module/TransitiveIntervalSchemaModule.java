@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.module;
 
 import graph.core.CommonConcepts;
@@ -30,11 +33,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class TransitiveIntervalSchemaModule extends
 		DAGModule<Collection<DAGNode>> {
-	private static final float INTERVAL_SPLIT = 0.96f;
+	private static final float INTERVAL_SPLIT = 0.5f;
 	private static final long serialVersionUID = 6562719667555853873L;
 	private static final String TEMP_MARK = "tmp";
 	public static final String ANCESTOR_ID = "ancsID";
-	public static final int INITIAL_INTERVAL = 4096;
+	public static final int INITIAL_INTERVAL = 16;
 	public static final String MARK = "topMark";
 	public static final String PERMANENT_MARK = "prm";
 	public static final String PREDECESSOR_ID = "predID";
@@ -45,6 +48,7 @@ public class TransitiveIntervalSchemaModule extends
 	private transient RelatedEdgeModule relEdgeModule_;
 	private DAGNode virtualRoot_;
 	protected DAGNode transitiveNode_;
+	private boolean incrementalSupported_ = false;
 
 	/**
 	 * Builds a spanning tree for a given topologically sorted collection of
@@ -136,7 +140,7 @@ public class TransitiveIntervalSchemaModule extends
 	private boolean rebuildTrees() {
 		ancestorMap_ = null;
 		predecessorMap_ = null;
-		initialisationComplete(dag_.getNodes(), dag_.getEdges());
+		initialisationComplete(dag_.getNodes(), dag_.getEdges(), false);
 		return true;
 	}
 
@@ -144,6 +148,13 @@ public class TransitiveIntervalSchemaModule extends
 	public boolean addEdge(Edge edge) {
 		if (!isReady())
 			return true;
+
+		if (!incrementalSupported_) {
+			System.err.println("Incremental updates not supported "
+					+ "for TransitiveIntervalSchemaModule!");
+			return true;
+		}
+
 		if (edge.getNodes()[0].equals(transitiveNode_)) {
 			DAGNode nodeObj = (DAGNode) edge.getNodes()[1];
 			String objIntIDStr = nodeObj.getProperty(PREDECESSOR_ID);
@@ -207,7 +218,7 @@ public class TransitiveIntervalSchemaModule extends
 
 	@Override
 	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges) {
+			Collection<DAGEdge> edges, boolean forceRebuild) {
 		if (isReady())
 			return false;
 		initMembers();
@@ -287,6 +298,13 @@ public class TransitiveIntervalSchemaModule extends
 	public boolean removeEdge(Edge edge) {
 		if (!isReady())
 			return true;
+
+		if (!incrementalSupported_) {
+			System.err.println("Incremental updates not supported "
+					+ "for TransitiveIntervalSchemaModule!");
+			return true;
+		}
+
 		if (edge.getNodes()[0].equals(transitiveNode_)) {
 			DAGNode nodeObj = (DAGNode) edge.getNodes()[1];
 			DAGNode nodeSubj = (DAGNode) edge.getNodes()[2];
@@ -300,6 +318,14 @@ public class TransitiveIntervalSchemaModule extends
 	public void setDAG(DirectedAcyclicGraph directedAcyclicGraph) {
 		super.setDAG(directedAcyclicGraph);
 		initMembers();
+	}
+
+	@Override
+	public Collection<String> getPertinentProperties() {
+		Collection<String> props = new ArrayList<String>(2);
+		props.add(ANCESTOR_ID);
+		props.add(PREDECESSOR_ID);
+		return props;
 	}
 
 	/**

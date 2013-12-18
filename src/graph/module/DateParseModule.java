@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.module;
 
 import graph.core.CommonConcepts;
@@ -112,7 +115,7 @@ public class DateParseModule extends DAGModule<Collection<DAGNode>> {
 			for (int i = 0; i < brackets; i++)
 				buffer.append(")");
 			return (DAGNode) dag_.findOrCreateNode(buffer.toString(), null,
-					false, true, false);
+					false, false, true, false);
 		} catch (Exception e) {
 		}
 		return null;

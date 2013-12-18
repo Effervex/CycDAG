@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.module;
 
 import graph.core.CommonConcepts;
@@ -193,8 +196,8 @@ public class NLPToStringModule extends DAGModule<String> {
 			buffer.append(string.subSequence(start, index));
 			if (markup)
 				buffer.append("[[" + m.group(1) + "|");
-			Node node = dag_.findOrCreateNode(m.group(1), null, false, true,
-					false);
+			Node node = dag_.findOrCreateNode(m.group(1), null, false, false,
+					true, false);
 			if (node == null)
 				buffer.append(m.group(1));
 			else
@@ -265,6 +268,7 @@ public class NLPToStringModule extends DAGModule<String> {
 	// TODO Refactor this method
 	public static String conceptToPlainText(String concept) {
 		String result = "";
+		concept = concept.replaceAll("_", " ");
 		// Splitting hyphens into brackets.
 		if (concept.contains("-") && !concept.endsWith("-")) {
 			String[] elements = concept.split("-");

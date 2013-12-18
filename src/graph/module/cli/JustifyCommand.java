@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.module.cli;
 
 import graph.core.Node;
@@ -8,13 +11,21 @@ import graph.module.QueryModule;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import core.Command;
 
 public class JustifyCommand extends Command {
+	private static final Pattern BINDING_PATTERN = Pattern
+			.compile("(\\?\\w+)/([^\\s,]+)");
+	private static final Pattern ARG_PATTERN = Pattern
+			.compile("^(\\(.+?\\))(\\s+(,?" + BINDING_PATTERN.pattern()
+					+ ")+)?$");
+
 	@Override
 	public String helpText() {
-		return "{0} (X Y ...) : Poses a query to the DAG "
+		return "{0} (X Y ...) [binding] : Poses a query to the DAG "
 				+ "in the form of a bracketed edge expression "
 				+ "consisting of nodes (ID or named).\n"
 				+ "If true, a justification of why it is true "
@@ -42,11 +53,21 @@ public class JustifyCommand extends Command {
 			return;
 		}
 
-		Node[] args = null;
-		try {
-			args = dagHandler.getDAG().parseNodes(data, null, false, true);
-		} catch (Exception e) {
+		Matcher m = ARG_PATTERN.matcher(data);
+		if (!m.matches()) {
+			print("-1|Could not parse arguments.\n");
+			return;
 		}
+
+		// Apply bindings
+		String query = m.group(1);
+		if (m.group(2) != null) {
+			Matcher vm = BINDING_PATTERN.matcher(m.group(2));
+			while (vm.find())
+				query = query.replaceAll(Pattern.quote(vm.group(1)),
+						vm.group(2));
+		}
+		Node[] args = dagHandler.getDAG().parseNodes(query, null, false, true);
 
 		if (args == null) {
 			print("-1|Could not parse arguments.\n");
@@ -62,14 +83,16 @@ public class JustifyCommand extends Command {
 			print(justification.size() + "|");
 			for (Node[] edge : justification) {
 				boolean first = true;
-				print("(");
-				for (Node n : edge) {
-					if (!first)
-						print(" ");
-					print(dagHandler.textIDObject(n));
-					first = false;
+				if (edge.length != 0) {
+					print("(");
+					for (Node n : edge) {
+						if (!first)
+							print(" ");
+						print(dagHandler.textIDObject(n));
+						first = false;
+					}
+					print(")|");
 				}
-				print(")|");
 			}
 			print("\n");
 		}

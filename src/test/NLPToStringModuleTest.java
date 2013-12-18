@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package test;
 
 import static org.junit.Assert.assertEquals;
@@ -49,15 +52,15 @@ public class NLPToStringModuleTest {
 
 		// General term string
 		DAGNode alias = CommonConcepts.TERM_STRING.getNode(dag_);
-		dag_.findOrCreateEdge(creator, false, alias, samuel, new StringNode(
-				"Sam Jackson"));
+		dag_.findOrCreateEdge(creator, new Node[] { alias, samuel,
+				new StringNode("Sam Jackson") }, false);
 		result = sut_.nodeToString(samuel, false);
 		assertEquals(result, "Sam Jackson");
 
 		DAGNode canonical = CommonConcepts.PRETTY_STRING_CANONICAL
 				.getNode(dag_);
-		dag_.findOrCreateEdge(creator, false, canonical, samuel,
-				new StringNode("Samuel L. Jackson"));
+		dag_.findOrCreateEdge(creator, new Node[] { canonical, samuel,
+				new StringNode("Samuel L. Jackson") }, false);
 		result = sut_.nodeToString(samuel, false);
 		assertEquals(result, "Samuel L. Jackson");
 
@@ -84,14 +87,14 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "Apple Tree (Fruit, Fermented)");
 
 		// Function term string
-		dag_.findOrCreateEdge(creator, false, alias, fruitFn, new StringNode(
-				"fruit of the ______"));
+		dag_.findOrCreateEdge(creator, new Node[] { alias, fruitFn,
+				new StringNode("fruit of the ______") }, false);
 		result = sut_.nodeToString(apple, false);
 		assertEquals(result, "fruit of the Apple Tree");
 
 		// Double wrap term strings
-		dag_.findOrCreateEdge(creator, false, alias, fermentedFn,
-				new StringNode("fermented ______"));
+		dag_.findOrCreateEdge(creator, new Node[] { alias, fermentedFn,
+				new StringNode("fermented ______") }, false);
 		result = sut_.nodeToString(fermentedApple, false);
 		assertEquals(result, "fermented fruit of the Apple Tree");
 
@@ -100,8 +103,8 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "fruit of the Samuel L. Jackson");
 
 		// Pretty string function
-		dag_.findOrCreateEdge(creator, false, canonical, fermentedApple,
-				new StringNode("fermented apple"));
+		dag_.findOrCreateEdge(creator, new Node[] { canonical,
+				fermentedApple, new StringNode("fermented apple") }, false);
 		result = sut_.nodeToString(fermentedApple, false);
 		assertEquals(result, "fermented apple");
 	}
@@ -110,64 +113,62 @@ public class NLPToStringModuleTest {
 	public void testEdgeToString() {
 		Node creator = new StringNode("TestCreator");
 		// No markup
-		DAGNode isa2 = (DAGNode) dag_.findOrCreateNode("isa2", creator, true,
-				true, true);
-		assertFalse(dag_.findOrCreateEdge(creator, false,
+		DAGNode isa2 = (DAGNode) dag_.findOrCreateNode("isa2", creator, true);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] {
 				CommonConcepts.ISA.getNode(dag_), isa2,
-				CommonConcepts.PREDICATE.getNode(dag_)) instanceof ErrorEdge);
+				CommonConcepts.PREDICATE.getNode(dag_) }, false) instanceof ErrorEdge);
 		DAGNode samuel = (DAGNode) dag_.findOrCreateNode("SamuelLJackson",
-				creator, true, true, true);
-		DAGNode actor = (DAGNode) dag_.findOrCreateNode("Actor", creator, true,
-				true, true);
+				creator, true);
+		DAGNode actor = (DAGNode) dag_.findOrCreateNode("Actor", creator, true);
 		QueryObject qo = new QueryObject(isa2, samuel, actor);
 		String result = sut_.edgeToString(qo, false, false, false);
 		assertEquals(result, "Samuel L Jackson has 'isa2' relation to Actor");
-		Object[] edgeNodes = new Node[] { isa2, samuel, actor };
+		Object edgeNodes = new Node[] { isa2, samuel, actor };
 		assertEquals(result, sut_.execute(edgeNodes));
 
 		// Markup predicate
 		DAGNode nlpPred = CommonConcepts.NLP_PREDICATE_STRING.getNode(dag_);
-		assertFalse(dag_.findOrCreateEdge(creator, false, nlpPred, isa2,
-				new StringNode("$1 |1(is)|(are)| an instance of $2")) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] { nlpPred,
+				isa2, new StringNode("$1 |1(is)|(are)| an instance of $2") }, false) instanceof ErrorEdge);
 		result = sut_.edgeToString(qo, false, false, false);
 		assertEquals(result, "Samuel L Jackson is an instance of Actor");
 
 		// Broader term
 		DAGNode broader = (DAGNode) dag_.findOrCreateNode("broaderTerm",
-				creator, true, true, true);
-		assertFalse(dag_.findOrCreateEdge(creator, false,
+				creator, true);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] {
 				CommonConcepts.ISA.getNode(dag_), broader,
-				CommonConcepts.PREDICATE.getNode(dag_)) instanceof ErrorEdge);
+				CommonConcepts.PREDICATE.getNode(dag_) }, false) instanceof ErrorEdge);
 		qo = new QueryObject(broader, samuel, actor);
 		result = sut_.edgeToString(qo, false, false, false);
 		assertEquals(result,
 				"Samuel L Jackson has 'broaderTerm' relation to Actor");
 
 		// Markup predicate
-		assertFalse(dag_.findOrCreateEdge(creator, false, nlpPred, broader,
-				new StringNode("$2 |2(is)|(are)| broader than $1")) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] { nlpPred,
+				broader, new StringNode("$2 |2(is)|(are)| broader than $1") }, false) instanceof ErrorEdge);
 		result = sut_.edgeToString(qo, false, false, false);
 		assertEquals(result, "Actor is broader than Samuel L Jackson");
 
 		// Node strings
 		DAGNode canonical = CommonConcepts.PRETTY_STRING_CANONICAL
 				.getNode(dag_);
-		assertFalse(dag_.findOrCreateEdge(creator, false, canonical, samuel,
-				new StringNode("Samuel L. Jackson")) instanceof ErrorEdge);
-		assertFalse(dag_.findOrCreateEdge(creator, false, canonical, actor,
-				new StringNode("Actor")) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] {
+				canonical, samuel, new StringNode("Samuel L. Jackson") }, false) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] {
+				canonical, actor, new StringNode("Actor") }, false) instanceof ErrorEdge);
 		result = sut_.edgeToString(qo, false, false, false);
 		assertEquals(result, "Actor is broader than Samuel L. Jackson");
 
 		// Non-binary edges
 		DAGNode argIsa2 = (DAGNode) dag_.findOrCreateNode("argIsa2", creator,
-				true, true, true);
-		assertFalse(dag_.findOrCreateEdge(creator, false,
+				true);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] {
 				CommonConcepts.ISA.getNode(dag_), argIsa2,
-				CommonConcepts.PREDICATE.getNode(dag_)) instanceof ErrorEdge);
+				CommonConcepts.PREDICATE.getNode(dag_) }, false) instanceof ErrorEdge);
 		DAGNode thing = CommonConcepts.THING.getNode(dag_);
-		assertFalse(dag_.findOrCreateEdge(creator, false, argIsa2, broader,
-				PrimitiveNode.parseNode("1"), thing) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] { argIsa2,
+				broader, PrimitiveNode.parseNode("1"), thing }, false) instanceof ErrorEdge);
 		qo = new QueryObject(argIsa2, broader, PrimitiveNode.parseNode("1"),
 				thing);
 		result = sut_.edgeToString(qo, false, false, false);
@@ -179,15 +180,13 @@ public class NLPToStringModuleTest {
 	public void testQueryToString() {
 		Node creator = new StringNode("TestCreator");
 		// No markup
-		DAGNode isa2 = (DAGNode) dag_.findOrCreateNode("isa2", creator, true,
-				true, true);
-		assertFalse(dag_.findOrCreateEdge(creator, false,
+		DAGNode isa2 = (DAGNode) dag_.findOrCreateNode("isa2", creator, true);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] {
 				CommonConcepts.ISA.getNode(dag_), isa2,
-				CommonConcepts.PREDICATE.getNode(dag_)) instanceof ErrorEdge);
+				CommonConcepts.PREDICATE.getNode(dag_) }, false) instanceof ErrorEdge);
 		DAGNode samuel = (DAGNode) dag_.findOrCreateNode("SamuelLJackson",
-				creator, true, true, true);
-		DAGNode actor = (DAGNode) dag_.findOrCreateNode("Actor", creator, true,
-				true, true);
+				creator, true);
+		DAGNode actor = (DAGNode) dag_.findOrCreateNode("Actor", creator, true);
 		QueryObject qo = new QueryObject(isa2, samuel, actor);
 		String result = sut_.edgeToString(qo, true, false, false);
 		assertEquals(result,
@@ -204,20 +203,20 @@ public class NLPToStringModuleTest {
 
 		// Markup predicate
 		DAGNode nlpPred = CommonConcepts.NLP_PREDICATE_STRING.getNode(dag_);
-		assertFalse(dag_.findOrCreateEdge(creator, false, nlpPred, isa2,
-				new StringNode("$1 |1(is)|(are)| an instance of $2")) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] { nlpPred,
+				isa2, new StringNode("$1 |1(is)|(are)| an instance of $2") }, false) instanceof ErrorEdge);
 		qo = new QueryObject(isa2, samuel, actor);
 		result = sut_.edgeToString(qo, true, false, false);
 		assertEquals(result, "is Samuel L Jackson an instance of Actor?");
 
 		// Broader term
 		DAGNode broader = (DAGNode) dag_.findOrCreateNode("broaderTerm",
-				creator, true, true, true);
-		assertFalse(dag_.findOrCreateEdge(creator, false,
+				creator, true);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] {
 				CommonConcepts.ISA.getNode(dag_), broader,
-				CommonConcepts.PREDICATE.getNode(dag_)) instanceof ErrorEdge);
-		assertFalse(dag_.findOrCreateEdge(creator, false, nlpPred, broader,
-				new StringNode("$2 |2(is)|(are)| broader than $1")) instanceof ErrorEdge);
+				CommonConcepts.PREDICATE.getNode(dag_) }, false) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(creator, new Node[] { nlpPred,
+				broader, new StringNode("$2 |2(is)|(are)| broader than $1") }, false) instanceof ErrorEdge);
 		qo = new QueryObject(broader, samuel, actor);
 		result = sut_.edgeToString(qo, true, false, false);
 		assertEquals(result, "is Actor broader than Samuel L Jackson?");
@@ -276,8 +275,7 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "Test comment. [[Nothing|Nothing]] to see here.");
 
 		// Existing node
-		Node nothing = dag_.findOrCreateNode("Nothing", creator, true, true,
-				false);
+		Node nothing = dag_.findOrCreateNode("Nothing", creator, true);
 		comment = "Test comment. [[Nothing]] to see here.";
 		result = sut_.markupToString(comment, false);
 		assertEquals(result, "Test comment. Nothing to see here.");
@@ -285,9 +283,9 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "Test comment. [[Nothing|Nothing]] to see here.");
 
 		// Pretty string for node
-		dag_.findOrCreateEdge(creator, false,
+		dag_.findOrCreateEdge(creator, new Node[] {
 				CommonConcepts.TERM_STRING.getNode(dag_), nothing,
-				new StringNode("nothin'"));
+				new StringNode("nothin'") }, false);
 		comment = "Test comment. [[Nothing]] to see here.";
 		result = sut_.markupToString(comment, false);
 		assertEquals(result, "Test comment. nothin' to see here.");
@@ -295,16 +293,17 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "Test comment. [[Nothing|nothin']] to see here.");
 
 		// Multiple
-		Node test = dag_.findOrCreateNode("Test", creator, true, true, false);
-		dag_.findOrCreateEdge(creator, false, CommonConcepts.TERM_STRING
-				.getNode(dag_), test, new StringNode("tst"));
+		Node test = dag_.findOrCreateNode("Test", creator, true);
+		dag_.findOrCreateEdge(creator, new Node[] {
+				CommonConcepts.TERM_STRING.getNode(dag_), test,
+				new StringNode("tst") }, false);
 		comment = "[[Test]] comment. [[Nothing]] to see here.";
 		result = sut_.markupToString(comment, false);
 		assertEquals(result, "tst comment. nothin' to see here.");
 		result = sut_.markupToString(comment, true);
 		assertEquals(result,
 				"[[Test|tst]] comment. [[Nothing|nothin']] to see here.");
-		
+
 		// Existing markup
 		comment = "[[Test|A]] comment. [[Nothing|Something]] to see here.";
 		result = sut_.markupToString(comment, false);

@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.inference.module;
 
 import graph.core.Node;
@@ -51,8 +54,11 @@ public class AndWorker extends QueryWorker {
 		}
 
 		for (List<Node[]> justification : justifications) {
-			if (justification != null)
+			if (justification != null) {
+				if (!queryObj.getJustification().isEmpty())
+					queryObj.getJustification().add(new Node[0]);
 				queryObj.getJustification().addAll(justification);
+			}
 		}
 
 		if (queryObj.isProof()) {

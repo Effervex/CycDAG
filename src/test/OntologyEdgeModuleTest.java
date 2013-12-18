@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package test;
 
 import static org.junit.Assert.assertEquals;
@@ -42,17 +45,19 @@ public class OntologyEdgeModuleTest {
 	public void testFindEdgeByNodes() {
 		Node creator = new StringNode("TestCreator");
 		DAGNode genls = (DAGNode) dag_.findOrCreateNode("genls", creator, true,
-				true, true);
+				false, true);
 		DAGNode place = (DAGNode) dag_.findOrCreateNode("Place", creator, true,
-				true, true);
+				false, true);
 		DAGNode diffFn = (DAGNode) dag_.findOrCreateNode(
-				"CollectionDifferenceFn", creator, true, true, true);
+				"CollectionDifferenceFn", creator, true, false, true);
 		DAGNode thing = (DAGNode) dag_.findOrCreateNode("Thing", creator, true,
-				true, true);
+				false, true);
 		DAGNode person = (DAGNode) dag_.findOrCreateNode("Person", creator,
-				true, true, true);
-		DAGEdge funcEdge = (DAGEdge) dag_.findOrCreateEdge(creator, false,
-				genls, place, new OntologyFunction(dag_, diffFn, thing, person));
+				true, false, true);
+		DAGEdge funcEdge = (DAGEdge) dag_.findOrCreateEdge(creator,
+				new Node[] { genls, place,
+						new OntologyFunction(dag_, diffFn, thing, person) },
+				false);
 		Collection<Edge> results = sut_.findEdgeByNodes(genls, place,
 				new OntologyFunction(dag_, diffFn, thing));
 		assertEquals(results.size(), 1);
@@ -64,12 +69,13 @@ public class OntologyEdgeModuleTest {
 
 		// Non DAG nodes
 		DAGNode cityNamedFn = (DAGNode) dag_.findOrCreateNode("CityNamedFn",
-				creator, true, true, true);
+				creator, true, false, true);
 		DAGNode nz = (DAGNode) dag_.findOrCreateNode("NewZealand", creator,
-				true, true, true);
-		DAGEdge strEdge = (DAGEdge) dag_.findOrCreateEdge(creator, false,
-				genls, new OntologyFunction(dag_, cityNamedFn, new StringNode(
-								"Hamilton"), nz), place);
+				true, false, true);
+		DAGEdge strEdge = (DAGEdge) dag_.findOrCreateEdge(creator, new Node[] {
+				genls,
+				new OntologyFunction(dag_, cityNamedFn, new StringNode(
+						"Hamilton"), nz), place }, false);
 		results = sut_.findEdgeByNodes(genls, new OntologyFunction(dag_,
 				cityNamedFn, new StringNode("Auckland"), nz), place);
 		assertEquals(results.size(), 0);
@@ -84,21 +90,27 @@ public class OntologyEdgeModuleTest {
 	public void testStringFunction() {
 		Node creator = new StringNode("TestCreator");
 		DAGNode genls = (DAGNode) dag_.findOrCreateNode("genls", creator, true,
-				true, true);
+				false, true);
 		DAGNode fn = (DAGNode) dag_.findOrCreateNode("TheFn", creator, true,
-				true, true);
+				false, true);
 		DAGNode blah = (DAGNode) dag_.findOrCreateNode("Blah", creator, true,
-				true, true);
+				false, true);
 		DAGNode thingy = (DAGNode) dag_.findOrCreateNode("Thing", creator,
-				true, true, true);
-		DAGEdge funcEdge = (DAGEdge) dag_.findOrCreateEdge(creator, false,
-				genls, blah, new OntologyFunction(dag_, fn, thingy, new StringNode(
-						"ABC")));
-		DAGEdge funcEdge2 = (DAGEdge) dag_.findOrCreateEdge(creator, false,
-				genls, blah, new OntologyFunction(dag_, fn, thingy, new StringNode(
-						"123")));
-		Collection<Edge> results = sut_.execute(new OntologyFunction(dag_,
-				fn, thingy, new StringNode("123")), 3);
+				true, false, true);
+		DAGEdge funcEdge = (DAGEdge) dag_.findOrCreateEdge(creator,
+				new Node[] {
+						genls,
+						blah,
+						new OntologyFunction(dag_, fn, thingy, new StringNode(
+								"ABC")) }, false);
+		DAGEdge funcEdge2 = (DAGEdge) dag_.findOrCreateEdge(creator,
+				new Node[] {
+						genls,
+						blah,
+						new OntologyFunction(dag_, fn, thingy, new StringNode(
+								"123")) }, false);
+		Collection<Edge> results = sut_.execute(new OntologyFunction(dag_, fn,
+				thingy, new StringNode("123")), 3);
 		assertEquals(results.toString(), results.size(), 1);
 		assertTrue(results.contains(funcEdge2));
 	}
@@ -107,28 +119,28 @@ public class OntologyEdgeModuleTest {
 	public void testRemovedEdges() {
 		Node creator = new StringNode("TestCreator");
 		DAGNode genls = (DAGNode) dag_.findOrCreateNode("genls", creator, true,
-				true, true);
+				false, true);
 		DAGNode isa = (DAGNode) dag_.findOrCreateNode("isa", creator, true,
-				true, true);
+				false, true);
 		DAGNode dog = (DAGNode) dag_.findOrCreateNode("Dog", creator, true,
-				true, true);
+				false, true);
 		DAGNode domesticated = (DAGNode) dag_.findOrCreateNode("Domesticated",
-				creator, true, true, true);
+				creator, true, false, true);
 		DAGNode mammal = (DAGNode) dag_.findOrCreateNode("Mammal", creator,
-				true, true, true);
-		DAGEdge isaEdge = (DAGEdge) dag_.findOrCreateEdge(creator, false, isa,
-				dog, domesticated);
-		DAGEdge genlsEdge = (DAGEdge) dag_.findOrCreateEdge(creator, false,
-				genls, dog, mammal);
+				true, false, true);
+		DAGEdge isaEdge = (DAGEdge) dag_.findOrCreateEdge(creator, new Node[] {
+				isa, dog, domesticated }, false);
+		DAGEdge genlsEdge = (DAGEdge) dag_.findOrCreateEdge(creator,
+				new Node[] { genls, dog, mammal }, false);
 		Collection<Edge> results = sut_.execute(dog);
 		assertEquals(results.toString(), results.size(), 2);
 		assertTrue(results.contains(isaEdge));
 		assertTrue(results.contains(genlsEdge));
-		
+
 		results = sut_.execute(dog, isa, -1);
 		assertEquals(results.toString(), results.size(), 1);
 		assertTrue(results.contains(genlsEdge));
-		
+
 		results = sut_.execute(dog, genls, -1);
 		assertEquals(results.toString(), results.size(), 1);
 		assertTrue(results.contains(isaEdge));

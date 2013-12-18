@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.core;
 
 import graph.inference.CommonQuery;
@@ -16,16 +19,17 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.regex.Pattern;
 
+import util.BooleanFlags;
 import util.UtilityMethods;
 
 public class CycDAG extends DirectedAcyclicGraph {
-	public static final String MICROTHEORY = "MT";
-
 	private static final Node CYC_IMPORT = new StringNode("CYCImport");
 
 	private static final Node FORWARD_CHAIN = new StringNode("ForwardChain");
 
 	private static final Pattern SUBL_PATTERN = Pattern.compile("[:A-Z].+");
+
+	public static final String MICROTHEORY = "MT";
 
 	private transient QueryModule querier_;
 
@@ -52,22 +56,44 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	private boolean checkSingleArg(DAGNode predNode, Node testNode, int i,
 			CommonConcepts argTest, CommonConcepts argQuery,
-			CommonConcepts argResult, VariableNode varNode) {
+			CommonConcepts argResult, Collection<Edge> forwardEdges,
+			boolean ephemeral) {
 		Collection<Substitution> constraints = querier_.execute(
 				argTest.getNode(this), predNode,
-				PrimitiveNode.parseNode("" + i), varNode);
+				PrimitiveNode.parseNode("" + i), VariableNode.DEFAULT);
 
 		for (Substitution sub : constraints) {
 			// Skip 'Thing'
-			if (sub.getSubstitution(varNode).equals(
-					CommonConcepts.THING.getNode(this)))
+			Node constraint = sub.getSubstitution(VariableNode.DEFAULT);
+			if (constraint.equals(CommonConcepts.THING.getNode(this)))
 				continue;
 			if (!querier_.prove(argQuery.getNode(this),
-					querier_.getExpanded(testNode),
-					sub.getSubstitution(varNode)))
+					querier_.getExpanded(testNode), constraint)) {
+				if (forwardEdges != null) {
+					// Create new edge to meet constraint
+					Edge forwardEdge = findOrCreateEdge(FORWARD_CHAIN,
+							new Node[] { argQuery.getNode(this), testNode,
+									constraint }, false, ephemeral, true);
+					if (forwardEdge != null
+							&& !(forwardEdge instanceof ErrorEdge)) {
+						forwardEdges.add(forwardEdge);
+						continue;
+					}
+				}
 				return false;
+			}
 		}
 		return true;
+	}
+
+	private boolean containsSubL(String edge) {
+		edge = edge.replaceAll("\\(|\\)", "");
+		ArrayList<String> nodes = UtilityMethods.split(edge, ' ');
+		for (String node : nodes) {
+			if (SUBL_PATTERN.matcher(node).matches())
+				return true;
+		}
+		return false;
 	}
 
 	private boolean containsVariables(Node[] edgeNodes) {
@@ -110,9 +136,11 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 *            The propagatable edge being asserted.
 	 * @param creator
 	 *            What creates the new edge.
+	 * @param flags
+	 *            The flags to propagate.
 	 * @return True if the proagated edge is valid.
 	 */
-	private Edge propagateEdge(Edge edge, Node creator) {
+	private Edge propagateEdge(Edge edge, Node creator, boolean[] flags) {
 		DAGNode pred = (DAGNode) edge.getNodes()[0];
 		// Check if the predicate genlPreds one of the propagatable predicates
 		for (PropagatablePredicate pp : PropagatablePredicate.values()) {
@@ -124,7 +152,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 				Node[] propagatedNodes = Arrays.copyOf(edge.getNodes(),
 						edge.getNodes().length);
 				propagatedNodes[0] = pp.getPred().getNode(this);
-				return findOrCreateEdge(creator, false, propagatedNodes);
+				return findOrCreateEdge(creator, propagatedNodes, flags);
 			}
 		}
 		return edge;
@@ -153,15 +181,17 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	@Override
-	public synchronized Edge findOrCreateEdge(Node creator,
-			boolean createNodes, Node... edgeNodes) {
+	public synchronized Edge findOrCreateEdge(Node creator, Node[] edgeNodes,
+			boolean... flags) {
+		BooleanFlags bFlags = edgeFlags_.loadFlags(flags);
 		QueryModule qm = (QueryModule) getModule(QueryModule.class);
 
 		if (containsVariables(edgeNodes))
 			return CycDAGErrorEdge.VARIABLE_NODE;
 
 		// Check if the edge is valid
-		if (semanticArgCheck(false, edgeNodes)) {
+		if (semanticArgCheck(edgeNodes, bFlags.getFlag("forceConstraints"),
+				bFlags.getFlag("ephemeral"))) {
 			// Add alias info
 			if (qm.execute(CommonConcepts.GENLPREDS.getNode(this),
 					edgeNodes[0], CommonConcepts.TERM_STRING.getNode(this)) != null) {
@@ -171,14 +201,14 @@ public class CycDAG extends DirectedAcyclicGraph {
 									edgeNodes[2].getName());
 			}
 
-			// Check disjointness
+			// Check disjointness (only if no checks)
 			if (!noChecks_ && isDisjoint(edgeNodes))
 				return CycDAGErrorEdge.DISJOINT_EDGE;
 
-			Edge edge = super.findOrCreateEdge(creator, createNodes, edgeNodes);
+			Edge edge = super.findOrCreateEdge(creator, edgeNodes, flags);
 			if (!(edge instanceof ErrorEdge)) {
 				// Propagate subpreds
-				Edge propEdge = propagateEdge(edge, creator);
+				Edge propEdge = propagateEdge(edge, creator, flags);
 				if (propEdge instanceof ErrorEdge) {
 					removeEdge(edge);
 					return propEdge;
@@ -192,10 +222,13 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	@Override
 	public synchronized Node findOrCreateNode(String nodeStr, Node creator,
-			boolean createNew, boolean dagNodeOnly, boolean allowVariables) {
-		dagNodeOnly |= nodeStr.startsWith("#$");
-		Node node = super.findOrCreateNode(nodeStr, creator, createNew,
-				dagNodeOnly, allowVariables);
+			boolean... flags) {
+		BooleanFlags bFlags = nodeFlags_.loadFlags(flags);
+		boolean createNew = bFlags.getFlag("createNew");
+		boolean dagNodeOnly = bFlags.getFlag("dagNodeOnly")
+				|| nodeStr.startsWith("#$");
+		boolean allowVariables = bFlags.getFlag("allowVariables");
+		Node node = super.findOrCreateNode(nodeStr, creator, flags);
 		if (node != null)
 			return node;
 
@@ -204,7 +237,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 			Node[] subNodes = parseNodes(nodeStr, creator, createNew,
 					allowVariables);
 			if (subNodes != null
-					&& (!createNew || semanticArgCheck(false, subNodes))) {
+					&& (!createNew || semanticArgCheck(subNodes, false,
+							bFlags.getFlag("ephemeral")))) {
 				nodeLock_.lock();
 				try {
 					OntologyFunction ontFunc = functionIndexer
@@ -214,6 +248,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 						if (!ontFunc.isAnonymous() && createNew) {
 							boolean result = nodes_.add(ontFunc);
 							if (result) {
+								if (bFlags.getFlag("ephemeral"))
+									addProperty(ontFunc, EPHEMERAL_MARK, "true");
 								// Trigger modules
 								for (DAGModule<?> module : getModules())
 									module.addNode(ontFunc);
@@ -267,27 +303,11 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 		if (this.getNumNodes() <= 100) {
 			try {
-				// ((FileBasedTrieCollection) nodes_)
-				//
-				// .setSerialisationMechanism(FileBasedTrieCollection.SerialisationMechanism.ADDITIVE_THREAD);
-				// ((FileBasedTrieCollection) edges_)
-				//
-				// .setSerialisationMechanism(FileBasedTrieCollection.SerialisationMechanism.ADDITIVE_THREAD);
 				noChecks_ = true;
 
-				// readNodeFile(new File("constants.txt"), CYC_IMPORT);
-				// readAssertionFile(new File("taxonomic.txt"), CYC_IMPORT);
-				// readAssertionFile(new File("disjoint.txt"), CYC_IMPORT);
-				// readAssertionFile(new File("other.txt"), CYC_IMPORT);
 				readAssertionFile(new File("allAssertions.txt"), CYC_IMPORT);
 
 				noChecks_ = false;
-				// ((FileBasedTrieCollection) nodes_)
-				//
-				// .setSerialisationMechanism(FileBasedTrieCollection.SerialisationMechanism.DEFAULT);
-				// ((FileBasedTrieCollection) edges_)
-				//
-				// .setSerialisationMechanism(FileBasedTrieCollection.SerialisationMechanism.DEFAULT);
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.exit(1);
@@ -306,10 +326,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		String edgeStr = null;
 		int duplicateCount = 0;
 		int nullCount = 0;
-		int count = 0;
 		while ((edgeStr = reader.readLine()) != null) {
-			count++;
-
 			// Check for multiline comments.
 			String[] split = edgeStr.split("\\t");
 			if (split.length > 2) {
@@ -329,10 +346,11 @@ public class CycDAG extends DirectedAcyclicGraph {
 				if (nodes != null) {
 					// Comment cleaning
 					if (nodes[0].equals(CommonConcepts.COMMENT.getNode(this)))
-						nodes[2] = new StringNode(nodes[2].toString().replaceAll(
-								"#\\$([\\w-:]+)", "[[$1]]"));
-					
-					Edge edge = findOrCreateEdge(CYC_IMPORT, false, nodes);
+						nodes[2] = new StringNode(nodes[2].toString()
+								.replaceAll("\\[?#\\$([\\w-:]+[\\w])\\]?",
+										"[[$1]]"));
+
+					Edge edge = findOrCreateEdge(CYC_IMPORT, nodes, false);
 					if (edge instanceof ErrorEdge) {
 						nullCount++;
 					} else if (split.length == 2)
@@ -344,11 +362,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 				System.err.println(edgeStr);
 				e.printStackTrace();
 			}
-
-			// if (count % 1000 == 0) {
-			// saveState();
-			// System.exit(0);
-			// }
 		}
 
 		System.out.println("\nNull count: " + nullCount + ", Duplicate count: "
@@ -357,43 +370,21 @@ public class CycDAG extends DirectedAcyclicGraph {
 		reader.close();
 	}
 
-	private boolean containsSubL(String edge) {
-		edge = edge.replaceAll("\\(|\\)", "");
-		ArrayList<String> nodes = UtilityMethods.split(edge, ' ');
-		for (String node : nodes) {
-			if (SUBL_PATTERN.matcher(node).matches())
-				return true;
-		}
-		return false;
-	}
-
-	public void readNodeFile(File nodeFile, Node creator) throws Exception {
-		if (!nodeFile.exists())
-			return;
-
-		BufferedReader reader = new BufferedReader(new FileReader(nodeFile));
-		String nodeStr = null;
-		while ((nodeStr = reader.readLine()) != null) {
-			findOrCreateNode(nodeStr, CYC_IMPORT, true, true, true);
-		}
-
-		reader.close();
-	}
-
 	/**
 	 * Checks the arguments of an edge based on the argNIsa/argNGenls defined by
 	 * the edge predicate.
 	 * 
+	 * @param edgeNodes
+	 *            The nodes for the edge.
 	 * @param forwardChainCreate
 	 *            If instantiation of collection types should be forced to meet
 	 *            arg constraints (unless disjoint).
-	 * @param edgeNodes
-	 *            The nodes for the edge.
-	 * 
+	 * @param ephemeral
+	 *            If any forward chained edges are ephemeral.
 	 * @return True if the edge is semantically well-formed.
 	 */
-	public boolean semanticArgCheck(boolean forwardChainCreate,
-			Node... edgeNodes) {
+	public boolean semanticArgCheck(Node[] edgeNodes,
+			boolean forwardChainCreate, boolean ephemeral) {
 		if (noChecks_)
 			return true;
 		DAGNode predNode = (DAGNode) edgeNodes[0];
@@ -401,33 +392,19 @@ public class CycDAG extends DirectedAcyclicGraph {
 		if (!checkArity(predNode, edgeNodes))
 			return false;
 
-		// Check args
-		Collection<Node[]> forwardEdges = (forwardChainCreate) ? new ArrayList<Node[]>()
-				: null;
-		for (int i = 1; i < edgeNodes.length; i++) {
-			if (!singleArgCheck(predNode, i, edgeNodes[i]))
-				return false;
-		}
-
 		// Forward chain force-create edges
-		if (forwardChainCreate) {
-			ArrayList<Long> ids = new ArrayList<>(forwardEdges.size());
-			boolean removeEdges = false;
-			for (Node[] forwardEdge : forwardEdges) {
-				if (findEdge(forwardEdge) == null) {
-					Edge edge = findOrCreateEdge(FORWARD_CHAIN, false,
-							forwardEdge);
-					if (edge instanceof DAGErrorEdge) {
-						removeEdges = true;
-						break;
-					} else
-						ids.add(((DAGEdge) edge).getID());
-				}
-			}
+		Collection<Edge> forwardEdges = (forwardChainCreate) ? new ArrayList<Edge>()
+				: null;
 
-			if (removeEdges) {
-				for (Long id : ids)
-					removeEdge(id);
+		// Check each arg
+		for (int i = 1; i < edgeNodes.length; i++) {
+			if (!singleArgCheck(predNode, i, edgeNodes[i], forwardEdges,
+					ephemeral)) {
+				if (forwardChainCreate) {
+					// Unassert the edges
+					for (Edge e : forwardEdges)
+						removeEdge(e);
+				}
 				return false;
 			}
 		}
@@ -436,17 +413,44 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	public boolean singleArgCheck(DAGNode predNode, int i, Node arg) {
+		return singleArgCheck(predNode, i, arg, null, false);
+	}
+
+	/**
+	 * Check if the argument for the edge meets the constraints for a single
+	 * position.
+	 * 
+	 * @param predNode
+	 *            The predicate to meet.
+	 * @param i
+	 *            The index of the argument.
+	 * @param arg
+	 *            The argument in the predicated edge.
+	 * @param forwardEdges
+	 *            If not null, new edges may be created to meet the constraints.
+	 * @param ephemeral
+	 *            If forward edges are to be created as ephemeral.
+	 * @return True if the argument meets the constraint.
+	 */
+	public boolean singleArgCheck(DAGNode predNode, int i, Node arg,
+			Collection<Edge> forwardEdges, boolean ephemeral) {
 		// argNIsa
 		if (!checkSingleArg(predNode, arg, i, CommonConcepts.ARGISA,
-				CommonConcepts.ISA, CommonConcepts.RESULT_ISA,
-				VariableNode.DEFAULT))
+				CommonConcepts.ISA, CommonConcepts.RESULT_ISA, forwardEdges,
+				ephemeral))
 			return false;
 
 		// argNGenls
 		if (!checkSingleArg(predNode, arg, i, CommonConcepts.ARGGENL,
-				CommonConcepts.GENLS, CommonConcepts.RESULT_GENL,
-				VariableNode.DEFAULT))
+				CommonConcepts.GENLS, CommonConcepts.RESULT_GENL, forwardEdges,
+				ephemeral))
 			return false;
 		return true;
+	}
+
+	static {
+		nodeFlags_.addFlag("allowVariables", false);
+
+		edgeFlags_.addFlag("forceConstraints", false);
 	}
 }

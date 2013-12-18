@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.module.cli;
 
 import graph.core.Node;
@@ -78,8 +81,7 @@ public class QuickQueryCommand extends CollectionCommand {
 		ArrayList<String> split = UtilityMethods.split(m.group(2).trim(), ' ');
 		Node[] args = new Node[split.size()];
 		for (int i = 0; i < args.length; i++) {
-			args[i] = dagHandler.getDAG().findOrCreateNode(split.get(i), null,
-					false, false, false);
+			args[i] = dagHandler.getDAG().findOrCreateNode(split.get(i), null);
 			if (args[i] == null) {
 				print("-1|Could not parse arguments.\n");
 				return;

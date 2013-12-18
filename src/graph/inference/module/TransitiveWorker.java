@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.inference.module;
 
 import graph.core.CommonConcepts;
@@ -124,6 +127,8 @@ public class TransitiveWorker extends QueryWorker {
 
 			// Create the subs
 			for (Edge e : nodeEdges) {
+				if (!(e.getNodes()[varIndex] instanceof DAGNode))
+					continue;
 				DAGNode edgeNode = (DAGNode) e.getNodes()[varIndex];
 
 				if (queryObj.isProof()

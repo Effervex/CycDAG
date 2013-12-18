@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.module.cli;
 
 import graph.core.CycDAG;
@@ -39,10 +42,9 @@ public class ValidArgCommand extends Command {
 		}
 		try {
 			DAGNode predicate = (DAGNode) dagHandler.getDAG().findOrCreateNode(
-					split.get(0), null, false, true, false);
+					split.get(0), null, false, false, true, false);
 			Integer argNum = Integer.parseInt(split.get(1).replaceAll("'", ""));
-			Node arg = dagHandler.getDAG().findOrCreateNode(split.get(2), null,
-					false, false, false);
+			Node arg = dagHandler.getDAG().findOrCreateNode(split.get(2), null);
 
 			if (dag.singleArgCheck(predicate, argNum, arg))
 				print("1\n");

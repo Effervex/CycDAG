@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.core;
 
 import graph.module.QueryModule;
@@ -8,11 +11,19 @@ import org.apache.commons.lang3.StringUtils;
 
 public class OntologyFunction extends DAGNode implements Edge {
 	private static final long serialVersionUID = 473544398260462641L;
-	protected Node[] nodes_;
 	private Boolean anonymous_;
+	protected Node[] nodes_;
 
 	public OntologyFunction() {
 		super();
+	}
+
+	public OntologyFunction(boolean anonymous, Node... nodes) {
+		super();
+		nodes_ = nodes;
+		anonymous_ = anonymous;
+		if (anonymous_)
+			id_ = -1;
 	}
 
 	public OntologyFunction(DirectedAcyclicGraph dag, Node... nodes) {
@@ -23,17 +34,18 @@ public class OntologyFunction extends DAGNode implements Edge {
 			id_ = -1;
 	}
 
-	@Override
-	public boolean isAnonymous() {
-		return anonymous_;
-	}
-
-	public OntologyFunction(boolean anonymous, Node... nodes) {
-		super();
-		nodes_ = nodes;
-		anonymous_ = anonymous;
-		if (anonymous_)
-			id_ = -1;
+	private boolean checkIfAnonymous(DirectedAcyclicGraph dag) {
+		// Check if function is unreifiable
+		QueryModule queryModule = (QueryModule) dag
+				.getModule(QueryModule.class);
+		// If nodes[0] is unreifiable OR is not a function
+		if (queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
+				CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag)))
+			return true;
+		if (!queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
+				CommonConcepts.FUNCTION.getNode(dag)))
+			return true;
+		return false;
 	}
 
 	@Override
@@ -54,8 +66,15 @@ public class OntologyFunction extends DAGNode implements Edge {
 	}
 
 	@Override
-	public Node[] getNodes() {
-		return nodes_;
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (getClass() != obj.getClass())
+			return false;
+		OntologyFunction other = (OntologyFunction) obj;
+		if (!Arrays.equals(nodes_, other.nodes_))
+			return false;
+		return true;
 	}
 
 	@Override
@@ -75,23 +94,26 @@ public class OntologyFunction extends DAGNode implements Edge {
 		return buffer.toString();
 	}
 
-	private boolean checkIfAnonymous(DirectedAcyclicGraph dag) {
-		// Check if function is unreifiable
-		QueryModule queryModule = (QueryModule) dag
-				.getModule(QueryModule.class);
-		// If nodes[0] is unreifiable OR is not a function
-		if (queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
-				CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag)))
-			return true;
-		if (!queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
-				CommonConcepts.FUNCTION.getNode(dag)))
-			return true;
-		return false;
-	}
-
 	@Override
 	public String getName() {
 		return "(" + StringUtils.join(nodes_, ' ') + ")";
+	}
+
+	@Override
+	public Node[] getNodes() {
+		return nodes_;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = prime + Arrays.hashCode(nodes_);
+		return result;
+	}
+
+	@Override
+	public boolean isAnonymous() {
+		return anonymous_;
 	}
 
 	@Override
@@ -108,24 +130,5 @@ public class OntologyFunction extends DAGNode implements Edge {
 		}
 		buffer.append(")");
 		return buffer.toString();
-	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = prime + Arrays.hashCode(nodes_);
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (getClass() != obj.getClass())
-			return false;
-		OntologyFunction other = (OntologyFunction) obj;
-		if (!Arrays.equals(nodes_, other.nodes_))
-			return false;
-		return true;
 	}
 }

@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.module;
 
 import graph.core.CommonConcepts;
@@ -9,6 +12,7 @@ import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
 import graph.inference.VariableNode;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -20,6 +24,7 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 
 	private boolean depthCalculated_ = false;
 	private MultiMap<Integer, DAGNode> depthMap_;
+	private boolean incrementalSupported_ = false;
 
 	public DepthModule() {
 		super();
@@ -105,6 +110,12 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 		if (!(edge instanceof DAGEdge) || !depthCalculated_)
 			return true;
 
+		if (!incrementalSupported_) {
+			System.err.println("Incremental updates not supported "
+					+ "for DepthModule!");
+			return true;
+		}
+
 		DAGNode edgePred = (DAGNode) edge.getNodes()[0];
 		if (edgePred.equals(CommonConcepts.GENLS.getNode(dag_))
 				|| edgePred.equals(CommonConcepts.GENLPREDS.getNode(dag_))
@@ -141,8 +152,8 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 
 	@Override
 	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges) {
-		if (depthCalculated_)
+			Collection<DAGEdge> edges, boolean forceRebuild) {
+		if (depthCalculated_ && !forceRebuild)
 			return false;
 
 		// Compute the depths of each node in the graph
@@ -162,6 +173,19 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 
 	@Override
 	public boolean removeEdge(Edge edge) {
+		if (!incrementalSupported_) {
+			System.err.println("Incremental updates not supported "
+					+ "for DepthModule!");
+			return true;
+		}
+
 		return true;
+	}
+
+	@Override
+	public Collection<String> getPertinentProperties() {
+		Collection<String> props = new ArrayList<String>(1);
+		props.add(DEPTH_PROPERTY);
+		return props;
 	}
 }

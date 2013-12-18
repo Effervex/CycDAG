@@ -1,3 +1,6 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand
+ ******************************************************************************/
 package graph.module.cli;
 
 import graph.core.DirectedAcyclicGraph;
@@ -55,7 +58,7 @@ public class NLPCommand extends Command {
 		Object dagObject = null;
 		String result = null;
 		if (typeStr.equals("N")) {
-			dagObject = dag.findOrCreateNode(nlpData, null, false, false, true);
+			dagObject = dag.findOrCreateNode(nlpData, null);
 			result = nlpModule.execute(markup, dagObject);
 		} else if (typeStr.equals("E")) {
 			if (nlpData.matches("\\d+"))
