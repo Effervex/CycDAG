@@ -20,5 +20,6 @@ To connect to the ontology, run 'telnet localhost 2425' (or whatever port number
 
 WHO & WHERE:
 The CycDAG was initially implemented by Dr Sam Sarjant at The University of Waikato, New Zealand. It attempts to reproduce many of the inference processes the OpenCyc ontology performs. It is built upon the DagYo framework (https://github.com/Effervex/DagYo).
+All code is copyright The University of Waikato, New Zealand (2013).
 
 Contact: Sam Sarjant sarjant@waikato.ac.nz
