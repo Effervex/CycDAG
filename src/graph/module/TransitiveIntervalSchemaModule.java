@@ -228,7 +228,7 @@ public class TransitiveIntervalSchemaModule extends
 	@Override
 	public boolean initialisationComplete(Collection<DAGNode> nodes,
 			Collection<DAGEdge> edges, boolean forceRebuild) {
-		if (isReady())
+		if (isReady() && !forceRebuild)
 			return false;
 		initMembers();
 		System.out.print("Creating transitive interval schema for "
