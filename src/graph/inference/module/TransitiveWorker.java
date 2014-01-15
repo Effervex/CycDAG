@@ -46,6 +46,7 @@ public class TransitiveWorker extends QueryWorker {
 	 *            The query to run and store results in.
 	 */
 	private void runIntervalModule(QueryObject queryObj) {
+		// TODO Ensure node is a collection.
 		if (queryObj.isProof()) {
 			// Find the proof and justify it.
 			Collection<DAGNode> result = transIntModule_.execute(true,

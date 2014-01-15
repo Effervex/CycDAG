@@ -306,7 +306,7 @@ public enum CommonConcepts {
 		nlpPredicates(GENLINVERSE, "$1 |1(is)|(are)| a supertype of $2", dag);
 		nlpPredicates(GENLMT, "$1 |1(is)|(are)| a sub-microtheory of $2", dag);
 		nlpPredicates(GENLPREDS, "$1 |1(is)|(are)| a sub-predicate of $2", dag);
-		nlpPredicates(GENLS, "$1 |1(is)|(are)| a subtype of $2", dag);
+		nlpPredicates(GENLS, "$1 |1(is)|(are)| a kind of $2", dag);
 		nlpPredicates(ISA, "$1 |1(is)|(are)| an instance of $2", dag);
 		nlpPredicates(LATER_PREDICATE, "$1 |1(is)|(are)| later than $2", dag);
 		nlpPredicates(NLP_PREDICATE_STRING,

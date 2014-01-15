@@ -12,6 +12,7 @@ package graph.module;
 
 import graph.core.CommonConcepts;
 import graph.core.DAGNode;
+import graph.module.cli.AliasModule;
 
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
@@ -20,13 +21,18 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 
+import org.apache.commons.lang3.ArrayUtils;
+
+import util.AliasedObject;
+
 /**
  * Parses a date from a string in a date parsable form and represents it with
  * functions.
  * 
  * @author Sam Sarjant
  */
-public class DateParseModule extends DAGModule<Collection<DAGNode>> {
+public class DateParseModule extends DAGModule<Collection<DAGNode>> implements
+		AliasModule {
 	private static final long serialVersionUID = 6113514387314037121L;
 	private transient Collection<SimpleDateFormat> acceptedFormats_;
 	private static final SimpleDateFormat MONTH_FORMATTER = new SimpleDateFormat(
@@ -128,4 +134,19 @@ public class DateParseModule extends DAGModule<Collection<DAGNode>> {
 		return null;
 	}
 
+	@Override
+	public Collection<DAGNode> findNodes(String alias, boolean caseSensitive,
+			boolean exactString) {
+		return execute(alias);
+	}
+
+	@Override
+	public Collection<AliasedObject<Character, DAGNode>> findAliasedNodes(
+			String alias, boolean caseSensitive, boolean exactString) {
+		Collection<AliasedObject<Character, DAGNode>> aliased = new HashSet<>();
+		for (DAGNode n : findNodes(alias, caseSensitive, exactString))
+			aliased.add(new AliasedObject<Character, DAGNode>(n, ArrayUtils
+					.toObject(alias.toCharArray())));
+		return aliased;
+	}
 }

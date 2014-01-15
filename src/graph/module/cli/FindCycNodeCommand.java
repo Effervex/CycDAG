@@ -10,9 +10,7 @@
  ******************************************************************************/
 package graph.module.cli;
 
-import graph.core.DAGNode;
 import graph.core.cli.DAGPortHandler;
-import graph.module.DAGModule;
 import graph.module.DateParseModule;
 import graph.module.ModuleException;
 
@@ -20,9 +18,9 @@ import java.util.Collection;
 
 public class FindCycNodeCommand extends FindNodeByAliasCommand {
 	@Override
-	protected Collection<DAGModule<Collection<DAGNode>>> getAllAliasModules(
+	protected Collection<AliasModule> getAllAliasModules(
 			DAGPortHandler dagHandler) {
-		Collection<DAGModule<Collection<DAGNode>>> aliasModules = super
+		Collection<AliasModule> aliasModules = super
 				.getAllAliasModules(dagHandler);
 
 		DateParseModule dateModule = (DateParseModule) dagHandler.getDAG()

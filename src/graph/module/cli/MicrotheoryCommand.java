@@ -31,8 +31,8 @@ public class MicrotheoryCommand extends CollectionCommand {
 	}
 
 	@Override
-	public void execute() {
-		super.execute();
+	protected void executeImpl() {
+		super.executeImpl();
 		DAGPortHandler dagHandler = (DAGPortHandler) handler;
 		MicrotheoryModule microtheoryModule = (MicrotheoryModule) dagHandler
 				.getDAG().getModule(MicrotheoryModule.class);

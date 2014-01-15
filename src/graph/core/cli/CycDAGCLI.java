@@ -29,7 +29,11 @@ public class CycDAGCLI extends DAGCommandLineInterface {
 
 		CommandParser.addCommand("randomNode", RandomCycNodeCommand.class);
 		CommandParser.addCommand("randomEdge", RandomCycEdgeCommand.class);
+		CommandParser.addCommand("extract", ExtractCommand.class);
+		CommandParser.addCommand("removeAll", RemoveCommand.class);
 		CommandParser.addCommand("validArg", ValidArgCommand.class);
+		CommandParser.addCommand("addedge", AddCycEdgeCommand.class);
+		CommandParser.addCommand("varhelp", CycDAGVarHelpCommand.class);
 	}
 
 	public static void main(String[] args) {
@@ -38,7 +42,7 @@ public class CycDAGCLI extends DAGCommandLineInterface {
 
 		dag.initialise();
 	}
-	
+
 	@Override
 	protected PortHandler createPortHandler(Socket serverSocket,
 			CommandQueue commandQueue) throws IOException {

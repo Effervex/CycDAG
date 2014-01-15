@@ -12,6 +12,8 @@ package graph.core.cli;
 
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
+import graph.core.cli.comparator.CycStringCaseInsComparator;
+import graph.core.cli.comparator.CycStringComparator;
 import graph.core.cli.comparator.DefaultComparator;
 import graph.core.cli.comparator.DepthComparator;
 import graph.inference.Substitution;
@@ -29,13 +31,13 @@ public class CycDAGPortHandler extends DAGPortHandler {
 
 	@Override
 	protected DefaultComparator getComparator() {
-		DefaultComparator comparator = super.getComparator();
-		if (comparator != null)
-			return comparator;
-		if (get(SORT_ORDER).equals("depth")) {
-			comparator = new DepthComparator();
-		}
-		return comparator;
+		if (get(SORT_ORDER).equals("depth"))
+			return new DepthComparator();
+		else if (get(SORT_ORDER).equals("alpha"))
+			return new CycStringComparator();
+		else if (get(SORT_ORDER).equals("alphaNoCase"))
+			return new CycStringCaseInsComparator();
+		return super.getComparator();
 	}
 
 	@Override

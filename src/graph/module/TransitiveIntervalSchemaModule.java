@@ -22,6 +22,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -230,6 +231,7 @@ public class TransitiveIntervalSchemaModule extends
 			Collection<DAGEdge> edges, boolean forceRebuild) {
 		if (isReady() && !forceRebuild)
 			return false;
+		virtualRoot_ = null;
 		initMembers();
 		System.out.print("Creating transitive interval schema for "
 				+ transitiveNode_ + "... ");
@@ -279,28 +281,38 @@ public class TransitiveIntervalSchemaModule extends
 		return predecessorMap_ != null && ancestorMap_ != null;
 	}
 
+	@Override
+	public void disableCached() {
+		predecessorMap_ = null;
+		ancestorMap_ = null;
+	}
+
 	public List<Node[]> justifyTransitive(DAGNode baseNode, DAGNode transNode) {
 		List<Node[]> justification = new ArrayList<Node[]>();
-
-		// From the base node, work through each parent node
-		DAGNode currentNode = null;
-		DAGNode nextNode = baseNode;
-		Set<DAGNode> seen = new HashSet<>();
-		do {
-			currentNode = nextNode;
-			for (DAGNode directNext : getTransitiveNodes(currentNode, true)) {
-				if (!seen.contains(directNext)
-						&& predecessorMap_.isTransitive(directNext, transNode)) {
-					nextNode = directNext;
-					seen.add(directNext);
-					justification.add(new Node[] { transitiveNode_,
-							currentNode, nextNode });
-					break;
-				}
-			}
-		} while (!nextNode.equals(transNode));
+		justifyTransitiveR(baseNode, transNode, justification, new HashSet<DAGNode>());
+		Collections.reverse(justification);
 
 		return justification;
+	}
+
+	public List<Node[]> justifyTransitiveR(DAGNode baseNode, DAGNode transNode,
+			List<Node[]> justification, Set<DAGNode> seenNodes) {
+		if (baseNode.equals(transNode))
+			return justification;
+
+		for (DAGNode directNext : getTransitiveNodes(baseNode, true)) {
+			if (!seenNodes.contains(directNext)
+					&& predecessorMap_.isTransitive(directNext, transNode)) {
+				seenNodes.add(directNext);
+				if (justifyTransitiveR(directNext, transNode, justification,
+						seenNodes) != null) {
+					justification.add(new Node[] { transitiveNode_, baseNode,
+							directNext });
+					return justification;
+				}
+			}
+		}
+		return null;
 	}
 
 	@Override

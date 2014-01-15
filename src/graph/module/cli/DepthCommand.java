@@ -20,7 +20,7 @@ import java.util.Collection;
 public class DepthCommand extends CollectionCommand {
 	@Override
 	public String helpText() {
-		return "{1} #D : Returns all nodes at depth #D.";
+		return "{0} #D : Returns all nodes at depth #D.";
 	}
 
 	@Override

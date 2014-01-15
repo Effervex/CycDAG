@@ -29,18 +29,18 @@ import java.util.Set;
  * @author Sam Sarjant
  */
 public class QueryObject {
-	private ArrayList<DAGNode> atomics_;
 	private int atomicIndex_ = -1;
+	private ArrayList<DAGNode> atomics_;
 	private ArrayList<DAGNode> completed_;
 	private Set<DAGNode> completedSet_;
+	private List<Node[]> justification_;
 	private Node[] nodes_;
+	private Substitution priorSubstitution_;
 	private ArrayList<Substitution> results_;
 	private Set<Substitution> resultsSet_;
-	private ArrayList<VariableNode> variables_;
-	private int variableIndex_ = -1;
 	private Set<Substitution> toComplete_;
-	private Substitution priorSubstitution_;
-	private List<Node[]> justification_;
+	private int variableIndex_ = -1;
+	private ArrayList<VariableNode> variables_;
 
 	public QueryObject(Node... nodes) {
 		nodes_ = nodes;
@@ -182,14 +182,43 @@ public class QueryObject {
 				return;
 	}
 
+	public void cleanTransitiveJustification(List<Node[]> justifications) {
+		List<Node[]> transitiveJustification = new ArrayList<>();
+		Node transitiveNode = null;
+		for (int i = justifications.size() - 1; i >= 0; i--) {
+			Node[] justNodes = justifications.get(i);
+			if (transitiveNode == null
+					|| justNodes[2].equals(transitiveNode)
+					|| (justNodes[2] instanceof OntologyFunction && ((OntologyFunction) justNodes[2])
+							.getNodes()[0].equals(transitiveNode))) {
+				transitiveNode = justNodes[1];
+				transitiveJustification.add(justNodes);
+			}
+
+			if (transitiveNode.equals(nodes_[1]))
+				break;
+		}
+
+		Collections.reverse(transitiveJustification);
+		justification_ = transitiveJustification;
+	}
+
 	public DAGNode getAtomic() {
 		if (atomics_.size() == 0)
 			return null;
 		return atomics_.get(0);
 	}
 
+	public int getAtomicIndex() {
+		return atomicIndex_;
+	}
+
 	public ArrayList<DAGNode> getCompleted() {
 		return completed_;
+	}
+
+	public List<Node[]> getJustification() {
+		return justification_;
 	}
 
 	public Node getNode(int i) {
@@ -198,6 +227,14 @@ public class QueryObject {
 
 	public Node[] getNodes() {
 		return nodes_;
+	}
+
+	public int getNumVariables() {
+		return variables_.size();
+	}
+
+	public Collection<Substitution> getPriorSubstitutions() {
+		return toComplete_;
 	}
 
 	public Collection<Substitution> getResults() {
@@ -215,6 +252,10 @@ public class QueryObject {
 		if (variables_ == null || variables_.size() <= i)
 			return null;
 		return variables_.get(i);
+	}
+
+	public int getVariableIndex() {
+		return variableIndex_;
 	}
 
 	public boolean isCompleted(Node n) {
@@ -249,54 +290,13 @@ public class QueryObject {
 		return qo;
 	}
 
-	@Override
-	public String toString() {
-		return Arrays.toString(nodes_);
-	}
-
 	public void setToComplete(Collection<Substitution> intersect) {
 		if (intersect != null)
 			toComplete_ = new HashSet<>(intersect);
 	}
 
-	public int getAtomicIndex() {
-		return atomicIndex_;
-	}
-
-	public int getVariableIndex() {
-		return variableIndex_;
-	}
-
-	public Collection<Substitution> getPriorSubstitutions() {
-		return toComplete_;
-	}
-
-	public int getNumVariables() {
-		return variables_.size();
-	}
-
-	public List<Node[]> getJustification() {
-		return justification_;
-	}
-
-	public void cleanTransitiveJustification(List<Node[]> justifications) {
-		List<Node[]> transitiveJustification = new ArrayList<>();
-		Node transitiveNode = null;
-		for (int i = justifications.size() - 1; i >= 0; i--) {
-			Node[] justNodes = justifications.get(i);
-			if (transitiveNode == null
-					|| justNodes[2].equals(transitiveNode)
-					|| (justNodes[2] instanceof OntologyFunction && ((OntologyFunction) justNodes[2])
-							.getNodes()[0].equals(transitiveNode))) {
-				transitiveNode = justNodes[1];
-				transitiveJustification.add(justNodes);
-			}
-
-			if (transitiveNode.equals(nodes_[1]))
-				break;
-		}
-
-		Collections.reverse(transitiveJustification);
-		justification_ = transitiveJustification;
+	@Override
+	public String toString() {
+		return Arrays.toString(nodes_);
 	}
 }

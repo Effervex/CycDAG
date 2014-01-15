@@ -17,7 +17,8 @@ import java.io.ObjectOutput;
 public enum CycDAGErrorEdge implements ErrorEdge {
 	VARIABLE_NODE("Edge using a variable node."), DISJOINT_EDGE(
 			"Edge is disjoint with existing information."), SEMANTIC_CONFLICT(
-			"Edge using semantically invalid arguments.");
+			"Edge using semantically invalid arguments."), CYCLIC_EDGE(
+			"Edge creates a cycle.");
 
 	private String error_;
 

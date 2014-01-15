@@ -35,7 +35,6 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 
 	public DepthModule() {
 		super();
-		depthMap_ = MultiMap.createConcurrentHashSetMultiMap();
 	}
 
 	private CommonConcepts determineDepthPath(Node node) {
@@ -165,8 +164,10 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 
 		// Compute the depths of each node in the graph
 		System.out.print("Calculating node depths... ");
+		depthMap_ = MultiMap.createConcurrentHashSetMultiMap();
 		int count = 0;
 		int tenPercent = nodes.size() / 10;
+		// TODO Embarrassingly parallel.
 		for (DAGNode node : nodes) {
 			count++;
 			processNode(node, new HashSet<Long>());
@@ -194,5 +195,11 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 		Collection<String> props = new ArrayList<String>(1);
 		props.add(DEPTH_PROPERTY);
 		return props;
+	}
+
+	@Override
+	public void disableCached() {
+		depthCalculated_ = false;
+		depthMap_ = null;
 	}
 }
