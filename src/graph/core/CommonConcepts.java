@@ -60,7 +60,7 @@ public enum CommonConcepts {
 	RESULT_ISA_ARG("resultIsaArg"),
 	SIBLING_DISJOINT_COLLECTION_TYPE("SiblingDisjointCollectionType"),
 	SIBLING_DISJOINT_EXCEPTION("siblingDisjointExceptions"),
-	STRING("ControlCharacterFreeString"),
+	STRING("CharacterString"),
 	SYMMETRIC_BINARY("SymmetricBinaryPredicate"),
 	TERM_STRING("termStrings"),
 	THE_FN("TheFn"),
@@ -69,7 +69,8 @@ public enum CommonConcepts {
 	TRUE("True"),
 	UNREIFIABLE_FUNCTION("UnreifiableFunction"),
 	YEARFN("YearFn"),
-	ZERO("Zero");
+	ZERO("Zero"),
+	REWRITE_OF("rewriteOf");
 
 	private static final StringNode _COMMON_CONCEPT = new StringNode(
 			"CommonConcept");
@@ -117,175 +118,197 @@ public enum CommonConcepts {
 
 	private static void nlpPredicates(CommonConcepts cc, String nlpPred,
 			CycDAG dag) {
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { 
-				NLP_PREDICATE_STRING.getNode(dag), cc.getNode(dag),
-				new StringNode(nlpPred)}, false);
+		dag.findOrCreateEdge(_COMMON_CONCEPT,
+				new Node[] { NLP_PREDICATE_STRING.getNode(dag),
+						cc.getNode(dag), new StringNode(nlpPred) }, false);
 	}
 
 	public static void createCommonAssertions(CycDAG dag) {
 		boolean checks = dag.noChecks_;
 		dag.noChecks_ = true;
 		// isa, genls
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag), ISA.getNode(dag),
-				BINARY_PREDICATE.getNode(dag) }, 
-				false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
-				ISA.getNode(dag), PrimitiveNode.parseNode("2"),
-				COLLECTION.getNode(dag)}, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				GENLS.getNode(dag), BINARY_PREDICATE.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
-				GENLS.getNode(dag), PrimitiveNode.parseNode("1"),
-				COLLECTION.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
-				GENLS.getNode(dag), PrimitiveNode.parseNode("2"),
-				COLLECTION.getNode(dag)}, false);
+				ISA.getNode(dag), BINARY_PREDICATE.getNode(dag) }, false);
+		dag.findOrCreateEdge(
+				_COMMON_CONCEPT,
+				new Node[] { ARGISA.getNode(dag), ISA.getNode(dag),
+						PrimitiveNode.parseNode("2"), COLLECTION.getNode(dag) },
+				false);
+		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
+				GENLS.getNode(dag), BINARY_PREDICATE.getNode(dag) }, false);
+		dag.findOrCreateEdge(
+				_COMMON_CONCEPT,
+				new Node[] { ARGISA.getNode(dag), GENLS.getNode(dag),
+						PrimitiveNode.parseNode("1"), COLLECTION.getNode(dag) },
+				false);
+		dag.findOrCreateEdge(
+				_COMMON_CONCEPT,
+				new Node[] { ARGISA.getNode(dag), GENLS.getNode(dag),
+						PrimitiveNode.parseNode("2"), COLLECTION.getNode(dag) },
+				false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { GENLS.getNode(dag),
-				BINARY_PREDICATE.getNode(dag), PREDICATE.getNode(dag)}, false);
+				BINARY_PREDICATE.getNode(dag), PREDICATE.getNode(dag) }, false);
 
 		// Individual
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				INDIVIDUAL.getNode(dag), COLLECTION.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { DISJOINTWITH.getNode(dag),
-				INDIVIDUAL.getNode(dag), COLLECTION.getNode(dag)}, false);
+				INDIVIDUAL.getNode(dag), COLLECTION.getNode(dag) }, false);
+		dag.findOrCreateEdge(_COMMON_CONCEPT,
+				new Node[] { DISJOINTWITH.getNode(dag),
+						INDIVIDUAL.getNode(dag), COLLECTION.getNode(dag) },
+				false);
 
 		// Collection
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				COLLECTION.getNode(dag), COLLECTION.getNode(dag)}, false);
+				COLLECTION.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				THING.getNode(dag), COLLECTION.getNode(dag)}, false);
+				THING.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { GENLS.getNode(dag),
-				COLLECTION.getNode(dag), THING.getNode(dag)}, false);
+				COLLECTION.getNode(dag), THING.getNode(dag) }, false);
 
 		// Predicate
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				PREDICATE.getNode(dag), COLLECTION.getNode(dag)}, false);
+				PREDICATE.getNode(dag), COLLECTION.getNode(dag) }, false);
 
 		// Function
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				FUNCTION.getNode(dag), COLLECTION.getNode(dag)}, false);
+				FUNCTION.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				THE_FN.getNode(dag), FUNCTION.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { 
-				RESULT_ISA_ARG.getNode(dag), THE_FN.getNode(dag),
-				PrimitiveNode.parseNode("1")}, false);
+				THE_FN.getNode(dag), FUNCTION.getNode(dag) }, false);
+		dag.findOrCreateEdge(_COMMON_CONCEPT,
+				new Node[] { RESULT_ISA_ARG.getNode(dag), THE_FN.getNode(dag),
+						PrimitiveNode.parseNode("1") }, false);
 
 		// resultIsa/genls (+arg)
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				RESULT_GENL.getNode(dag), BINARY_PREDICATE.getNode(dag)}, false);
+				RESULT_GENL.getNode(dag), BINARY_PREDICATE.getNode(dag) },
+				false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				RESULT_GENL.getNode(dag), PrimitiveNode.parseNode("1"),
-				FUNCTION.getNode(dag)}, false);
+				FUNCTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				RESULT_GENL.getNode(dag), PrimitiveNode.parseNode("2"),
-				COLLECTION.getNode(dag)}, false);
+				COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				RESULT_ISA.getNode(dag), BINARY_PREDICATE.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
-				RESULT_ISA.getNode(dag), PrimitiveNode.parseNode("1"),
-				FUNCTION.getNode(dag)}, false);
+				RESULT_ISA.getNode(dag), BINARY_PREDICATE.getNode(dag) }, false);
+		dag.findOrCreateEdge(_COMMON_CONCEPT,
+				new Node[] { ARGISA.getNode(dag), RESULT_ISA.getNode(dag),
+						PrimitiveNode.parseNode("1"), FUNCTION.getNode(dag) },
+				false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				RESULT_ISA.getNode(dag), PrimitiveNode.parseNode("2"),
-				COLLECTION.getNode(dag)}, false);
+				COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				RESULT_GENL_ARG.getNode(dag), PREDICATE.getNode(dag)}, false);
+				RESULT_GENL_ARG.getNode(dag), PREDICATE.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				RESULT_GENL_ARG.getNode(dag), PrimitiveNode.parseNode("1"),
-				FUNCTION.getNode(dag)}, false);
+				FUNCTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				RESULT_GENL_ARG.getNode(dag), PrimitiveNode.parseNode("2"),
-				POSITIVE_INTEGER.getNode(dag)}, false);
+				POSITIVE_INTEGER.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				RESULT_ISA_ARG.getNode(dag), PREDICATE.getNode(dag)}, false);
+				RESULT_ISA_ARG.getNode(dag), PREDICATE.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				RESULT_ISA_ARG.getNode(dag), PrimitiveNode.parseNode("1"),
-				FUNCTION.getNode(dag)}, false);
+				FUNCTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				RESULT_ISA_ARG.getNode(dag), PrimitiveNode.parseNode("2"),
-				POSITIVE_INTEGER.getNode(dag)}, false);
+				POSITIVE_INTEGER.getNode(dag) }, false);
 
 		// NLP Predicates
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				CHARACTER_STRING.getNode(dag), COLLECTION.getNode(dag)}, false);
+				CHARACTER_STRING.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { GENLS.getNode(dag),
-				STRING.getNode(dag), CHARACTER_STRING.getNode(dag)}, false);
+				STRING.getNode(dag), CHARACTER_STRING.getNode(dag) }, false);
 		dag.findOrCreateEdge(
 				_COMMON_CONCEPT,
-				new Node[] { 
-				ISA.getNode(dag),
-				new OntologyFunction(dag, THE_FN.getNode(dag), STRING
-						.getNode(dag)), STRING.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				NLP_PREDICATE_STRING.getNode(dag),
-				BINARY_PREDICATE.getNode(dag)}, false);
+				new Node[] {
+						ISA.getNode(dag),
+						new OntologyFunction(dag, THE_FN.getNode(dag), STRING
+								.getNode(dag)), STRING.getNode(dag) }, false);
+		dag.findOrCreateEdge(
+				_COMMON_CONCEPT,
+				new Node[] { ISA.getNode(dag),
+						NLP_PREDICATE_STRING.getNode(dag),
+						BINARY_PREDICATE.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				NLP_PREDICATE_STRING.getNode(dag),
-				PrimitiveNode.parseNode("1"), PREDICATE.getNode(dag)}, false);
+				PrimitiveNode.parseNode("1"), PREDICATE.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				NLP_PREDICATE_STRING.getNode(dag),
-				PrimitiveNode.parseNode("2"), CHARACTER_STRING.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { COMMENT.getNode(dag),
-				NLP_PREDICATE_STRING.getNode(dag), new StringNode(
+				PrimitiveNode.parseNode("2"), CHARACTER_STRING.getNode(dag) },
+				false);
+		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] {
+				COMMENT.getNode(dag),
+				NLP_PREDICATE_STRING.getNode(dag),
+				new StringNode(
 						"A predicate for converting binary assertions into "
 								+ "a natural language phrase. ("
 								+ NLP_PREDICATE_STRING.nodeName_
 								+ " PRED NLPSTR) means that PRED can be "
 								+ "described using NLPSTR in the context of "
 								+ "an adverb (e.g. 'an instance of', 'broader "
-								+ "than', etc).")}, false);
+								+ "than', etc).") }, false);
 
 		// First Order Collection
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { GENLS.getNode(dag),
-				FIRST_ORDER_COLLECTION.getNode(dag), COLLECTION.getNode(dag)}, false);
+				FIRST_ORDER_COLLECTION.getNode(dag), COLLECTION.getNode(dag) },
+				false);
 
 		// Primitives
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				STRING.getNode(dag), COLLECTION.getNode(dag)}, false);
+				STRING.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				POSITIVE_INTEGER.getNode(dag), COLLECTION.getNode(dag)}, false);
+				POSITIVE_INTEGER.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				NEGATIVE_INTEGER.getNode(dag), COLLECTION.getNode(dag)}, false);
+				NEGATIVE_INTEGER.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				ZERO.getNode(dag), INDIVIDUAL.getNode(dag)}, false);
+				ZERO.getNode(dag), INDIVIDUAL.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				POSITIVE_NUMBER.getNode(dag), COLLECTION.getNode(dag)}, false);
+				POSITIVE_NUMBER.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				NEGATIVE_NUMBER.getNode(dag), COLLECTION.getNode(dag)}, false);
+				NEGATIVE_NUMBER.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				TRUE.getNode(dag), INDIVIDUAL.getNode(dag)}, false);
+				TRUE.getNode(dag), INDIVIDUAL.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				FALSE.getNode(dag), INDIVIDUAL.getNode(dag)}, false);
+				FALSE.getNode(dag), INDIVIDUAL.getNode(dag) }, false);
 
 		// Time functions
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				DATE.getNode(dag), COLLECTION.getNode(dag)}, false);
+				DATE.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				DAYFN.getNode(dag), UNREIFIABLE_FUNCTION.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { RESULT_ISA.getNode(dag),
-				DAYFN.getNode(dag), DATE.getNode(dag)}, false);
+				DAYFN.getNode(dag), UNREIFIABLE_FUNCTION.getNode(dag) }, false);
+		dag.findOrCreateEdge(
+				_COMMON_CONCEPT,
+				new Node[] { RESULT_ISA.getNode(dag), DAYFN.getNode(dag),
+						DATE.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				MONTHFN.getNode(dag), UNREIFIABLE_FUNCTION.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { RESULT_ISA.getNode(dag),
-				MONTHFN.getNode(dag), DATE.getNode(dag)}, false);
+				MONTHFN.getNode(dag), UNREIFIABLE_FUNCTION.getNode(dag) },
+				false);
+		dag.findOrCreateEdge(_COMMON_CONCEPT,
+				new Node[] { RESULT_ISA.getNode(dag), MONTHFN.getNode(dag),
+						DATE.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				YEARFN.getNode(dag), UNREIFIABLE_FUNCTION.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { RESULT_ISA.getNode(dag),
-				YEARFN.getNode(dag), DATE.getNode(dag)}, false);
+				YEARFN.getNode(dag), UNREIFIABLE_FUNCTION.getNode(dag) }, false);
+		dag.findOrCreateEdge(
+				_COMMON_CONCEPT,
+				new Node[] { RESULT_ISA.getNode(dag), YEARFN.getNode(dag),
+						DATE.getNode(dag) }, false);
 
 		// Temporal Concepts
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				LATER_PREDICATE.getNode(dag), BINARY_PREDICATE.getNode(dag)}, false);
+				LATER_PREDICATE.getNode(dag), BINARY_PREDICATE.getNode(dag) },
+				false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				LATER_PREDICATE.getNode(dag), PrimitiveNode.parseNode("1"),
-				DATE.getNode(dag)}, false);
+				DATE.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ARGISA.getNode(dag),
 				LATER_PREDICATE.getNode(dag), PrimitiveNode.parseNode("2"),
-				DATE.getNode(dag)}, false);
+				DATE.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				INTERVAL_BOUND.getNode(dag), COLLECTION.getNode(dag)}, false);
-		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
-				INTERVAL_FUNCTION.getNode(dag),
-				UNREIFIABLE_FUNCTION.getNode(dag)}, false);
+				INTERVAL_BOUND.getNode(dag), COLLECTION.getNode(dag) }, false);
+		dag.findOrCreateEdge(_COMMON_CONCEPT,
+				new Node[] { ISA.getNode(dag), INTERVAL_FUNCTION.getNode(dag),
+						UNREIFIABLE_FUNCTION.getNode(dag) }, false);
 
 		// $1 |1(is)|(are)| <text string> $2
 		nlpPredicates(
@@ -328,9 +351,11 @@ public enum CommonConcepts {
 				RESULT_ISA_ARG,
 				"the instance produced by $1 |1(is)|(are)| the same as |2(argument $2)|(what arguments)|",
 				dag);
+		nlpPredicates(TERM_STRING, "$1 |1(is)|(are)| also known as $2", dag);
 		nlpPredicates(SIBLING_DISJOINT_EXCEPTION,
 				"$1 |1(is)|(are)| exempt from disjointness with $2", dag);
-		nlpPredicates(TERM_STRING, "$1 |1(is)|(are)| also known as $2", dag);
+		nlpPredicates(REWRITE_OF,
+				"$1 |1(is)|(are)| the favoured rewrite of $2", dag);
 		dag.noChecks_ = checks;
 	}
 

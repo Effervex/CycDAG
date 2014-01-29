@@ -12,6 +12,7 @@ package graph.core.cli;
 
 import graph.core.CycDAG;
 import graph.core.DirectedAcyclicGraph;
+import graph.module.cli.PredsForCommand;
 import graph.module.cli.ValidArgCommand;
 
 import java.io.IOException;
@@ -34,6 +35,7 @@ public class CycDAGCLI extends DAGCommandLineInterface {
 		CommandParser.addCommand("validArg", ValidArgCommand.class);
 		CommandParser.addCommand("addedge", AddCycEdgeCommand.class);
 		CommandParser.addCommand("varhelp", CycDAGVarHelpCommand.class);
+		CommandParser.addCommand("predsFor", PredsForCommand.class);
 	}
 
 	public static void main(String[] args) {

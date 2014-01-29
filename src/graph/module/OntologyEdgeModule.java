@@ -33,6 +33,7 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 		for (int i = 0; i < args.length; i++) {
 			Node n = (Node) args[i];
 			boolean additive = true;
+			boolean allBut = false;
 
 			// Get index of node
 			String index = null;
@@ -41,6 +42,9 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 				index = args[i].toString();
 				if (index.startsWith("-")) {
 					additive = false;
+					index = index.substring(1);
+				} else if (index.startsWith("!")) {
+					allBut = true;
 					index = index.substring(1);
 				}
 			}
@@ -60,7 +64,8 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 				edgeCols.addAll(locateEdgeCollections(key, createNew,
 						asIndexed(((Edge) n).getNodes())));
 			} else if (n instanceof DAGNode) {
-				Collection<Edge> edgeCol = getEdges(n, key, createNew);
+				Collection<Edge> edgeCol = (allBut) ? getAllButEdges(n, key)
+						: getEdges(n, key, createNew);
 				edgeCols.add(new EdgeCol(additive, edgeCol));
 			}
 		}
@@ -80,6 +85,8 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 	private Collection<Edge> getFunctionEdges(Node n, boolean functionOnly) {
 		Collection<Edge> funcEdges = new HashSet<>();
 		MultiMap<Object, Edge> nodeEdges = relatedEdges_.get(n);
+		if (nodeEdges == null)
+			return funcEdges;
 		for (Object key : nodeEdges.keySet()) {
 			if (functionOnly && key.toString().contains(FUNC_SPLIT))
 				funcEdges.addAll(nodeEdges.get(key));

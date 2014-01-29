@@ -25,6 +25,9 @@ public class OntologyEdgeCommand extends RelatedEdgeCommand {
 				+ "each optionally bounded to a specific argument "
 				+ "position in the edge's arguments (specified "
 				+ "with optional function nesting as \\dF\\d...). "
+				+ "Position can also be prefixed by '-' to exclude "
+				+ "any edges with node at that key, or '!' to exclude "
+				+ "any edges with node ONLY at that key."
 				+ "Can also exclude/explicitly include "
 				+ "function-based nodes with arg '-F' or "
 				+ "'F' respectively.";
@@ -44,7 +47,7 @@ public class OntologyEdgeCommand extends RelatedEdgeCommand {
 			}
 			args.add(node);
 
-			if (i < split.size() && split.get(i).matches("\\([-\\dF]+\\)")) {
+			if (i < split.size() && split.get(i).matches("\\([\\!\\-\\dF]+\\)")) {
 				String argPos = UtilityMethods.shrinkString(split.get(i++), 1);
 				args.add(argPos);
 			}

@@ -289,7 +289,8 @@ public class TransitiveIntervalSchemaModule extends
 
 	public List<Node[]> justifyTransitive(DAGNode baseNode, DAGNode transNode) {
 		List<Node[]> justification = new ArrayList<Node[]>();
-		justifyTransitiveR(baseNode, transNode, justification, new HashSet<DAGNode>());
+		justifyTransitiveR(baseNode, transNode, justification,
+				new HashSet<DAGNode>());
 		Collections.reverse(justification);
 
 		return justification;
@@ -373,31 +374,49 @@ public class TransitiveIntervalSchemaModule extends
 	 *            The currently topologically sorted nodes
 	 * @param markMap
 	 *            A map to mark scanned nodes.
-	 * @return A string if there is a cycle, otherwise null.
+	 * @return A node if there is a cycle, otherwise null.
 	 */
-	public void topologicalVisit(DAGNode n, LinkedList<DAGNode> sortedNodes,
+	public DAGNode topologicalVisit(DAGNode n, LinkedList<DAGNode> sortedNodes,
 			HashMap<DAGNode, String> markMap) {
 		String permaMark = n.getProperty(MARK);
 		if (permaMark != null && permaMark.equals(PERMANENT_MARK))
-			return;
+			return null;
 
 		String mark = markMap.get(n);
 		if (mark != null && mark.equals(TEMP_MARK)) {
-			System.out.println("Cycle: " + n);
-			return;
+			System.out.print("Cycle");
+			// Does it have a rewrite of?
+			if (!relEdgeModule_.execute(
+					CommonConcepts.REWRITE_OF.getNode(dag_), "1", n, "-F")
+					.isEmpty())
+				System.out.print(" (has rewriteOf)");
+			System.out.print(": " + n);
+			return n;
 		}
+		DAGNode cycleNode = null;
 		if (mark == null) {
 			markMap.put(n, TEMP_MARK);
 			Collection<DAGNode> transitiveNodes = getTransitiveNodes(n, true);
 			for (DAGNode edgeNode : transitiveNodes) {
 				if (!edgeNode.equals(n)) {
-					topologicalVisit(edgeNode, sortedNodes, markMap);
+					DAGNode tempNode = topologicalVisit(edgeNode, sortedNodes,
+							markMap);
+					if (cycleNode == null)
+						cycleNode = tempNode;
+					if (tempNode != null) {
+						System.out.print(" -> " + n);
+						if (n.equals(tempNode)) {
+							System.out.println();
+							cycleNode = null;
+						}
+					}
 				}
 			}
 			dag_.addProperty(n, MARK, PERMANENT_MARK);
 			markMap.put(n, PERMANENT_MARK);
 			sortedNodes.push(n);
 		}
+		return cycleNode;
 	}
 
 	private class IDOrder implements Comparator<DAGNode> {

@@ -24,12 +24,13 @@ import core.Command;
 public class NLPCommand extends Command {
 	@Override
 	public String helpText() {
-		return "{0} N/E/Q/M node/edge/query/markup [markup] : Given a node, edge, "
-				+ "query, or marked-up string (distinguished by either N, E, Q, "
-				+ "or M as the first argument), this command attempts to find "
-				+ "the best natural language description of it. Optional markup "
-				+ "argument for marking up natural text representations in "
-				+ "[[Wiki syntax|Syntax]].";
+		return "{0} N/E/Q/M node/edge/query/markup [markup] [includeInput] : "
+				+ "Given a node, edge, query, or marked-up string (distinguished "
+				+ "by either N, E, Q, or M as the first argument), this command "
+				+ "attempts to find the best natural language description of it. "
+				+ "Optional boolean markup argument for marking up natural "
+				+ "text representations in [[Wiki syntax|Syntax]]. Optional "
+				+ "includeInput argument to include the input object in the output.";
 	}
 
 	@Override
@@ -55,11 +56,19 @@ public class NLPCommand extends Command {
 
 		// Parse markup
 		ArrayList<String> args = UtilityMethods.split(data, ' ');
+		if (args.size() < 2) {
+			print("-1|Invalid number of arguments.\n");
+			return;
+		}
+
 		String typeStr = args.get(0);
 		String nlpData = args.get(1).trim();
 		boolean markup = false;
+		boolean includeInput = false;
 		if (args.size() >= 3)
 			markup = (args.get(2).equalsIgnoreCase("T")) ? true : false;
+		if (args.size() >= 4)
+			includeInput = (args.get(3).equalsIgnoreCase("T")) ? true : false;
 
 		// Parse the nodes
 		Object dagObject = null;
@@ -88,7 +97,11 @@ public class NLPCommand extends Command {
 
 		if (result == null)
 			print("-1|Could not convert into natural language.\n");
-		else
-			print("1|" + result + "\n");
+		else {
+			if (includeInput)
+				print("1|" + result + ":" + nlpData + "\n");
+			else
+				print("1|" + result + "\n");
+		}
 	}
 }

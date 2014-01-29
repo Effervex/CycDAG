@@ -265,4 +265,11 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		return new OntologyFunction(false, CommonConcepts.THE_FN.getNode(dag_),
 				CommonConcepts.STRING.getNode(dag_));
 	}
+
+	public boolean proveIsString(Node testNode, Node constraint) {
+		if (!(testNode instanceof StringNode))
+			return false;
+		return prove(CommonConcepts.GENLS.getNode(dag_), constraint,
+				CommonConcepts.STRING.getNode(dag_));
+	}
 }
