@@ -289,6 +289,28 @@ public class CycDAG extends DirectedAcyclicGraph {
 			boolean... flags) {
 		return findOrCreateEdge(creator, edgeNodes, null, flags);
 	}
+	
+	@Override
+	public Node[] parseNodes(String strNodes, Node creator,
+			boolean createNodes, boolean dagNodeOnly) {
+		if (strNodes.startsWith("("))
+			strNodes = UtilityMethods.shrinkString(strNodes, 1);
+		ArrayList<String> split = UtilityMethods.split(strNodes, ' ');
+
+		Node[] nodes = new Node[split.size()];
+		int i = 0;
+		for (String arg : split) {
+			if (dagNodeOnly && arg.startsWith("?"))
+				return null;
+			nodes[i] = findOrCreateNode(arg, creator, createNodes, false,
+					dagNodeOnly);
+
+			if (nodes[i] == null)
+				return null;
+			i++;
+		}
+		return nodes;
+	}
 
 	@Override
 	public synchronized Node findOrCreateNode(String nodeStr, Node creator,
@@ -473,8 +495,9 @@ public class CycDAG extends DirectedAcyclicGraph {
 			replComment.append("[[" + concept + "]]");
 			start = m.end();
 		}
+		replComment.append(comment.substring(start, comment.length()));
 
-		return new StringNode(comment);
+		return new StringNode(replComment.toString());
 	}
 
 	/**

@@ -27,6 +27,7 @@ import java.util.Map;
 
 public class AndWorker extends QueryWorker {
 	private static final long serialVersionUID = 3867218930317989260L;
+	private static final int LIMIT = 100000;
 
 	public AndWorker(QueryModule queryModule) {
 		super(queryModule);
@@ -53,7 +54,7 @@ public class AndWorker extends QueryWorker {
 					.getJustification();
 
 			// Intersect results
-			intersect = intersectResults(intersect, subs);
+			intersect = intersectResults(intersect, subs, LIMIT);
 
 			// Quit if no proof is found or no variables can match.
 			if (queryObj.isProof() && subs == null || intersect.isEmpty())
@@ -88,7 +89,8 @@ public class AndWorker extends QueryWorker {
 	}
 
 	public static Collection<Substitution> intersectResults(
-			Collection<Substitution> intersect, Collection<Substitution> subs) {
+			Collection<Substitution> intersect, Collection<Substitution> subs,
+			int resultsLimit) {
 		if (intersect == null)
 			return subs;
 		else if (subs == null)
@@ -96,6 +98,7 @@ public class AndWorker extends QueryWorker {
 		else {
 			// Not quite as simple as a retain all, as different variables can
 			// be present.
+			int numResults = 0;
 			Collection<Substitution> newIntersect = new ArrayList<>(
 					intersect.size());
 			// For each intersect substitution
@@ -119,6 +122,9 @@ public class AndWorker extends QueryWorker {
 								subI.getSubstitutionMap());
 						newSub.getSubstitutionMap().putAll(subMap);
 						newIntersect.add(newSub);
+						numResults++;
+						if (numResults >= resultsLimit)
+							return newIntersect;
 					}
 				}
 			}
