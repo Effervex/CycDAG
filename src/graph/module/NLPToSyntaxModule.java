@@ -90,7 +90,6 @@ public class NLPToSyntaxModule extends DAGModule<Edge> {
 		// Remove other punctuation
 		text = text.replaceAll("[^A-Za-z0-9 ()-]", " ");
 		
-		
 		text = text.replaceAll("\\(", "- ");
 		text = text.replaceAll("\\)", "");
 

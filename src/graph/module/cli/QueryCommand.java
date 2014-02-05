@@ -54,7 +54,7 @@ public class QueryCommand extends CollectionCommand {
 		}
 
 		Node[] args = null;
-		args = dagHandler.getDAG().parseNodes(data, null, false, true);
+		args = dagHandler.getDAG().parseNodes(data, null, false, false);
 		if (args == null) {
 			print("-1|Could not parse arguments.\n");
 			return;

@@ -289,10 +289,16 @@ public class CycDAG extends DirectedAcyclicGraph {
 			boolean... flags) {
 		return findOrCreateEdge(creator, edgeNodes, null, flags);
 	}
-	
+
 	@Override
 	public Node[] parseNodes(String strNodes, Node creator,
 			boolean createNodes, boolean dagNodeOnly) {
+		// TODO Check this
+		return parseNodes(strNodes, creator, createNodes, dagNodeOnly, true);
+	}
+
+	public Node[] parseNodes(String strNodes, Node creator,
+			boolean createNodes, boolean dagNodeOnly, boolean allowVariables) {
 		if (strNodes.startsWith("("))
 			strNodes = UtilityMethods.shrinkString(strNodes, 1);
 		ArrayList<String> split = UtilityMethods.split(strNodes, ' ');
@@ -300,10 +306,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 		Node[] nodes = new Node[split.size()];
 		int i = 0;
 		for (String arg : split) {
-			if (dagNodeOnly && arg.startsWith("?"))
+			if (!allowVariables && arg.startsWith("?"))
 				return null;
 			nodes[i] = findOrCreateNode(arg, creator, createNodes, false,
-					dagNodeOnly);
+					dagNodeOnly, allowVariables);
 
 			if (nodes[i] == null)
 				return null;
@@ -327,7 +333,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		if (nodeStr.startsWith("(")) {
 			FunctionIndex functionIndexer = (FunctionIndex) getModule(FunctionIndex.class);
 			Node[] subNodes = parseNodes(nodeStr, creator, createNew,
-					allowVariables);
+					dagNodeOnly, allowVariables);
 			if (subNodes != null
 					&& (!createNew || semanticArgCheck(subNodes, null, false,
 							bFlags.getFlag("ephemeral")))) {
@@ -434,7 +440,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 					continue;
 				}
 
-				Node[] nodes = parseNodes(split[0], creator, true, false);
+				Node[] nodes = parseNodes(split[0], creator, true, false, false);
 				if (nodes != null) {
 					// Comment cleaning
 					if (nodes[0].equals(CommonConcepts.COMMENT.getNode(this))) {

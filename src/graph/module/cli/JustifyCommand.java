@@ -74,7 +74,7 @@ public class JustifyCommand extends Command {
 				query = query.replaceAll(Pattern.quote(vm.group(1)),
 						vm.group(2));
 		}
-		Node[] args = dagHandler.getDAG().parseNodes(query, null, false, true);
+		Node[] args = dagHandler.getDAG().parseNodes(query, null, false, false);
 
 		if (args == null) {
 			print("-1|Could not parse arguments.\n");

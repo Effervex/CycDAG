@@ -83,7 +83,7 @@ public class NLPCommand extends Command {
 				dagObject = dag.parseNodes(nlpData, null, false, false);
 			result = nlpModule.execute(markup, dagObject);
 		} else if (typeStr.equals("Q")) {
-			Node[] nodes = dag.parseNodes(nlpData, null, false, true);
+			Node[] nodes = dag.parseNodes(nlpData, null, false, false);
 			if (nodes != null) {
 				dagObject = new QueryObject(nodes);
 				result = nlpModule.execute(markup, dagObject);
