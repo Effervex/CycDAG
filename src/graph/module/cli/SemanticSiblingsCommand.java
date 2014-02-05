@@ -1,6 +1,7 @@
 package graph.module.cli;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.SortedSet;
 
 import util.collection.WeightedSet;
@@ -46,7 +47,8 @@ public class SemanticSiblingsCommand extends CollectionCommand {
 		Node node = dag.findDAGNode(data);
 
 		// First, get all siblings
-		Collection<Node> siblings = CommonQuery.ISASIBLINGS.runQuery(dag, node);
+		Collection<Node> siblings = new HashSet<Node>(
+				CommonQuery.ISASIBLINGS.runQuery(dag, node));
 		siblings.addAll(CommonQuery.GENLSIBLINGS.runQuery(dag, node));
 
 		// Then, order by semantic similarity

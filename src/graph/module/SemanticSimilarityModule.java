@@ -4,6 +4,7 @@ import graph.core.Node;
 import graph.inference.CommonQuery;
 
 import java.util.Collection;
+import java.util.HashSet;
 
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -45,8 +46,9 @@ public class SemanticSimilarityModule extends DAGModule<Float> {
 		return similarity;
 	}
 
-	private Collection<Node> getParents(Node node) {
-		Collection<Node> parents = CommonQuery.ALLISA.runQuery(dag_, node);
+	public Collection<Node> getParents(Node node) {
+		Collection<Node> parents = new HashSet<Node>(
+				CommonQuery.ALLISA.runQuery(dag_, node));
 		parents.addAll(CommonQuery.ALLGENLS.runQuery(dag_, node));
 		return parents;
 	}
