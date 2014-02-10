@@ -36,14 +36,16 @@ public class SemanticSimilarityModule extends DAGModule<Float> {
 	 * @return The similarity between the two concepts.
 	 */
 	public float semanticSimilarity(Node nodeA, Node nodeB) {
-		float similarity;
 		Collection<Node> parents1 = getParents(nodeA);
+		return semanticSimilarity(parents1, nodeB);
+	}
+
+	public float semanticSimilarity(Collection<Node> parents1, Node nodeB) {
 		Collection<Node> parents2 = getParents(nodeB);
 		Collection<Node> intersect = CollectionUtils.intersection(parents1,
 				parents2);
 		Collection<Node> union = CollectionUtils.union(parents1, parents2);
-		similarity = 1f * intersect.size() / union.size();
-		return similarity;
+		return 1f * intersect.size() / union.size();
 	}
 
 	public Collection<Node> getParents(Node node) {

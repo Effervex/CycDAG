@@ -45,6 +45,7 @@ public class SemanticSiblingsCommand extends CollectionCommand {
 		}
 
 		Node node = dag.findDAGNode(data);
+		Collection<Node> parentsA = semanticModule.getParents(node);
 
 		// First, get all siblings
 		Collection<Node> siblings = new HashSet<Node>(
@@ -54,10 +55,12 @@ public class SemanticSiblingsCommand extends CollectionCommand {
 		// Then, order by semantic similarity
 		WeightedSet<Node> weighted = new WeightedSet<>(siblings.size());
 		for (Node n : siblings)
-			weighted.add(n, semanticModule.execute(node, n));
+			weighted.add(n, semanticModule.semanticSimilarity(parentsA, n));
 		SortedSet<Node> ordered = weighted.getOrdered();
-		print(ordered.size() + "|");
-		for (Node n : ordered)
+		Collection<Node> results = dagHandler.sort(ordered, rangeStart_,
+				rangeEnd_);
+		print(results.size() + "|");
+		for (Node n : results)
 			print(dagHandler.textIDObject(n) + "," + weighted.getWeight(n)
 					+ "|");
 		print("\n");

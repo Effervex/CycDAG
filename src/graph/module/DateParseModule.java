@@ -127,8 +127,7 @@ public class DateParseModule extends DAGModule<Collection<DAGNode>> implements
 				buffer.append(CommonConcepts.THE_YEAR.getID());
 			for (int i = 0; i < brackets; i++)
 				buffer.append(")");
-			return (DAGNode) dag_.findOrCreateNode(buffer.toString(), null,
-					false, false, true, false);
+			return (DAGNode) dag_.findOrCreateNode(buffer.toString(), null);
 		} catch (Exception e) {
 		}
 		return null;

@@ -52,6 +52,11 @@ public class QueryObject {
 		justification_ = new ArrayList<>();
 	}
 
+	public QueryObject(Substitution priorSubstitution, Node... nodes) {
+		this(nodes);
+		priorSubstitution_ = priorSubstitution;
+	}
+
 	private void buildAtomicVariableSets(Node... nodes) {
 		atomics_ = new ArrayList<>();
 		variables_ = new ArrayList<>();
