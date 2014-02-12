@@ -10,6 +10,7 @@
  ******************************************************************************/
 package graph.module;
 
+import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Node;
 import graph.core.OntologyFunction;
@@ -55,6 +56,20 @@ public class FunctionIndex extends DAGModule<OntologyFunction> {
 			return null;
 		OntologyFunction func = vals.iterator().next();
 		return func;
+	}
+	
+	@Override
+	public boolean initialisationComplete(Collection<DAGNode> nodes,
+			Collection<DAGEdge> edges, boolean forceRebuild) {
+		if (!index_.isEmpty() && !forceRebuild)
+			return false;
+
+		// Iterate through all nodes and edges, adding aliases
+		System.out.print("Rebuilding function index... ");
+		index_.clear();
+		defaultRebuild(nodes, true, edges, false);
+		System.out.println("Done!");
+		return true;
 	}
 
 	@Override

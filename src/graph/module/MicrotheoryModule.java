@@ -12,6 +12,7 @@ package graph.module;
 
 import graph.core.CycDAG;
 import graph.core.DAGEdge;
+import graph.core.DAGNode;
 import graph.core.DAGObject;
 import graph.core.Edge;
 
@@ -56,6 +57,20 @@ public class MicrotheoryModule extends DAGModule<Collection<DAGEdge>> {
 			}
 		}
 		return false;
+	}
+	
+	@Override
+	public boolean initialisationComplete(Collection<DAGNode> nodes,
+			Collection<DAGEdge> edges, boolean forceRebuild) {
+		if (!microtheoryMap_.isKeysEmpty() && !forceRebuild)
+			return false;
+
+		// Iterate through all nodes and edges, adding aliases
+		System.out.print("Rebuilding microtheory map... ");
+		microtheoryMap_.clear();
+		defaultRebuild(nodes, false, edges, true);
+		System.out.println("Done!");
+		return true;
 	}
 
 	@Override

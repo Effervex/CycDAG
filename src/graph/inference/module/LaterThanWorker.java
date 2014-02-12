@@ -34,6 +34,8 @@ public class LaterThanWorker extends QueryWorker {
 	@Override
 	public void queryInternal(QueryObject queryObj)
 			throws IllegalArgumentException {
+		if (!(queryObj.getNode(1) instanceof DAGNode && queryObj.getNode(2) instanceof DAGNode))
+			return;
 		DAGNode dateA = (DAGNode) queryObj.getNode(1);
 		DAGNode dateB = (DAGNode) queryObj.getNode(2);
 
