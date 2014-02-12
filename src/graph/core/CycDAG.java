@@ -360,7 +360,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 				}
 			}
 
-		} else if (!dagNodeOnly && nodeStr.startsWith("?")) {
+		} else if (allowVariables && nodeStr.startsWith("?")) {
 			return new VariableNode(nodeStr);
 		}
 		return null;

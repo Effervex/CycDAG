@@ -219,12 +219,10 @@ public enum CommonConcepts {
 				CHARACTER_STRING.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { GENLS.getNode(dag),
 				STRING.getNode(dag), CHARACTER_STRING.getNode(dag) }, false);
-		dag.findOrCreateEdge(
-				_COMMON_CONCEPT,
-				new Node[] {
-						ISA.getNode(dag),
-						new OntologyFunction(dag, THE_FN.getNode(dag), STRING
-								.getNode(dag)), STRING.getNode(dag) }, false);
+		Node theString = dag.findOrCreateNode("(" + THE_FN.getNode(dag) + " "
+				+ STRING.getNode(dag) + ")", _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
+				theString, STRING.getNode(dag) }, false);
 		dag.findOrCreateEdge(
 				_COMMON_CONCEPT,
 				new Node[] { ISA.getNode(dag),
