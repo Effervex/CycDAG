@@ -293,7 +293,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 	@Override
 	public Node[] parseNodes(String strNodes, Node creator,
 			boolean createNodes, boolean dagNodeOnly) {
-		// TODO Check this
 		return parseNodes(strNodes, creator, createNodes, dagNodeOnly, true);
 	}
 

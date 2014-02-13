@@ -70,7 +70,8 @@ public enum CommonConcepts {
 	UNREIFIABLE_FUNCTION("UnreifiableFunction"),
 	YEARFN("YearFn"),
 	ZERO("Zero"),
-	REWRITE_OF("rewriteOf");
+	REWRITE_OF("rewriteOf"),
+	PRETTY_STRING("prettyString");
 
 	private static final StringNode _COMMON_CONCEPT = new StringNode(
 			"CommonConcept");
@@ -215,6 +216,24 @@ public enum CommonConcepts {
 				POSITIVE_INTEGER.getNode(dag) }, false);
 
 		// NLP Predicates
+		dag.findOrCreateEdge(_COMMON_CONCEPT,
+				new Node[] { GENLPREDS.getNode(dag),
+						PRETTY_STRING.getNode(dag), TERM_STRING.getNode(dag) },
+				false);
+		dag.findOrCreateEdge(
+				_COMMON_CONCEPT,
+				new Node[] { GENLPREDS.getNode(dag),
+						PRETTY_STRING_CANONICAL.getNode(dag),
+						PRETTY_STRING.getNode(dag) }, false);
+		dag.findOrCreateEdge(_COMMON_CONCEPT,
+				new Node[] { PRETTY_STRING_CANONICAL.getNode(dag),
+						PRETTY_STRING_CANONICAL.getNode(dag),
+						new StringNode("commonly known as") }, false);
+		dag.findOrCreateEdge(
+				_COMMON_CONCEPT,
+				new Node[] { PRETTY_STRING_CANONICAL.getNode(dag),
+						PRETTY_STRING.getNode(dag), new StringNode("known as") },
+				false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { ISA.getNode(dag),
 				CHARACTER_STRING.getNode(dag), COLLECTION.getNode(dag) }, false);
 		dag.findOrCreateEdge(_COMMON_CONCEPT, new Node[] { GENLS.getNode(dag),
@@ -333,8 +352,9 @@ public enum CommonConcepts {
 		nlpPredicates(NLP_PREDICATE_STRING,
 				"$2 |2(is)|(are)| the NL predicate for $1", dag);
 		nlpPredicates(NOT, "$1 |1(is)|(are)| not true", dag);
+		nlpPredicates(PRETTY_STRING, "$1 |1(is)|(are)| known as $2", dag);
 		nlpPredicates(PRETTY_STRING_CANONICAL,
-				"$1 |1(is)|(are)| typically referred to as $2", dag);
+				"$1 |1(is)|(are)| commonly known as $2", dag);
 		nlpPredicates(QUOTED_ISA,
 				"$1 |1(is)|(are)| implicitly an instance of $2", dag);
 		nlpPredicates(RESULT_GENL, "$2 |2(is)|(are)| the type produced by $1",
