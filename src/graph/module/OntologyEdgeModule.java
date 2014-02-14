@@ -19,6 +19,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import org.apache.commons.lang3.StringUtils;
 
 import util.Pair;
 import util.collection.MultiMap;
@@ -33,7 +36,8 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 		for (int i = 0; i < args.length; i++) {
 			Node n = (Node) args[i];
 			boolean additive = true;
-			boolean allBut = false;
+			boolean allBut = (functionPrefix != null && functionPrefix
+					.startsWith("!"));
 
 			// Get index of node
 			String index = null;
@@ -58,6 +62,8 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 			// TODO This is not ideal for functions.
 			String key = (index == null || functionPrefix == null) ? null
 					: functionPrefix + index;
+			if (allBut && key != null && !key.startsWith("!"))
+				key = "!" + key;
 			if (n instanceof Edge) {
 				if (key != null)
 					key = key + FUNC_SPLIT;
@@ -70,6 +76,35 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 			}
 		}
 		return edgeCols;
+	}
+
+	/**
+	 * Gets all edges but the one given by the key.
+	 * 
+	 * @param node
+	 *            The edges must include this node.
+	 * @param butEdgeKey
+	 *            The key that is NOT added to the results.
+	 * @return A collection of edges that are indexed by node, but none from the
+	 *         butEdgeKey (though they may be added if included under other
+	 *         keys).
+	 */
+	public Collection<Edge> getAllButEdges(Node node, Object butEdgeKey) {
+		MultiMap<Object, Edge> indexedEdges = relatedEdges_.get(node);
+		if (indexedEdges == null) {
+			return new ConcurrentLinkedQueue<>();
+		}
+
+		Collection<Edge> edges = new HashSet<>();
+		for (Object key : indexedEdges.keySet()) {
+			if (!key.equals(butEdgeKey)) {
+				// Need to check same function level as butEdge
+				if (StringUtils.countMatches((String) key, FUNC_SPLIT) == StringUtils
+						.countMatches((String) butEdgeKey, FUNC_SPLIT))
+					edges.addAll(indexedEdges.get(key));
+			}
+		}
+		return edges;
 	}
 
 	/**

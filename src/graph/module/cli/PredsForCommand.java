@@ -43,7 +43,7 @@ public class PredsForCommand extends CollectionCommand {
 		}
 
 		Collection<Node> preds = new HashSet<>();
-		Collection<Edge> edges = relatedEdge.getAllButEdges(conceptNode, "1");
+		Collection<Edge> edges = relatedEdge.execute(conceptNode, "!1");
 		for (Edge e : edges)
 			preds.add(e.getNodes()[0]);
 		
