@@ -59,16 +59,18 @@ public class CycDAG extends DirectedAcyclicGraph {
 		querier_ = (QueryModule) getModule(QueryModule.class);
 	}
 
-	private boolean checkArity(DAGNode predNode, Node[] edgeNodes) {
+	private DAGErrorEdge checkArity(DAGNode predNode, Node[] edgeNodes) {
 		Collection<Substitution> subs = querier_.execute(
 				CommonConcepts.ARITY.getNode(this), predNode,
 				VariableNode.DEFAULT);
 		for (Substitution sub : subs) {
-			if (!((PrimitiveNode) sub.getSubstitution(VariableNode.DEFAULT))
-					.getName().equals("" + (edgeNodes.length - 1)))
-				return false;
+			PrimitiveNode numArgs = (PrimitiveNode) sub
+					.getSubstitution(VariableNode.DEFAULT);
+			if (!numArgs.getName().equals("" + (edgeNodes.length - 1)))
+				return new ArityErrorEdge(predNode,
+						(int) numArgs.getPrimitive());
 		}
-		return true;
+		return null;
 	}
 
 	private boolean checkSingleArg(DAGNode predNode, Node testNode, int i,
@@ -139,7 +141,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return false;
 	}
 
-	private boolean isDisjoint(Node[] edgeNodes) {
+	private DisjointErrorEdge isDisjoint(Node[] edgeNodes) {
 		// If not isa/genls, return true
 		Collection<Node> existingCols = null;
 		if (edgeNodes[0].equals(CommonConcepts.ISA.getNode(this)))
@@ -147,30 +149,31 @@ public class CycDAG extends DirectedAcyclicGraph {
 		else if (edgeNodes[0].equals(CommonConcepts.GENLS.getNode(this)))
 			existingCols = CommonQuery.MINGENLS.runQuery(this, edgeNodes[1]);
 		else
-			return false;
+			return null;
 
 		for (Node n : existingCols) {
 			if (querier_.prove(CommonConcepts.DISJOINTWITH.getNode(this),
 					edgeNodes[2], n))
-				return true;
+				return new DisjointErrorEdge((DAGNode) edgeNodes[2],
+						(DAGNode) n, this);
 		}
-		return false;
+		return null;
 	}
 
-	private boolean isCyclic(Node[] edgeNodes) {
+	private CyclicErrorEdge isCyclic(Node[] edgeNodes) {
 		// Cannot prove non-binary edges
 		if (edgeNodes.length != 3)
-			return false;
+			return null;
 
 		// Self-referential
 		if (edgeNodes[1].equals(edgeNodes[2]))
-			return false;
+			return null;
 
 		// Only test DAGNodes
 		if (!(edgeNodes[1] instanceof DAGNode)
 				&& (edgeNodes[2] instanceof DAGNode)) {
 			System.out.println("Non-DAG Edge: " + Arrays.toString(edgeNodes));
-			return false;
+			return null;
 		}
 
 		// If the edge is not symmetric, but is defined symmetrically
@@ -178,8 +181,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 		if (!querier_.prove(CommonConcepts.ISA.getNode(this), edgeNodes[0],
 				CommonConcepts.SYMMETRIC_BINARY.getNode(this))
 				&& querier_.prove(edgeNodes[0], edgeNodes[2], edgeNodes[1]))
-			return true;
-		return false;
+			return new CyclicErrorEdge(edgeNodes);
+		return null;
 	}
 
 	/**
@@ -244,44 +247,50 @@ public class CycDAG extends DirectedAcyclicGraph {
 		QueryModule qm = (QueryModule) getModule(QueryModule.class);
 
 		if (containsVariables(edgeNodes))
-			return CycDAGErrorEdge.VARIABLE_NODE;
+			return VariableErrorEdge.getInstance();
 
-		// Check if the edge is valid
-		if (semanticArgCheck(edgeNodes, microtheory,
-				bFlags.getFlag("forceConstraints"), bFlags.getFlag("ephemeral"))) {
-			// Add alias info
-			if (qm.execute(CommonConcepts.GENLPREDS.getNode(this),
-					edgeNodes[0], CommonConcepts.TERM_STRING.getNode(this)) != null) {
-				for (int i = 2; i < edgeNodes.length; i++)
-					((NodeAliasModule) getModule(NodeAliasModule.class))
-							.addAlias((DAGNode) edgeNodes[1],
-									edgeNodes[2].getName());
-			}
+		if (!noChecks_) {
+			// Check if the edge is semantically valid
+			DAGErrorEdge semError = semanticArgCheck(edgeNodes, microtheory,
+					bFlags.getFlag("forceConstraints"),
+					bFlags.getFlag("ephemeral"));
+			if (semError != null)
+				return semError;
 
-			// Check disjointness (only if no checks)
-			if (!noChecks_ && isDisjoint(edgeNodes))
-				return CycDAGErrorEdge.DISJOINT_EDGE;
+			// Check disjointness
+			DisjointErrorEdge disjointEdge = isDisjoint(edgeNodes);
+			if (disjointEdge != null)
+				return disjointEdge;
 
 			// Check symmetry
-			if (!noChecks_ && isCyclic(edgeNodes))
-				return CycDAGErrorEdge.CYCLIC_EDGE;
-
-			Edge edge = super.findOrCreateEdge(creator, edgeNodes, flags);
-			if (!(edge instanceof ErrorEdge)
-					&& ((DAGEdge) edge).getProperty(MICROTHEORY) == null) {
-				if (microtheory != null)
-					addProperty((DAGObject) edge, MICROTHEORY, microtheory);
-				// Propagate subpreds
-				Edge propEdge = propagateEdge(edge, creator, microtheory, flags);
-				if (propEdge instanceof ErrorEdge) {
-					removeEdge(edge);
-					return propEdge;
-				}
-			}
-
-			return edge;
+			CyclicErrorEdge cyclicEdge = isCyclic(edgeNodes);
+			if (cyclicEdge != null)
+				return cyclicEdge;
 		}
-		return CycDAGErrorEdge.SEMANTIC_CONFLICT;
+
+		// Add alias info
+		if (qm.execute(CommonConcepts.GENLPREDS.getNode(this), edgeNodes[0],
+				CommonConcepts.TERM_STRING.getNode(this)) != null) {
+			for (int i = 2; i < edgeNodes.length; i++)
+				((NodeAliasModule) getModule(NodeAliasModule.class)).addAlias(
+						(DAGNode) edgeNodes[1], edgeNodes[2].getName());
+		}
+
+		// Create the edge
+		Edge edge = super.findOrCreateEdge(creator, edgeNodes, flags);
+		if (!(edge instanceof ErrorEdge)
+				&& ((DAGEdge) edge).getProperty(MICROTHEORY) == null) {
+			if (microtheory != null)
+				addProperty((DAGObject) edge, MICROTHEORY, microtheory);
+			// Propagate subpreds
+			Edge propEdge = propagateEdge(edge, creator, microtheory, flags);
+			if (propEdge instanceof ErrorEdge) {
+				removeEdge(edge);
+				return propEdge;
+			}
+		}
+
+		return edge;
 	}
 
 	@Override
@@ -335,7 +344,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 					dagNodeOnly, allowVariables);
 			if (subNodes != null
 					&& (!createNew || semanticArgCheck(subNodes, null, false,
-							bFlags.getFlag("ephemeral")))) {
+							bFlags.getFlag("ephemeral")) == null)) {
 				nodeLock_.lock();
 				try {
 					OntologyFunction ontFunc = functionIndexer
@@ -520,14 +529,15 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 *            If any forward chained edges are ephemeral.
 	 * @return True if the edge is semantically well-formed.
 	 */
-	public boolean semanticArgCheck(Node[] edgeNodes, String microtheory,
+	public DAGErrorEdge semanticArgCheck(Node[] edgeNodes, String microtheory,
 			boolean forwardChainCreate, boolean ephemeral) {
 		if (noChecks_)
-			return true;
+			return null;
 		DAGNode predNode = (DAGNode) edgeNodes[0];
 		// Check arity
-		if (!checkArity(predNode, edgeNodes))
-			return false;
+		DAGErrorEdge error = checkArity(predNode, edgeNodes);
+		if (error != null)
+			return error;
 
 		// Forward chain force-create edges
 		Collection<Edge> forwardEdges = (forwardChainCreate) ? new ArrayList<Edge>()
@@ -542,11 +552,11 @@ public class CycDAG extends DirectedAcyclicGraph {
 					for (Edge e : forwardEdges)
 						removeEdge(e);
 				}
-				return false;
+				return new SemanticArgErrorEdge(predNode, i, edgeNodes[i]);
 			}
 		}
 
-		return true;
+		return null;
 	}
 
 	public boolean singleArgCheck(DAGNode predNode, int i, Node arg) {
