@@ -17,6 +17,8 @@ import graph.module.DAGModule;
 import graph.module.FunctionIndex;
 import graph.module.NodeAliasModule;
 import graph.module.QueryModule;
+import graph.module.RelatedEdgeModule;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -268,20 +270,20 @@ public class CycDAG extends DirectedAcyclicGraph {
 				return cyclicEdge;
 		}
 
-		// Add alias info
-		if (qm.execute(CommonConcepts.GENLPREDS.getNode(this), edgeNodes[0],
-				CommonConcepts.TERM_STRING.getNode(this)) != null) {
-			for (int i = 2; i < edgeNodes.length; i++)
-				((NodeAliasModule) getModule(NodeAliasModule.class)).addAlias(
-						(DAGNode) edgeNodes[1], edgeNodes[2].getName());
-		}
-
 		// Create the edge
 		Edge edge = super.findOrCreateEdge(creator, edgeNodes, flags);
 		if (!(edge instanceof ErrorEdge)
 				&& ((DAGEdge) edge).getProperty(MICROTHEORY) == null) {
 			if (microtheory != null)
 				addProperty((DAGObject) edge, MICROTHEORY, microtheory);
+
+			// Add alias info
+			if (qm.execute(CommonConcepts.GENLPREDS.getNode(this),
+					edgeNodes[0], CommonConcepts.TERM_STRING.getNode(this)) != null) {
+				addProperty((DAGEdge) edge, NodeAliasModule.ALIAS_PROP, "T");
+				getModule(NodeAliasModule.class).addEdge((DAGEdge) edge);
+			}
+
 			// Propagate subpreds
 			Edge propEdge = propagateEdge(edge, creator, microtheory, flags);
 			if (propEdge instanceof ErrorEdge) {
@@ -316,6 +318,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 		for (String arg : split) {
 			if (!allowVariables && arg.startsWith("?"))
 				return null;
+			if (i != 0)
+				dagNodeOnly = false;
 			nodes[i] = findOrCreateNode(arg, creator, createNodes, false,
 					dagNodeOnly, allowVariables);
 
@@ -401,7 +405,14 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	@Override
 	public void initialiseInternal() {
+		// Need to ensure NodeAlias and RelEdge are initialised
+		getModule(NodeAliasModule.class).initialisationComplete(nodes_, edges_,
+				false);
+		getModule(RelatedEdgeModule.class).initialisationComplete(nodes_,
+				edges_, false);
+
 		super.initialiseInternal();
+
 		noChecks_ = true;
 		CommonConcepts.initialise(this);
 		CommonConcepts.createCommonAssertions(this);

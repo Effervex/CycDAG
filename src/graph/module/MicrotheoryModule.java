@@ -14,7 +14,6 @@ import graph.core.CycDAG;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.DAGObject;
-import graph.core.Edge;
 
 import java.util.Collection;
 import java.util.Set;
@@ -47,7 +46,7 @@ public class MicrotheoryModule extends DAGModule<Collection<DAGEdge>> {
 	}
 
 	@Override
-	public boolean addEdge(Edge edge) {
+	public boolean addEdge(DAGEdge edge) {
 		if (edge instanceof DAGEdge) {
 			DAGEdge dagEdge = (DAGEdge) edge;
 			String edgeMt = dagEdge.getProperty(CycDAG.MICROTHEORY);
@@ -85,7 +84,7 @@ public class MicrotheoryModule extends DAGModule<Collection<DAGEdge>> {
 	}
 
 	@Override
-	public boolean removeEdge(Edge edge) {
+	public boolean removeEdge(DAGEdge edge) {
 		if (edge instanceof DAGEdge) {
 			DAGEdge dagEdge = (DAGEdge) edge;
 			String edgeMt = dagEdge.getProperty(CycDAG.MICROTHEORY);

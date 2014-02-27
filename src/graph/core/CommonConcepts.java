@@ -330,11 +330,11 @@ public enum CommonConcepts {
 		// $1 |1(is)|(are)| <text string> $2
 		nlpPredicates(
 				ARGGENL,
-				"|2(argument $2)|(what arguments)| of $1 |1(is)|(is)| a type of $3",
+				"|2(argument $2)|(what arguments)| of $1 is a type of $3",
 				dag);
 		nlpPredicates(
 				ARGISA,
-				"|2(argument $2)|(what arguments)| of $1 |1(is)|(is)| an instance of $3",
+				"|2(argument $2)|(what arguments)| of $1 is an instance of $3",
 				dag);
 		nlpPredicates(ARITY, "$1 |1(has)|(have)| arity |2($2)|(what)|", dag);
 		nlpPredicates(ASSERTED_SENTENCE, "$1 |1(is)|(are)| asserted directly",

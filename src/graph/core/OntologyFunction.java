@@ -55,9 +55,11 @@ public class OntologyFunction extends DAGNode implements Edge {
 		if (queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
 				CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag)))
 			return true;
-		if (!queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
-				CommonConcepts.FUNCTION.getNode(dag)))
-			return true;
+		// TODO Need to put this back in. But can't for now due to DAGrecreate
+		// loading.
+		// if (!queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
+		// CommonConcepts.FUNCTION.getNode(dag)))
+		// return true;
 		return false;
 	}
 

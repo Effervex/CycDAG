@@ -13,7 +13,6 @@ package graph.module;
 import graph.core.CommonConcepts;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
-import graph.core.Edge;
 import graph.core.Node;
 import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
@@ -112,7 +111,7 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	}
 
 	@Override
-	public boolean addEdge(Edge edge) {
+	public boolean addEdge(DAGEdge edge) {
 		if (!(edge instanceof DAGEdge) || !depthCalculated_)
 			return true;
 
@@ -180,7 +179,7 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	}
 
 	@Override
-	public boolean removeEdge(Edge edge) {
+	public boolean removeEdge(DAGEdge edge) {
 		if (!incrementalSupported_) {
 			System.err.println("Incremental updates not supported "
 					+ "for DepthModule!");

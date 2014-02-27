@@ -155,7 +155,7 @@ public class TransitiveIntervalSchemaModule extends
 	}
 
 	@Override
-	public boolean addEdge(Edge edge) {
+	public boolean addEdge(DAGEdge edge) {
 		if (!isReady())
 			return true;
 
@@ -317,7 +317,7 @@ public class TransitiveIntervalSchemaModule extends
 	}
 
 	@Override
-	public boolean removeEdge(Edge edge) {
+	public boolean removeEdge(DAGEdge edge) {
 		if (!isReady())
 			return true;
 
