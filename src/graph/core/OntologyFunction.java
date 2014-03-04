@@ -18,7 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class OntologyFunction extends DAGNode implements Edge {
 	private static final long serialVersionUID = 473544398260462641L;
-	private boolean anonymous_ = true;
+	private boolean notAnonymous_ = true;
 	protected Node[] nodes_;
 
 	public OntologyFunction() {
@@ -28,21 +28,21 @@ public class OntologyFunction extends DAGNode implements Edge {
 	public OntologyFunction(boolean anonymous, Node... nodes) {
 		super();
 		nodes_ = nodes;
-		anonymous_ = anonymous;
+		notAnonymous_ = anonymous;
 		id_ = requestID();
 	}
 
 	public OntologyFunction(DirectedAcyclicGraph dag, Node... nodes) {
 		super();
 		nodes_ = nodes;
-		anonymous_ = checkIfAnonymous(dag);
+		notAnonymous_ = !checkIfAnonymous(dag);
 		id_ = requestID();
 	}
 
 	@Override
 	protected long requestID() {
 		// Default to -1, unless not anonymous
-		if (!anonymous_)
+		if (notAnonymous_)
 			return super.requestID();
 		return -1;
 	}
@@ -128,7 +128,7 @@ public class OntologyFunction extends DAGNode implements Edge {
 
 	@Override
 	public boolean isAnonymous() {
-		return anonymous_;
+		return !notAnonymous_;
 	}
 
 	@Override

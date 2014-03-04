@@ -6,13 +6,15 @@ import graph.core.Edge;
 import graph.core.ErrorEdge;
 import graph.core.Node;
 
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class AddCycEdgeCommand extends AddEdgeCommand {
-	private static final Pattern ARG_PATTERN = Pattern
-			.compile("^(\\(.+?\\))(?::(\\S+))?(?: \\((.+?)\\))?$");
+import org.apache.commons.lang3.StringUtils;
 
+import util.UtilityMethods;
+
+public class AddCycEdgeCommand extends AddEdgeCommand {
 	@Override
 	public String helpText() {
 		return "{0} (node node ...)[:MT] [(creator)] : Creates an edge "
@@ -28,31 +30,28 @@ public class AddCycEdgeCommand extends AddEdgeCommand {
 			return;
 		}
 
-		Matcher m = ARG_PATTERN.matcher(data);
-		if (!m.matches()) {
-			print("-1|Could not parse arguments.\n");
-			return;
-		}
+		ArrayList<String> split = UtilityMethods.split(data, ' ');
+
+		// Extract microtheory (if one exists)
+		ArrayList<String> edgeMt = UtilityMethods.split(split.get(0), ':');
+		String edgeStr = edgeMt.get(0);
+		String microtheory = (edgeMt.size() > 1) ? StringUtils.join(
+				edgeMt.subList(1, edgeMt.size()), ':') : null;
 
 		Node creator = null;
-		if (m.group(3) != null) {
+		if (split.size() > 1) {
 			try {
-				creator = dagHandler.getDAG().findOrCreateNode(m.group(3),
-						creator);
+				creator = dagHandler.getDAG().findOrCreateNode(
+						UtilityMethods.shrinkString(split.get(1), 1), creator);
 			} catch (Exception e) {
 				print("-1|Invalid creator node.\n");
 				return;
 			}
 		}
 
-		String microtheory = null;
-		if (m.group(2) != null) {
-			microtheory = m.group(2);
-		}
-
 		try {
 			Node[] nodes = dagHandler.getDAG().parseNodes(
-					m.group(1),
+					edgeStr,
 					creator,
 					dagHandler.get(DAGPortHandler.DYNAMICALLY_ADD_NODES)
 							.equals("true"), false);

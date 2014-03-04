@@ -335,8 +335,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 			boolean... flags) {
 		BooleanFlags bFlags = nodeFlags_.loadFlags(flags);
 		boolean createNew = bFlags.getFlag("createNew");
-		boolean dagNodeOnly = bFlags.getFlag("dagNodeOnly")
-				|| nodeStr.startsWith("#$");
 		boolean allowVariables = bFlags.getFlag("allowVariables");
 		Node node = super.findOrCreateNode(nodeStr, creator, flags);
 		if (node != null)
@@ -345,7 +343,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		if (nodeStr.startsWith("(")) {
 			FunctionIndex functionIndexer = (FunctionIndex) getModule(FunctionIndex.class);
 			Node[] subNodes = parseNodes(nodeStr, creator, createNew,
-					dagNodeOnly, allowVariables);
+					true, allowVariables);
 			if (subNodes != null
 					&& (!createNew || semanticArgCheck(subNodes, null, false,
 							bFlags.getFlag("ephemeral")) == null)) {
