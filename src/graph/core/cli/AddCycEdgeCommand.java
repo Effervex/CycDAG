@@ -7,8 +7,6 @@ import graph.core.ErrorEdge;
 import graph.core.Node;
 
 import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -63,6 +61,7 @@ public class AddCycEdgeCommand extends AddEdgeCommand {
 					.asBooleanArray(DAGPortHandler.EDGE_FLAGS);
 			Edge edge = ((CycDAG) dagHandler.getDAG()).findOrCreateEdge(
 					creator, nodes, microtheory, flags);
+			dagHandler.getDAG().writeCommand("addedge " + data);
 
 			if (edge instanceof ErrorEdge) {
 				print("-1|" + ((ErrorEdge) edge).getError() + "\n");

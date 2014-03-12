@@ -71,7 +71,7 @@ public enum CommonConcepts {
 	YEARFN("YearFn"),
 	ZERO("Zero"),
 	REWRITE_OF("rewriteOf"),
-	PRETTY_STRING("prettyString");
+	PRETTY_STRING("prettyString"), BROADER_TERM("broaderTerm");
 
 	private static final StringNode _COMMON_CONCEPT = new StringNode(
 			"CommonConcept");
@@ -338,6 +338,8 @@ public enum CommonConcepts {
 				dag);
 		nlpPredicates(ARITY, "$1 |1(has)|(have)| arity |2($2)|(what)|", dag);
 		nlpPredicates(ASSERTED_SENTENCE, "$1 |1(is)|(are)| asserted directly",
+				dag);
+		nlpPredicates(BROADER_TERM, "$2 |2(is)|(are)| broader than $1",
 				dag);
 		nlpPredicates(COMMENT,
 				"$1 |1(has)|(have)| |2(comment $2)|(what comment)|", dag);
