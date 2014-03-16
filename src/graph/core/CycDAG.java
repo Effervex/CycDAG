@@ -14,6 +14,7 @@ import graph.inference.CommonQuery;
 import graph.inference.Substitution;
 import graph.inference.VariableNode;
 import graph.module.DAGModule;
+import graph.module.DepthModule;
 import graph.module.FunctionIndex;
 import graph.module.NodeAliasModule;
 import graph.module.QueryModule;
@@ -26,6 +27,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -302,6 +306,31 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	@Override
+	protected SortedSet<DAGEdge> orderedReassertables() {
+		Comparator<DAGEdge> depthComparator = new Comparator<DAGEdge>() {
+			@Override
+			public int compare(DAGEdge o1, DAGEdge o2) {
+				String depthStr1 = o1.getProperty(DepthModule.DEPTH_PROPERTY);
+				String depthStr2 = o2.getProperty(DepthModule.DEPTH_PROPERTY);
+				int result = 0;
+				if (depthStr1 != null) {
+					if (depthStr2 != null) {
+						result = Integer.compare(Integer.parseInt(depthStr1),
+								Integer.parseInt(depthStr2));
+					} else
+						return -1;
+				} else if (depthStr2 != null)
+					return 1;
+
+				if (result == 0)
+					return o1.compareTo(o2);
+				return result;
+			}
+		};
+		return new TreeSet<>(depthComparator);
+	}
+
+	@Override
 	public Node[] parseNodes(String strNodes, Node creator,
 			boolean createNodes, boolean dagNodeOnly) {
 		return parseNodes(strNodes, creator, createNodes, dagNodeOnly, true);
@@ -342,8 +371,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 		if (nodeStr.startsWith("(")) {
 			FunctionIndex functionIndexer = (FunctionIndex) getModule(FunctionIndex.class);
-			Node[] subNodes = parseNodes(nodeStr, creator, createNew,
-					true, allowVariables);
+			Node[] subNodes = parseNodes(nodeStr, creator, createNew, true,
+					allowVariables);
 			if (subNodes != null
 					&& (!createNew || semanticArgCheck(subNodes, null, false,
 							bFlags.getFlag("ephemeral")) == null)) {

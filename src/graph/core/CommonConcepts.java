@@ -80,7 +80,7 @@ public enum CommonConcepts {
 
 	private String nodeName_;
 
-	private long setID_ = -1;
+	private int setID_ = -1;
 
 	private CommonConcepts(String nodeName) {
 		nodeName_ = nodeName;
@@ -90,7 +90,7 @@ public enum CommonConcepts {
 		node_ = null;
 	}
 
-	public long getID() {
+	public int getID() {
 		if (node_ == null)
 			return setID_;
 		return node_.id_;
@@ -107,7 +107,7 @@ public enum CommonConcepts {
 		return nodeName_;
 	}
 
-	public void setID(long id) {
+	public void setID(int id) {
 		if (node_ == null)
 			setID_ = id;
 	}

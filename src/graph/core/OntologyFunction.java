@@ -40,7 +40,7 @@ public class OntologyFunction extends DAGNode implements Edge {
 	}
 
 	@Override
-	protected long requestID() {
+	protected int requestID() {
 		// Default to -1, unless not anonymous
 		if (notAnonymous_)
 			return super.requestID();
