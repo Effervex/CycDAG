@@ -59,6 +59,9 @@ public class AddCycEdgeCommand extends AddEdgeCommand {
 			}
 			boolean[] flags = dagHandler
 					.asBooleanArray(DAGPortHandler.EDGE_FLAGS);
+			if (flags.length < 1)
+				flags = new boolean[1];
+			flags[0] = true;
 			Edge edge = ((CycDAG) dagHandler.getDAG()).findOrCreateEdge(
 					creator, nodes, microtheory, flags);
 			dagHandler.getDAG().writeCommand("addedge " + data);

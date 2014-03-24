@@ -25,14 +25,14 @@ public class OntologyFunction extends DAGNode implements Edge {
 		super();
 	}
 
-	public OntologyFunction(boolean anonymous, Node... nodes) {
+	public OntologyFunction(Node... nodes) {
 		super();
 		nodes_ = nodes;
-		notAnonymous_ = anonymous;
+		notAnonymous_ = false;
 		id_ = requestID();
 	}
 
-	public OntologyFunction(DirectedAcyclicGraph dag, Node... nodes) {
+	protected OntologyFunction(DirectedAcyclicGraph dag, Node... nodes) {
 		super();
 		nodes_ = nodes;
 		notAnonymous_ = !checkIfAnonymous(dag);
@@ -82,6 +82,8 @@ public class OntologyFunction extends DAGNode implements Edge {
 
 	@Override
 	public boolean equals(Object obj) {
+		if (obj == null)
+			return false;
 		if (this == obj)
 			return true;
 		if (getClass() != obj.getClass())

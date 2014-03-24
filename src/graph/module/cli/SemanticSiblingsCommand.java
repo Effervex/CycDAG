@@ -23,7 +23,7 @@ public class SemanticSiblingsCommand extends CollectionCommand {
 
 	@Override
 	public String shortDescription() {
-		return "Returns all siblings of this collection "
+		return "Returns all siblings of a collection "
 				+ "ordered by semantic similarity.";
 	}
 

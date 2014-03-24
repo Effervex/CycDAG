@@ -143,7 +143,6 @@ public class Substitution {
 	public Node applySubstitution(Node node) {
 		if (node instanceof OntologyFunction) {
 			return new OntologyFunction(
-					((OntologyFunction) node).isAnonymous(),
 					applySubstitution(((OntologyFunction) node).getNodes()));
 		} else if (substitutionMap_.containsKey(node.toString()))
 			return substitutionMap_.get(node.toString());

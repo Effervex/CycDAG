@@ -37,7 +37,7 @@ public enum CommonQuery {
 	GENLSIBLINGS("(assertedSentence (genls $0 ?X))", true),
 	INSTANCES("(isa ?X $0)"),
 	ISASIBLINGS("(assertedSentence (isa $0 ?X))", true),
-	MAXINSTANCES("(assertedSentence (isa ?X $0))", true),
+	MAXINSTANCES("(isa ?X $0)", true),
 	MAXSPECS("(assertedSentence (genls ?X $0))", true),
 	MINARGNGENL("(or (argGenl $0 $1 ?X) " + "(arg$1Genl $0 ?X))", true),
 	MINARGNISA("(or (argIsa $0 $1 ?X) " + "(arg$1Isa $0 ?X))", true),

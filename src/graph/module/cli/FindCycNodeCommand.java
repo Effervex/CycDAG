@@ -11,6 +11,7 @@
 package graph.module.cli;
 
 import graph.core.cli.DAGPortHandler;
+import graph.module.AliasModule;
 import graph.module.DateParseModule;
 import graph.module.ModuleException;
 

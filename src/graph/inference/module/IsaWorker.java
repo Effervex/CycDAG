@@ -88,8 +88,8 @@ public class IsaWorker extends QueryWorker {
 				Collection<DAGNode> functionEdges = querier_.functionResults(
 						(OntologyFunction) atomic, CommonConcepts.RESULT_ISA);
 				for (DAGNode funcNode : functionEdges)
-					isas.add(new DAGEdge(CommonConcepts.ISA.getNode(dag_), n,
-							funcNode));
+					isas.add(new OntologyFunction(CommonConcepts.ISA
+							.getNode(dag_), n, funcNode));
 			}
 			for (Edge e : isas) {
 				Node[] edgeNodes = e.getNodes();

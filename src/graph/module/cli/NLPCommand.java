@@ -35,7 +35,7 @@ public class NLPCommand extends Command {
 
 	@Override
 	public String shortDescription() {
-		return "Produces a NLP description of a node, edge, query, or marked-up string.";
+		return "Converts a node, edge, query, or marked-up string to NLP form.";
 	}
 
 	@Override

@@ -239,12 +239,10 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		if (primitive.intValue() == 0)
 			return CommonConcepts.ZERO.getNode(dag_);
 		else if (primitive.intValue() > 0)
-			return new OntologyFunction(false,
-					CommonConcepts.THE_FN.getNode(dag_),
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
 					CommonConcepts.POSITIVE_NUMBER.getNode(dag_));
 		else
-			return new OntologyFunction(false,
-					CommonConcepts.THE_FN.getNode(dag_),
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
 					CommonConcepts.NEGATIVE_NUMBER.getNode(dag_));
 	}
 
@@ -252,18 +250,15 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		if (primitive.intValue() == 0)
 			return CommonConcepts.ZERO.getNode(dag_);
 		else if (primitive.intValue() > 0)
-			return new OntologyFunction(false,
-					CommonConcepts.THE_FN.getNode(dag_),
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
 					CommonConcepts.POSITIVE_INTEGER.getNode(dag_));
 		else
-			return new OntologyFunction(false,
-					CommonConcepts.THE_FN.getNode(dag_),
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
 					CommonConcepts.NEGATIVE_INTEGER.getNode(dag_));
 	}
 
 	private DAGNode stringToDAGNode(String name) {
-		return new OntologyFunction(false, CommonConcepts.THE_FN.getNode(dag_),
-				CommonConcepts.STRING.getNode(dag_));
+		return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_), CommonConcepts.STRING.getNode(dag_));
 	}
 
 	public boolean proveIsString(Node testNode, Node constraint) {

@@ -250,12 +250,13 @@ public class CycDAG extends DirectedAcyclicGraph {
 	public Edge findOrCreateEdge(Node creator, Node[] edgeNodes,
 			String microtheory, boolean... flags) {
 		BooleanFlags bFlags = edgeFlags_.loadFlags(flags);
+		boolean createNew = bFlags.getFlag("createNew");
 		QueryModule qm = (QueryModule) getModule(QueryModule.class);
 
 		if (containsVariables(edgeNodes))
 			return VariableErrorEdge.getInstance();
 
-		if (!noChecks_) {
+		if (!noChecks_ && createNew) {
 			// Check if the edge is semantically valid
 			DAGErrorEdge semError = semanticArgCheck(edgeNodes, microtheory,
 					bFlags.getFlag("forceConstraints"),
@@ -275,8 +276,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 		}
 
 		// Create the edge
-		Edge edge = super.findOrCreateEdge(creator, edgeNodes, flags);
-		if (!(edge instanceof ErrorEdge)
+		Edge edge = super.findOrCreateEdge(edgeNodes, creator, flags);
+		if (edge != null && !(edge instanceof ErrorEdge)
 				&& ((DAGEdge) edge).getProperty(MICROTHEORY) == null) {
 			if (microtheory != null)
 				addProperty((DAGObject) edge, MICROTHEORY, microtheory);
@@ -300,7 +301,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	@Override
-	public synchronized Edge findOrCreateEdge(Node creator, Node[] edgeNodes,
+	public synchronized Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
 			boolean... flags) {
 		return findOrCreateEdge(creator, edgeNodes, null, flags);
 	}
@@ -370,37 +371,42 @@ public class CycDAG extends DirectedAcyclicGraph {
 			return node;
 
 		if (nodeStr.startsWith("(")) {
-			FunctionIndex functionIndexer = (FunctionIndex) getModule(FunctionIndex.class);
 			Node[] subNodes = parseNodes(nodeStr, creator, createNew, true,
 					allowVariables);
-			if (subNodes != null
-					&& (!createNew || semanticArgCheck(subNodes, null, false,
-							bFlags.getFlag("ephemeral")) == null)) {
-				nodeLock_.lock();
-				try {
-					OntologyFunction ontFunc = functionIndexer
-							.execute((Object[]) subNodes);
-					if (ontFunc == null) {
-						ontFunc = new OntologyFunction(this, subNodes);
-						if (!ontFunc.isAnonymous() && createNew) {
-							boolean result = nodes_.add(ontFunc);
-							if (result) {
-								if (bFlags.getFlag("ephemeral"))
-									addProperty(ontFunc, EPHEMERAL_MARK, "true");
-								// Trigger modules
-								for (DAGModule<?> module : getModules())
-									module.addNode(ontFunc);
-							}
-						}
-					}
-					return ontFunc;
-				} finally {
-					nodeLock_.unlock();
-				}
-			}
-
+			return findOrCreateFunctionNode(createNew,
+					bFlags.getFlag("ephemeral"), subNodes);
 		} else if (allowVariables && nodeStr.startsWith("?")) {
 			return new VariableNode(nodeStr);
+		}
+		return null;
+	}
+
+	public OntologyFunction findOrCreateFunctionNode(boolean createNew,
+			boolean ephemeral, Node... args) {
+		if (args != null
+				&& (!createNew || semanticArgCheck(args, null, false, ephemeral) == null)) {
+			FunctionIndex functionIndexer = (FunctionIndex) getModule(FunctionIndex.class);
+			nodeLock_.lock();
+			try {
+				OntologyFunction ontFunc = functionIndexer
+						.execute((Object[]) args);
+				if (ontFunc == null) {
+					ontFunc = new OntologyFunction(this, args);
+					if (!ontFunc.isAnonymous() && createNew) {
+						boolean result = nodes_.add(ontFunc);
+						if (result) {
+							if (ephemeral)
+								addProperty(ontFunc, EPHEMERAL_MARK, "T");
+							// Trigger modules
+							for (DAGModule<?> module : getModules())
+								module.addNode(ontFunc);
+						}
+					}
+				}
+				return ontFunc;
+			} finally {
+				nodeLock_.unlock();
+			}
 		}
 		return null;
 	}

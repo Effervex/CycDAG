@@ -35,7 +35,8 @@ public class TransitiveIntervalSchemaModuleTest {
 	@Before
 	public void setUp() throws Exception {
 		dag_ = new CycDAG(new File("test"));
-		sut_ = (TransitiveIntervalSchemaModule) dag_.getModule(TransitiveIntervalSchemaModule.class);
+		sut_ = (TransitiveIntervalSchemaModule) dag_
+				.getModule(TransitiveIntervalSchemaModule.class);
 		sut_.clear();
 	}
 
@@ -135,13 +136,16 @@ public class TransitiveIntervalSchemaModuleTest {
 		DAGNode canis = (DAGNode) dag_.findOrCreateNode("Canis", creator, true);
 		DAGNode cat = (DAGNode) dag_.findOrCreateNode("Cat", creator, true);
 		DAGNode thing = (DAGNode) dag_.findOrCreateNode("Thing", creator, true);
-		DAGNode mammal = (DAGNode) dag_.findOrCreateNode("Mammal", creator, true);
-		DAGNode fluffy = (DAGNode) dag_.findOrCreateNode("Fluffy", creator, true);
+		DAGNode mammal = (DAGNode) dag_.findOrCreateNode("Mammal", creator,
+				true);
+		DAGNode fluffy = (DAGNode) dag_.findOrCreateNode("Fluffy", creator,
+				true);
 		sut_.initialisationComplete(dag_.getNodes(), dag_.getEdges(), false);
 
 		// Existing nodes
 		dag_.noChecks_ = true;
-		assertFalse(dag_.findOrCreateEdge(creator, new Node[] { genls, canis, fluffy }, false) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { genls, canis, fluffy },
+				creator, true) instanceof ErrorEdge);
 		assertNotNull(sut_.execute(true, canis, fluffy));
 		assertNotNull(sut_.execute(true, dog, fluffy));
 		assertTrue(sut_.execute(true, dog).contains(fluffy));
@@ -152,15 +156,18 @@ public class TransitiveIntervalSchemaModuleTest {
 		assertTrue(sut_.execute(false, fluffy).contains(dog));
 
 		// Tree addition (genls Mammal Animal)
-		DAGNode animal = (DAGNode) dag_.findOrCreateNode("Animal", creator, true);
-		assertFalse(dag_.findOrCreateEdge(creator, new Node[] { genls, mammal, animal }, false) instanceof ErrorEdge);
+		DAGNode animal = (DAGNode) dag_.findOrCreateNode("Animal", creator,
+				true);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { genls, mammal, animal },
+				creator, true) instanceof ErrorEdge);
 		assertNotNull(sut_.execute(true, mammal, animal));
 		assertNotNull(sut_.execute(true, dog, animal));
 		assertNotNull(sut_.execute(true, cat, animal));
 
 		// Non-tree addition (genls Cow Mammal)
 		DAGNode cow = (DAGNode) dag_.findOrCreateNode("Cow", creator, true);
-		assertFalse(dag_.findOrCreateEdge(creator, new Node[] { genls, cow, mammal }, false) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { genls, cow, mammal },
+				creator, true) instanceof ErrorEdge);
 		assertNotNull(sut_.execute(true, cow, mammal));
 		assertNotNull(sut_.execute(true, cow, animal));
 		assertNotNull(sut_.execute(true, cow, thing));
@@ -175,7 +182,8 @@ public class TransitiveIntervalSchemaModuleTest {
 		DAGNode dog = (DAGNode) dag_.findOrCreateNode("Dog", creator, true);
 		DAGNode canis = (DAGNode) dag_.findOrCreateNode("Canis", creator, true);
 		DAGNode thing = (DAGNode) dag_.findOrCreateNode("Thing", creator, true);
-		DAGNode mammal = (DAGNode) dag_.findOrCreateNode("Mammal", creator, true);
+		DAGNode mammal = (DAGNode) dag_.findOrCreateNode("Mammal", creator,
+				true);
 		DAGNode pet = (DAGNode) dag_.findOrCreateNode("Pet", creator, true);
 		sut_.initialisationComplete(dag_.getNodes(), dag_.getEdges(), false);
 
@@ -209,16 +217,18 @@ public class TransitiveIntervalSchemaModuleTest {
 		Node pet = dag_.findOrCreateNode("Pet", creator, true);
 		Node cat = dag_.findOrCreateNode("Cat", creator, true);
 		Node plant = dag_.findOrCreateNode("Plant", creator, true);
-		dag_.findOrCreateEdge(creator, new Node[] { genls, dog, thing }, false);
-		dag_.findOrCreateEdge(creator, new Node[] { genls, dog, canis }, false);
-		dag_.findOrCreateEdge(creator, new Node[] { genls, dog, pet }, false);
-		dag_.findOrCreateEdge(creator, new Node[] { genls, cat, pet }, false);
-		dag_.findOrCreateEdge(creator, new Node[] { genls, pet, thing }, false);
-		dag_.findOrCreateEdge(creator, new Node[] { genls, canis, mammal }, false);
-		dag_.findOrCreateEdge(creator, new Node[] { genls, plant, thing }, false);
-		dag_.findOrCreateEdge(creator, new Node[] { genls, cat, fluffy }, false);
-		dag_.findOrCreateEdge(creator, new Node[] { genls, mammal, thing }, false);
-		dag_.findOrCreateEdge(creator, new Node[] { genls, cat, mammal }, false);
+		dag_.findOrCreateEdge(new Node[] { genls, dog, thing }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { genls, dog, canis }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { genls, dog, pet }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { genls, cat, pet }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { genls, pet, thing }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { genls, canis, mammal }, creator,
+				true);
+		dag_.findOrCreateEdge(new Node[] { genls, plant, thing }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { genls, cat, fluffy }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { genls, mammal, thing }, creator,
+				true);
+		dag_.findOrCreateEdge(new Node[] { genls, cat, mammal }, creator, true);
 		dag_.noChecks_ = false;
 		sut_.initMembers();
 	}

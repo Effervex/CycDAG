@@ -264,9 +264,9 @@ public class BubbleUpDisjointModule extends DAGModule<Collection<DAGEdge>> {
 
 		if (isDisjointed) {
 			// If they are likely to be disjointed, create a new disjoint edge
-			dag_.findOrCreateEdge(creator, new Node[] {
+			dag_.findOrCreateEdge(new Node[] {
 					CommonConcepts.DISJOINTWITH.getNode(dag_),
-					collectionParent, targetNode }, false);
+					collectionParent, targetNode }, creator, false);
 			System.out.println("Disjoint added btween:"
 					+ collectionParent.getName() + " " + targetNode.getName());
 		}
