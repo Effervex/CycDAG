@@ -96,7 +96,12 @@ public class OntologyFunction extends DAGNode implements Edge {
 
 	@Override
 	public String getIdentifier() {
-		if (id_ != -1)
+		return getIdentifier(false);
+	}
+	
+	@Override
+	public String getIdentifier(boolean useName) {
+		if (id_ != -1 && !useName)
 			return id_ + "";
 
 		StringBuffer buffer = new StringBuffer("(");
@@ -104,7 +109,7 @@ public class OntologyFunction extends DAGNode implements Edge {
 		for (Node n : nodes_) {
 			if (!first)
 				buffer.append(" ");
-			buffer.append(n.getIdentifier());
+			buffer.append(n.getIdentifier(useName));
 			first = false;
 		}
 		buffer.append(")");

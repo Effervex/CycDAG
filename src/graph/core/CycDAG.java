@@ -56,6 +56,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	private transient QueryModule querier_;
 
+	public boolean loadAssertions_ = true;
+
 	public CycDAG() {
 		this(new File("cyc"));
 	}
@@ -107,10 +109,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 			if (!meetsConstraint) {
 				if (forwardEdges != null) {
 					// Create new edge to meet constraint
-					Edge forwardEdge = findOrCreateEdge(FORWARD_CHAIN,
+					Edge forwardEdge = findOrCreateEdge(
 							new Node[] { argQuery.getNode(this), testNode,
-									constraint }, microtheory, false,
-							ephemeral, true);
+									constraint }, FORWARD_CHAIN, microtheory,
+							true, ephemeral, true);
 					if (forwardEdge != null
 							&& !(forwardEdge instanceof ErrorEdge)) {
 						forwardEdges.add(forwardEdge);
@@ -218,7 +220,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 				Node[] propagatedNodes = Arrays.copyOf(edge.getNodes(),
 						edge.getNodes().length);
 				propagatedNodes[0] = pp.getPred().getNode(this);
-				return findOrCreateEdge(creator, propagatedNodes, microtheory,
+				return findOrCreateEdge(propagatedNodes, creator, microtheory,
 						flags);
 			}
 		}
@@ -247,7 +249,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			cc.clearNode();
 	}
 
-	public Edge findOrCreateEdge(Node creator, Node[] edgeNodes,
+	public Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
 			String microtheory, boolean... flags) {
 		BooleanFlags bFlags = edgeFlags_.loadFlags(flags);
 		boolean createNew = bFlags.getFlag("createNew");
@@ -303,7 +305,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 	@Override
 	public synchronized Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
 			boolean... flags) {
-		return findOrCreateEdge(creator, edgeNodes, null, flags);
+		return findOrCreateEdge(edgeNodes, creator, null, flags);
 	}
 
 	@Override
@@ -451,7 +453,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		CommonConcepts.createCommonAssertions(this);
 		noChecks_ = false;
 
-		if (this.getNumNodes() <= 100) {
+		if (this.getNumNodes() <= 100 && loadAssertions_) {
 			try {
 				noChecks_ = true;
 
@@ -501,8 +503,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 					String microtheory = (split.length == 2) ? split[1]
 							.replaceAll("#\\$", "") : null;
-					Edge edge = findOrCreateEdge(CYC_IMPORT, nodes,
-							microtheory, false);
+					Edge edge = findOrCreateEdge(nodes, CYC_IMPORT,
+							microtheory, true);
 					if (edge instanceof ErrorEdge)
 						nullCount++;
 				} else

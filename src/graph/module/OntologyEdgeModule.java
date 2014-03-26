@@ -139,7 +139,7 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 						+ (i + 1) + FUNC_SPLIT));
 			} else {
 				args.add(nodes[i]);
-				args.add(prefix + (i + 1));
+				args.add((prefix + (i + 1)).intern());
 			}
 		}
 		return args;

@@ -11,7 +11,6 @@
 package graph.inference.module;
 
 import graph.core.CommonConcepts;
-import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Edge;

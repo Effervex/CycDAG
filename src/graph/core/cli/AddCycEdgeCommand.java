@@ -63,7 +63,7 @@ public class AddCycEdgeCommand extends AddEdgeCommand {
 				flags = new boolean[1];
 			flags[0] = true;
 			Edge edge = ((CycDAG) dagHandler.getDAG()).findOrCreateEdge(
-					creator, nodes, microtheory, flags);
+					nodes, creator, microtheory, flags);
 			dagHandler.getDAG().writeCommand("addedge " + data);
 
 			if (edge instanceof ErrorEdge) {

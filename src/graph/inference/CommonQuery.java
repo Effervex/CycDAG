@@ -35,6 +35,7 @@ public enum CommonQuery {
 	DIRECTSPECS("(assertedSentence (genls ?X $0))"),
 	DISJOINT("(disjointWith $0 $1)"),
 	GENLSIBLINGS("(assertedSentence (genls $0 ?X))", true),
+	GENLPREDS("(genlPreds $0 ?X)"),
 	INSTANCES("(isa ?X $0)"),
 	ISASIBLINGS("(assertedSentence (isa $0 ?X))", true),
 	MAXINSTANCES("(isa ?X $0)", true),
@@ -43,6 +44,7 @@ public enum CommonQuery {
 	MINARGNISA("(or (argIsa $0 $1 ?X) " + "(arg$1Isa $0 ?X))", true),
 	MINGENLS("(assertedSentence (genls $0 ?X))", true),
 	MINISA("(assertedSentence (isa $0 ?X))", true),
+	SPECPREDS("(genlPreds ?X $0)"),
 	SPECS("(genls ?X $0)");
 
 	private String queryStr_;
@@ -151,7 +153,8 @@ public enum CommonQuery {
 		int i = 0;
 		Node[] nodes = new Node[split.size()];
 		for (String s : split) {
-			nodes[i++] = dag.findOrCreateNode(s, null, false, false, false, true);
+			nodes[i++] = dag.findOrCreateNode(s, null, false, false, false,
+					true);
 		}
 		QueryObject qo = new QueryObject(nodes);
 		QueryModule querier = (QueryModule) dag.getModule(QueryModule.class);
