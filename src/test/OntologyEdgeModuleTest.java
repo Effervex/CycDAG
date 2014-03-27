@@ -61,7 +61,7 @@ public class OntologyEdgeModuleTest {
 		DAGNode person = (DAGNode) dag_.findOrCreateNode("Person", creator,
 				true, false, true);
 		OntologyFunction diffThingPerson = dag_.findOrCreateFunctionNode(true,
-				false, diffFn, thing, person);
+				false, null, diffFn, thing, person);
 		DAGEdge funcEdge = (DAGEdge) dag_.findOrCreateEdge(new Node[] { genls,
 				place, diffThingPerson }, creator, true);
 		Collection<Edge> results = sut_.findEdgeByNodes(genls, place,
@@ -79,7 +79,7 @@ public class OntologyEdgeModuleTest {
 		DAGNode nz = (DAGNode) dag_.findOrCreateNode("NewZealand", creator,
 				true, false, true);
 		OntologyFunction hamilton = dag_.findOrCreateFunctionNode(true, false,
-				cityNamedFn, new StringNode("Hamilton"), nz);
+				null, cityNamedFn, new StringNode("Hamilton"), nz);
 		DAGEdge strEdge = (DAGEdge) dag_.findOrCreateEdge(new Node[] { genls,
 				hamilton, place }, creator, true);
 		results = sut_.findEdgeByNodes(genls, new OntologyFunction(cityNamedFn,
@@ -104,11 +104,11 @@ public class OntologyEdgeModuleTest {
 		DAGNode thingy = (DAGNode) dag_.findOrCreateNode("Thing", creator,
 				true, false, true);
 		OntologyFunction thingyFn = dag_.findOrCreateFunctionNode(true, false,
-				fn, thingy, new StringNode("ABC"));
+				null, fn, thingy, new StringNode("ABC"));
 		DAGEdge funcEdge = (DAGEdge) dag_.findOrCreateEdge(new Node[] { genls,
 				blah, thingyFn }, creator, true);
 		OntologyFunction thingyFn2 = dag_.findOrCreateFunctionNode(true, false,
-				fn, thingy, new StringNode("123"));
+				null, fn, thingy, new StringNode("123"));
 		DAGEdge funcEdge2 = (DAGEdge) dag_.findOrCreateEdge(new Node[] { genls,
 				blah, thingyFn2 }, creator, true);
 		Collection<Edge> results = sut_.execute(thingyFn2, 3);

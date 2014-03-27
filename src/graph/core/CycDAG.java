@@ -249,6 +249,24 @@ public class CycDAG extends DirectedAcyclicGraph {
 			cc.clearNode();
 	}
 
+	/**
+	 * Finds or creates an edge from a set of nodes. The returned edge either
+	 * already exists, or is newly created and added. Edges can specify a
+	 * microtheory as well.
+	 * 
+	 * @param edgeNodes
+	 *            The nodes of the edge.
+	 * @param creator
+	 *            The creator of the edge.
+	 * @param microtheory
+	 *            The optional microtheory for the edge.
+	 * @param flags
+	 *            The boolean flags to use during edge creation: createNew
+	 *            (false), ephemeral (false), forceConstraints (false).
+	 * 
+	 * @return True if the edge was not already in the graph.
+	 * @throws DAGException
+	 */
 	public Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
 			String microtheory, boolean... flags) {
 		BooleanFlags bFlags = edgeFlags_.loadFlags(flags);
@@ -376,7 +394,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			Node[] subNodes = parseNodes(nodeStr, creator, createNew, true,
 					allowVariables);
 			return findOrCreateFunctionNode(createNew,
-					bFlags.getFlag("ephemeral"), subNodes);
+					bFlags.getFlag("ephemeral"), creator, subNodes);
 		} else if (allowVariables && nodeStr.startsWith("?")) {
 			return new VariableNode(nodeStr);
 		}
@@ -384,7 +402,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	public OntologyFunction findOrCreateFunctionNode(boolean createNew,
-			boolean ephemeral, Node... args) {
+			boolean ephemeral, Node creator, Node... args) {
 		if (args != null
 				&& (!createNew || semanticArgCheck(args, null, false, ephemeral) == null)) {
 			FunctionIndex functionIndexer = (FunctionIndex) getModule(FunctionIndex.class);

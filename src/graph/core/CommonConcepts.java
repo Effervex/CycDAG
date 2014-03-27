@@ -258,8 +258,8 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(
 				new Node[] { GENLS.getNode(dag), STRING.getNode(dag),
 						CHARACTER_STRING.getNode(dag) }, _COMMON_CONCEPT, true);
-		Node theString = dag.findOrCreateNode("(" + THE_FN.getNode(dag) + " "
-				+ STRING.getNode(dag) + ")", _COMMON_CONCEPT, true);
+		Node theString = dag.findOrCreateFunctionNode(true, false,
+				_COMMON_CONCEPT, THE_FN.getNode(dag), STRING.getNode(dag));
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), theString, STRING.getNode(dag) },
 				_COMMON_CONCEPT, true);

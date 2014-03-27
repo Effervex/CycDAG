@@ -39,10 +39,14 @@ public class CycDAGCLI extends DAGCommandLineInterface {
 	}
 
 	public static void main(String[] args) {
-		CycDAG dag = new CycDAG(getRootDir(args));
-		new CycDAGCLI(getPort(args), dag).start();
+		try {
+			CycDAG dag = new CycDAG(getRootDir(args));
+			new CycDAGCLI(getPort(args), dag).start();
 
-		dag.initialise();
+			dag.initialise();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
