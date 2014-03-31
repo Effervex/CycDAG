@@ -154,6 +154,6 @@ public class RewriteOfModule extends DAGModule<DAGNode> {
 
 	@Override
 	public String toString() {
-		return rewriteMap_.size() + " rewritten concepts";
+		return "RewriteOf Module: " + rewriteMap_.size() + " rewritten concepts";
 	}
 }

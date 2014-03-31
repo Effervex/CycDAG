@@ -73,7 +73,7 @@ public class FunctionIndex extends DAGModule<OntologyFunction> {
 
 	@Override
 	public String toString() {
-		return index_.toString();
+		return "Function Index Module: " + index_.toString();
 	}
 
 	public Collection<OntologyFunction> getAllFunctions(DAGNode functionNode) {
