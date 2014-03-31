@@ -164,12 +164,19 @@ public class DisjointWithWorker extends QueryWorker {
 		if (atomic == null)
 			return;
 		VariableNode queryVar = new VariableNode("?_DISJ_");
+		VariableNode transOne = new VariableNode("?_TRANSONE_");
+		VariableNode transTwo = new VariableNode("?_TRANSTWO_");
 		QueryObject qo = new QueryObject(CommonConcepts.AND.getNode(dag_),
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), queryObj.getNode(1),
-						queryVar), // First
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), queryObj.getNode(2),
-						queryVar), // Second
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), queryVar,
+				new OntologyFunction(CommonConcepts.GENLS.getNode(dag_),
+						queryObj.getNode(1), transOne), // Transitive first arg
+				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+						transOne, queryVar), // First
+				new OntologyFunction(CommonConcepts.GENLS.getNode(dag_),
+						queryObj.getNode(2), transTwo), // Transitive second arg
+				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+						transTwo, queryVar), // Second
+				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+						queryVar,
 						CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
 								.getNode(dag_)));
 		Collection<Substitution> siblingDisjoints = querier_.execute(qo);
@@ -178,7 +185,10 @@ public class DisjointWithWorker extends QueryWorker {
 			// Sibling Disjoint Exception?
 			if (!isException(queryObj.getNode(1), queryObj.getNode(2))) {
 				queryObj.addResult(new Substitution());
-				queryObj.getJustification().addAll(qo.getJustification());
+				Substitution sub = siblingDisjoints.iterator().next();
+				processSiblingJustification(sub.getSubstitution(transOne),
+						sub.getSubstitution(transTwo),
+						sub.getSubstitution(queryVar), queryObj);
 				return;
 			}
 		} else {
@@ -196,6 +206,68 @@ public class DisjointWithWorker extends QueryWorker {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Processes the justification for the sibling.
+	 * 
+	 * @param substitution
+	 *            The substitution for the variables such that the sibling
+	 *            disjoint query is satisfied.
+	 * @param transOne
+	 *            The transitive variable for the first object.
+	 * @param transTwo
+	 *            The transitive variable for the second object.
+	 * @param queryVar
+	 *            The variable linking transOne and transTwo to the
+	 *            SiblingDisjointCollection.
+	 * @param queryObj
+	 *            The query object to add the justification to.
+	 */
+	private void processSiblingJustification(Node transOne, Node transTwo,
+			Node queryVar, QueryObject queryObj) {
+		List<Node[]> justification = queryObj.getJustification();
+		QueryObject proof = null;
+
+		// Add transitive query 1, unless it is the same
+		Node arg1 = queryObj.getNode(1);
+		if (!arg1.equals(transOne)) {
+			proof = new QueryObject(CommonConcepts.GENLS.getNode(dag_), arg1,
+					transOne);
+			querier_.prove(proof);
+			justification.addAll(proof.getJustification());
+			justification.add(new Node[0]);
+		}
+
+		// Add isa sibling query for arg 1
+		proof = new QueryObject(CommonConcepts.ISA.getNode(dag_), transOne,
+				queryVar);
+		querier_.prove(proof);
+		justification.addAll(proof.getJustification());
+		justification.add(new Node[0]);
+
+		// Add transitive query 2, unless it is the same
+		Node arg2 = queryObj.getNode(2);
+		if (!arg2.equals(transTwo)) {
+			proof = new QueryObject(CommonConcepts.GENLS.getNode(dag_), arg2,
+					transTwo);
+			querier_.prove(proof);
+			justification.addAll(proof.getJustification());
+			justification.add(new Node[0]);
+		}
+
+		// Add isa sibling query for arg 2
+		proof = new QueryObject(CommonConcepts.ISA.getNode(dag_), transTwo,
+				queryVar);
+		querier_.prove(proof);
+		justification.addAll(proof.getJustification());
+		justification.add(new Node[0]);
+
+		// Add isa sibling collection to sibling collection type
+		proof = new QueryObject(CommonConcepts.ISA.getNode(dag_), queryVar,
+				CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE.getNode(dag_));
+		querier_.prove(proof);
+		justification.addAll(proof.getJustification());
 	}
 
 	private boolean isException(Node node, Node node2) {

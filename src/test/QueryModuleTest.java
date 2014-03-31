@@ -454,6 +454,34 @@ public class QueryModuleTest {
 		results = sut_.execute(qo);
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(new Substitution(x, nonliving)));
+
+		// Curious case of transitivity
+		edge = dag_.findOrCreateEdge(new Node[] { disjoint, cat, boxer },
+				creator, false);
+		dag_.removeEdge(edge);
+		assertTrue(sut_.prove(genls, boxer, dog));
+		assertTrue(sut_.prove(isa, dog, species));
+		assertTrue(sut_.prove(isa, cat, species));
+		qo = new QueryObject(disjoint, boxer, cat);
+		assertNotNull(sut_.execute(qo));
+		justification = qo.getJustification();
+		assertEquals(justification.size(), 8);
+		assertArrayEquals(justification.get(0),
+				new Node[] { genls, boxer, dog });
+		assertArrayEquals(justification.get(1), new Node[0]);
+		assertArrayEquals(justification.get(2),
+				new Node[] { isa, dog, species });
+		assertArrayEquals(justification.get(3), new Node[0]);
+		assertArrayEquals(justification.get(4),
+				new Node[] { isa, cat, species });
+		assertArrayEquals(justification.get(5), new Node[0]);
+		assertArrayEquals(justification.get(6), new Node[] { isa, species,
+				disjointCollectionType });
+		assertArrayEquals(justification.get(7), new Node[] { genls,
+				disjointCollectionType, siblingDisjointCollectionType });
+		
+		qo = new QueryObject(disjoint, boxer, dog);
+		assertNull(sut_.execute(qo));
 	}
 
 	@Test
