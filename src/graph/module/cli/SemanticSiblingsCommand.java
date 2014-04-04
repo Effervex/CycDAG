@@ -67,7 +67,7 @@ public class SemanticSiblingsCommand extends CollectionCommand {
 		for (Node n : siblings)
 			weighted.add(n, semanticModule.semanticSimilarity(parentsA, n));
 		SortedSet<Node> ordered = weighted.getOrdered();
-		Collection<Node> results = dagHandler.sort(ordered, rangeStart_,
+		Collection<Node> results = dagHandler.postProcess(ordered, rangeStart_,
 				rangeEnd_);
 		print(results.size() + "|");
 		for (Node n : results)

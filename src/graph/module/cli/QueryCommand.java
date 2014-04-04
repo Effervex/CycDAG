@@ -64,7 +64,7 @@ public class QueryCommand extends CollectionCommand {
 		Collection<Substitution> substitutions = queryModule.execute(qo);
 
 		// Sort
-		substitutions = dagHandler.sort(substitutions, rangeStart_, rangeEnd_);
+		substitutions = dagHandler.postProcess(substitutions, rangeStart_, rangeEnd_);
 
 		if (substitutions == null || substitutions.isEmpty()) {
 			print("0|NIL\n");

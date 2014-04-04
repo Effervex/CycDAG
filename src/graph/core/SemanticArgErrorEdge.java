@@ -10,7 +10,7 @@
  ******************************************************************************/
 package graph.core;
 
-public class SemanticArgErrorEdge extends DAGErrorEdge {
+public class SemanticArgErrorEdge extends DAGErrorEdge implements RetryableErrorEdge{
 	private static final long serialVersionUID = 1L;
 	private Node proposedNode_;
 	private int argNum_;

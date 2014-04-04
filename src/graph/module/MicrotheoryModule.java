@@ -55,7 +55,7 @@ public class MicrotheoryModule extends DAGModule<Collection<DAGEdge>> {
 				return true;
 			}
 		}
-		return false;
+		return true;
 	}
 	
 	@Override

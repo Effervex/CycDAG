@@ -124,9 +124,9 @@ public class DisjointWithWorker extends QueryWorker {
 
 	private Collection<? extends Node[]> alterGenlJustification(
 			QueryObject genlResults, DAGNode disjointNode, boolean isReversed) {
-		if (dag_.getModule(TransitiveIntervalSchemaModule.class) != null) {
-			TransitiveIntervalSchemaModule transModule = (TransitiveIntervalSchemaModule) dag_
-					.getModule(TransitiveIntervalSchemaModule.class);
+		TransitiveIntervalSchemaModule transModule = (TransitiveIntervalSchemaModule) dag_
+				.getModule(TransitiveIntervalSchemaModule.class);
+		if (transModule != null && transModule.isReady()) {
 			DAGNode baseNode = (DAGNode) genlResults.getNode(1);
 			List<Node[]> justification = transModule.justifyTransitive(
 					baseNode, disjointNode);

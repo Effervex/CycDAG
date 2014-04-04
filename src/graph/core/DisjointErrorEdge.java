@@ -14,7 +14,7 @@ import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
 
-public class DisjointErrorEdge extends DAGErrorEdge {
+public class DisjointErrorEdge extends DAGErrorEdge implements RetryableErrorEdge {
 	private static final long serialVersionUID = 3921728486130853014L;
 	private Node[] disjointNodes_;
 

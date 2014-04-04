@@ -98,7 +98,7 @@ public class QuickQueryCommand extends CollectionCommand {
 		Collection<Node> result = cq.runQuery(dagHandler.getDAG(), args);
 
 		// Sort results
-		result = dagHandler.sort(result, rangeStart_, rangeEnd_);
+		result = dagHandler.postProcess(result, rangeStart_, rangeEnd_);
 
 		if (result == null || result.isEmpty()) {
 			print("0|NIL\n");

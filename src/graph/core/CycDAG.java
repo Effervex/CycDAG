@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -102,7 +103,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 					&& argQuery.getNode(this).equals(
 							CommonConcepts.ISA.getNode(this)))
 				meetsConstraint = querier_.proveIsString(testNode, constraint);
-			else if (!meetsConstraint)
+			else
 				meetsConstraint = querier_.prove(argQuery.getNode(this),
 						querier_.getExpanded(testNode), constraint);
 
@@ -176,13 +177,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 		// Self-referential
 		if (edgeNodes[1].equals(edgeNodes[2]))
 			return null;
-
-		// Only test DAGNodes
-		if (!(edgeNodes[1] instanceof DAGNode)
-				&& (edgeNodes[2] instanceof DAGNode)) {
-			System.out.println("Non-DAG Edge: " + Arrays.toString(edgeNodes));
-			return null;
-		}
 
 		// If the edge is not symmetric, but is defined symmetrically
 		// TODO Technically not correct, but it works.
@@ -277,6 +271,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 			return VariableErrorEdge.getInstance();
 
 		if (!noChecks_ && createNew) {
+			// Cannot have non-DAG node as 1st argument
+			if (!(edgeNodes[1] instanceof DAGNode))
+				return new NonDAGNodeErrorEdge(edgeNodes);
+			
 			// Check if the edge is semantically valid
 			DAGErrorEdge semError = semanticArgCheck(edgeNodes, microtheory,
 					bFlags.getFlag("forceConstraints"),
@@ -473,11 +471,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 		if (this.getNumNodes() <= 100 && loadAssertions_) {
 			try {
-				noChecks_ = true;
-
 				readAssertionFile(new File("allAssertions.txt"), CYC_IMPORT);
-
-				noChecks_ = false;
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.exit(1);
@@ -491,6 +485,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		if (!assertionFile.exists())
 			return;
 
+		noChecks_ = true;
 		BufferedReader reader = new BufferedReader(
 				new FileReader(assertionFile));
 		String edgeStr = null;
@@ -537,6 +532,74 @@ public class CycDAG extends DirectedAcyclicGraph {
 				+ duplicateCount + "\n");
 
 		reader.close();
+		noChecks_ = false;
+	}
+
+	public void readAssertionFileConsistent(File assertionFile, Node creator)
+			throws IOException {
+		if (!assertionFile.exists())
+			return;
+
+		BufferedReader reader = new BufferedReader(
+				new FileReader(assertionFile));
+		String edgeStr = null;
+		int duplicateCount = 0;
+		LinkedList<String> blocked = new LinkedList<>();
+		while ((edgeStr = reader.readLine()) != null)
+			processEdgeString(creator, edgeStr, blocked);
+		
+		int fullSweep = blocked.size();
+		int blockedCount = 0;
+		while(blockedCount < fullSweep) {
+			String blockedEdge = blocked.pop();
+			processEdgeString(creator, blockedEdge, blocked);
+			if (blocked.size() < fullSweep) {
+				fullSweep = blocked.size();
+				blockedCount = 0;
+			} else {
+				blockedCount++;
+			}
+		}
+
+		System.out.println("\nNull count: " + blocked.size() + ", Duplicate count: "
+				+ duplicateCount + "\n");
+
+		reader.close();
+	}
+
+	private void processEdgeString(Node creator, String edgeStr,
+			LinkedList<String> blocked) {
+		// Check for multiline comments.
+		String[] split = edgeStr.split("\\t");
+		if (split.length > 2) {
+			System.err.println("Edge has more than one tab field! "
+					+ edgeStr);
+			System.exit(1);
+		}
+
+		try {
+			// Remove SUBL edges
+			if (containsSubL(split[0]))
+				return;
+
+			Node[] nodes = parseNodes(split[0], creator, true, false, false);
+			if (nodes != null) {
+				// Comment cleaning
+				if (nodes[0].equals(CommonConcepts.COMMENT.getNode(this))) {
+					nodes[2] = processComment(nodes);
+				}
+
+				String microtheory = (split.length == 2) ? split[1]
+						.replaceAll("#\\$", "") : null;
+				Edge edge = findOrCreateEdge(nodes, CYC_IMPORT,
+						microtheory, true);
+				if (edge instanceof RetryableErrorEdge)
+					blocked.add(edgeStr);
+			}
+		} catch (Exception e) {
+			System.err.println(edgeStr);
+			e.printStackTrace();
+		}
 	}
 
 	private StringNode processComment(Node[] nodes) {
