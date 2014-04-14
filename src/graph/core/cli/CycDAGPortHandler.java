@@ -10,6 +10,7 @@
  ******************************************************************************/
 package graph.core.cli;
 
+import graph.core.DAGObject;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
 import graph.core.cli.comparator.CycStringCaseInsComparator;
@@ -32,20 +33,36 @@ public class CycDAGPortHandler extends DAGPortHandler {
 	@Override
 	protected DefaultComparator getComparator() {
 		if (get(SORT_ORDER).equals("depth"))
-			return new DepthComparator();
+			return new DepthComparator(this);
 		else if (get(SORT_ORDER).equals("alpha"))
-			return new CycStringComparator();
+			return new CycStringComparator(this);
 		else if (get(SORT_ORDER).equals("alphaNoCase"))
-			return new CycStringCaseInsComparator();
+			return new CycStringCaseInsComparator(this);
 		return super.getComparator();
 	}
 
 	@Override
 	public Object convertToComparable(Object o) {
+		if (o == null)
+			return null;
 		if (o instanceof Substitution) {
 			Map<String, Node> subMap = ((Substitution) o).getSubstitutionMap();
 			return subMap.get(subMap.keySet().iterator().next());
 		}
 		return super.convertToComparable(o);
+	}
+
+	@Override
+	public DAGObject convertToDAGObject(Object obj) {
+		if (obj == null)
+			return null;
+		if (obj instanceof Substitution) {
+			Map<String, Node> subMap = ((Substitution) obj)
+					.getSubstitutionMap();
+			if (subMap.isEmpty())
+				return null;
+			obj = subMap.get(subMap.keySet().iterator().next());
+		}
+		return super.convertToDAGObject(obj);
 	}
 }

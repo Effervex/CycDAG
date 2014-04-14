@@ -11,9 +11,13 @@
 package graph.core.cli.comparator;
 
 import graph.core.DAGNode;
+import graph.core.cli.DAGPortHandler;
 import graph.module.DepthModule;
 
 public class DepthComparator extends IDComparator {
+	public DepthComparator(DAGPortHandler handler) {
+		super(handler);
+	}
 
 	@Override
 	protected int compareInternal(Object o1, Object o2) {

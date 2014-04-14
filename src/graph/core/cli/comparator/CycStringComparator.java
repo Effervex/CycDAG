@@ -10,12 +10,18 @@
  ******************************************************************************/
 package graph.core.cli.comparator;
 
+import graph.core.cli.DAGPortHandler;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CycStringComparator extends StringComparator {
 	public static final Pattern MARKUP_PARSER = Pattern
 			.compile("\\[\\[[^\\]]+?\\|(.+?)\\]\\]");
+	
+	public CycStringComparator(DAGPortHandler handler) {
+		super(handler);
+	}
 
 	@Override
 	protected int compareInternal(Object o1, Object o2) {

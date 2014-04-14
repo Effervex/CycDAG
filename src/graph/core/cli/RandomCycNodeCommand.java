@@ -40,7 +40,7 @@ public class RandomCycNodeCommand extends Command {
 
 		String filter = dagHandler.get(DAGPortHandler.SUBDAG_FILTERING);
 		Identifiable obj = null;
-		if (filter == null)
+		if (filter == null || filter.isEmpty())
 			obj = ((CycDAG) dagHandler.getDAG()).getRandomNode(allowFunctions);
 		else {
 			SubDAGExtractorModule subDAGModule = (SubDAGExtractorModule) dagHandler

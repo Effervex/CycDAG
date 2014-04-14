@@ -192,6 +192,17 @@ public class NLPToStringModule extends DAGModule<String> {
 		return null;
 	}
 
+	@Override
+	public boolean addNode(DAGNode node) {
+		// Add its alias to the NodeAlias map
+		NodeAliasModule nam = (NodeAliasModule) dag_
+				.getModule(NodeAliasModule.class);
+		if (nam != null) {
+			nam.addAlias(node, nodeToString(node, false));
+		}
+		return super.addNode(node);
+	}
+
 	public String markupToString(String string, boolean markup) {
 		// Find all instances of [[text]] and swap it for dag-to-text, OR append
 		// it with dag-to-text if markup is active.

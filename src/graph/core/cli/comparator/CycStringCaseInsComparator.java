@@ -10,9 +10,14 @@
  ******************************************************************************/
 package graph.core.cli.comparator;
 
+import graph.core.cli.DAGPortHandler;
 import graph.core.cli.comparator.StringCaseInsComparator;
 
 public class CycStringCaseInsComparator extends StringCaseInsComparator {
+	public CycStringCaseInsComparator(DAGPortHandler handler) {
+		super(handler);
+	}
+	
 	@Override
 	protected int compareInternal(Object o1, Object o2) {
 		String o1Str = CycStringComparator.processString(o1);
