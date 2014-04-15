@@ -22,6 +22,7 @@ import graph.inference.QueryWorker;
 import graph.inference.Substitution;
 import graph.inference.VariableNode;
 import graph.module.QueryModule;
+import graph.module.SiblingDisjointModule;
 import graph.module.TransitiveIntervalSchemaModule;
 
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import org.apache.commons.collections4.CollectionUtils;
 
 public class DisjointWithWorker extends QueryWorker {
 	private static final long serialVersionUID = -2014914913163958118L;
+	private transient SiblingDisjointModule sibModule_;
 
 	public DisjointWithWorker(QueryModule queryModule) {
 		super(queryModule);
@@ -159,10 +161,18 @@ public class DisjointWithWorker extends QueryWorker {
 	}
 
 	private void checkSiblingDisjoint(QueryObject queryObj) {
+
 		// If the concept part of a sibling disjoint collection(s)
 		DAGNode atomic = queryObj.getAtomic();
 		if (atomic == null)
 			return;
+
+		// Use sibling module if available
+		if (sibModule_ != null && sibModule_.isReady()) {
+			siblingDisjointViaModule(atomic, queryObj);
+			return;
+		}
+
 		VariableNode queryVar = new VariableNode("?_DISJ_");
 		VariableNode transOne = new VariableNode("?_TRANSONE_");
 		VariableNode transTwo = new VariableNode("?_TRANSTWO_");
@@ -205,6 +215,47 @@ public class DisjointWithWorker extends QueryWorker {
 										.getNode(dag_));
 				}
 			}
+		}
+	}
+
+	private void siblingDisjointViaModule(DAGNode atomic, QueryObject queryObj) {
+		if (queryObj.isProof()) {
+			DAGNode otherNode = (DAGNode) queryObj.getNode(2);
+
+			// Find the unique parents for each set
+			Collection<Node> atomicParents = CommonQuery.ALLGENLS.runQuery(
+					dag_, atomic);
+			Collection<Node> otherParents = CommonQuery.ALLGENLS.runQuery(dag_,
+					otherNode);
+			Collection<Node> commonParents = CollectionUtils.retainAll(
+					atomicParents, otherParents);
+			atomicParents.removeAll(commonParents);
+			otherParents.removeAll(commonParents);
+
+			// Find the sibling disjoint collections for atomics
+			Collection<DAGNode> atomicSibCols = new HashSet<>();
+			for (Node atomicParent : atomicParents)
+				if (atomicParent instanceof DAGNode)
+					atomicSibCols.addAll(sibModule_
+							.getSiblingDisjointParents((DAGNode) atomicParent));
+
+			// Search for match in others
+			for (Node otherParent : otherParents) {
+				if (otherParent instanceof DAGNode)
+					if (CollectionUtils.containsAny(atomicSibCols, sibModule_
+							.getSiblingDisjointParents((DAGNode) otherParent))) {
+						// A match!
+						if (!isException(atomic, otherNode)) {
+							queryObj.addResult(new Substitution());
+							// processSiblingJustification(,
+							// sub.getSubstitution(transTwo),
+							// sub.getSubstitution(queryVar), queryObj);
+						}
+						return;
+					}
+			}
+		} else {
+
 		}
 	}
 
@@ -292,5 +343,7 @@ public class DisjointWithWorker extends QueryWorker {
 	@Override
 	public void setDAG(DirectedAcyclicGraph dag) {
 		super.setDAG(dag);
+		sibModule_ = (SiblingDisjointModule) dag_
+				.getModule(SiblingDisjointModule.class);
 	}
 }
