@@ -98,7 +98,7 @@ public class ManualDisjointnessCommand extends Command {
 		if (decision == 1) {
 			print(conceptA + " is disjoint to " + conceptB + "\n");
 		} else if (decision == 0) {
-			print(conceptA + " is not disjoint to " + conceptB + "\n");
+			print(conceptA + " is NOT disjoint to " + conceptB + "\n");
 		} else if (decision == -1) {
 			print("Cannot ascertain if " + conceptA + " is disjoint to "
 					+ conceptB + "\n");

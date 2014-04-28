@@ -21,6 +21,7 @@ import graph.module.QueryModule;
 import graph.module.RelatedEdgeModule;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -28,12 +29,17 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import sun.reflect.generics.tree.Tree;
 import util.BooleanFlags;
 import util.UtilityMethods;
 
@@ -54,6 +60,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	private static final Pattern UNCODED_PATTERN = Pattern
 			.compile("(?<!<code>)\\(#\\$\\S+( ((#\\$\\S+)|[^a-z\\s]+))+\\)");
+
+	private static final String CSV_FUNCTION_PREFIX = "FUNCTION_";
 
 	private transient QueryModule querier_;
 
@@ -274,7 +282,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			// Cannot have non-DAG node as 1st argument
 			if (!(edgeNodes[1] instanceof DAGNode))
 				return new NonDAGNodeErrorEdge(edgeNodes);
-			
+
 			// Check if the edge is semantically valid
 			DAGErrorEdge semError = semanticArgCheck(edgeNodes, microtheory,
 					bFlags.getFlag("forceConstraints"),
@@ -547,10 +555,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 		LinkedList<String> blocked = new LinkedList<>();
 		while ((edgeStr = reader.readLine()) != null)
 			processEdgeString(creator, edgeStr, blocked);
-		
+
 		int fullSweep = blocked.size();
 		int blockedCount = 0;
-		while(blockedCount < fullSweep) {
+		while (blockedCount < fullSweep) {
 			String blockedEdge = blocked.pop();
 			processEdgeString(creator, blockedEdge, blocked);
 			if (blocked.size() < fullSweep) {
@@ -561,8 +569,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 			}
 		}
 
-		System.out.println("\nNull count: " + blocked.size() + ", Duplicate count: "
-				+ duplicateCount + "\n");
+		System.out.println("\nNull count: " + blocked.size()
+				+ ", Duplicate count: " + duplicateCount + "\n");
 
 		reader.close();
 	}
@@ -572,8 +580,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		// Check for multiline comments.
 		String[] split = edgeStr.split("\\t");
 		if (split.length > 2) {
-			System.err.println("Edge has more than one tab field! "
-					+ edgeStr);
+			System.err.println("Edge has more than one tab field! " + edgeStr);
 			System.exit(1);
 		}
 
@@ -589,10 +596,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 					nodes[2] = processComment(nodes);
 				}
 
-				String microtheory = (split.length == 2) ? split[1]
-						.replaceAll("#\\$", "") : null;
-				Edge edge = findOrCreateEdge(nodes, CYC_IMPORT,
-						microtheory, true);
+				String microtheory = (split.length == 2) ? split[1].replaceAll(
+						"#\\$", "") : null;
+				Edge edge = findOrCreateEdge(nodes, CYC_IMPORT, microtheory,
+						true);
 				if (edge instanceof RetryableErrorEdge)
 					blocked.add(edgeStr);
 			}
@@ -728,5 +735,74 @@ public class CycDAG extends DirectedAcyclicGraph {
 		nodeFlags_.addFlag("allowVariables", false);
 
 		edgeFlags_.addFlag("forceConstraints", false);
+	}
+
+	@Override
+	protected void exportToCSV(BufferedWriter out, DAGExportFormat format)
+			throws IOException {
+		Map<OntologyFunction, Integer> functions = new HashMap<>();
+		for (DAGEdge e : edges_) {
+			Node[] nodes = e.getNodes();
+			if (format == DAGExportFormat.CSV_ALL
+					|| nodes[0].equals(CommonConcepts.ISA.getNode(this))
+					|| nodes[0].equals(CommonConcepts.GENLS.getNode(this))
+					|| nodes[0].equals(CommonConcepts.GENLPREDS.getNode(this))
+					|| nodes[0].equals(CommonConcepts.GENLMT.getNode(this)))
+				out.write(exportCSVNodes(nodes, functions));
+		}
+
+		ValueComparator vc = new ValueComparator(functions);
+		SortedMap<OntologyFunction, Integer> sortedFuncs = new TreeMap<>(vc);
+		sortedFuncs.putAll(functions);
+		for (OntologyFunction func : sortedFuncs.keySet()) {
+			out.write(CSV_FUNCTION_PREFIX + functions.get(func) + ":");
+			Node[] functionNodes = func.getNodes();
+			for (Node n : functionNodes) {
+				String name = n.getIdentifier(true);
+				if (n instanceof OntologyFunction)
+					name = CSV_FUNCTION_PREFIX + functions.get(n);
+				out.write(name + ",");
+			}
+			out.write("\n");
+		}
+	}
+
+	private class ValueComparator implements Comparator<Object> {
+		private Map<? extends Object, Integer> baseMap_;
+
+		public ValueComparator(Map<? extends Object, Integer> baseMap) {
+			baseMap_ = baseMap;
+		}
+
+		@Override
+		public int compare(Object o1, Object o2) {
+			if (baseMap_.get(o1) < baseMap_.get(o2))
+				return -1;
+			if (baseMap_.get(o1) > baseMap_.get(o2))
+				return 1;
+			return Integer.compare(o1.hashCode(), o2.hashCode());
+		}
+
+	}
+
+	private String exportCSVNodes(Node[] nodes,
+			Map<OntologyFunction, Integer> functions) throws IOException {
+		StringBuffer line = new StringBuffer();
+		for (Node n : nodes) {
+			String name = n.getIdentifier(true);
+			if (n instanceof OntologyFunction) {
+				if (functions.containsKey(n))
+					name = CSV_FUNCTION_PREFIX + functions.get(n);
+				else {
+					int num = functions.size();
+					functions.put((OntologyFunction) n, num);
+					exportCSVNodes(((OntologyFunction) n).getNodes(), functions);
+					name = CSV_FUNCTION_PREFIX + num;
+				}
+			}
+			line.append(name + ",");
+		}
+		line.append("\n");
+		return line.toString();
 	}
 }
