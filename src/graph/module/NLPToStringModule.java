@@ -198,7 +198,16 @@ public class NLPToStringModule extends DAGModule<String> {
 		NodeAliasModule nam = (NodeAliasModule) dag_
 				.getModule(NodeAliasModule.class);
 		if (nam != null) {
-			nam.addAlias(node, nodeToString(node, false));
+			String nodeName = nodeToString(node, false);
+			if (!nodeName.isEmpty())
+				nam.addAlias(node, nodeName);
+			if (!node.getName().startsWith("(")) {
+				String basicName = conceptToPlainText(node.getName());
+				if (!basicName.equals(nodeName)
+						&& !basicName.equals(node.getName())
+						&& !basicName.isEmpty())
+					nam.addAlias(node, basicName);
+			}
 		}
 		return super.addNode(node);
 	}

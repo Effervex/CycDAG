@@ -39,7 +39,6 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import sun.reflect.generics.tree.Tree;
 import util.BooleanFlags;
 import util.UtilityMethods;
 
@@ -747,8 +746,9 @@ public class CycDAG extends DirectedAcyclicGraph {
 					|| nodes[0].equals(CommonConcepts.ISA.getNode(this))
 					|| nodes[0].equals(CommonConcepts.GENLS.getNode(this))
 					|| nodes[0].equals(CommonConcepts.GENLPREDS.getNode(this))
-					|| nodes[0].equals(CommonConcepts.GENLMT.getNode(this)))
+					|| nodes[0].equals(CommonConcepts.GENLMT.getNode(this))) {
 				out.write(exportCSVNodes(nodes, functions));
+			}
 		}
 
 		ValueComparator vc = new ValueComparator(functions);
