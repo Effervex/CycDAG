@@ -18,11 +18,22 @@ package graph.core;
  */
 public enum CommonConcepts {
 	AND("and"),
+	ARG1GENL("arg1Genl"),
+	ARG1ISA("arg1Isa"),
+	ARG1NOTGENL("arg1NotGenl"),
+	ARG1NOTISA("arg1NotIsa"),
+	ARG2GENL("arg2Genl"),
+	ARG2ISA("arg2Isa"),
+	ARG2NOTGENL("arg2NotGenl"),
+	ARG2NOTISA("arg2NotIsa"),
 	ARGGENL("argGenl"),
 	ARGISA("argIsa"),
+	ARGNOTGENL("argNotGenl"),
+	ARGNOTISA("argNotIsa"),
 	ARITY("arity"),
 	ASSERTED_SENTENCE("assertedSentence"),
 	BINARY_PREDICATE("BinaryPredicate"),
+	BROADER_TERM("broaderTerm"),
 	CHARACTER_STRING("CharacterString"),
 	COLLECTION("Collection"),
 	COMMENT("comment"),
@@ -52,12 +63,14 @@ public enum CommonConcepts {
 	POSITIVE_INTEGER("PositiveInteger"),
 	POSITIVE_NUMBER("PositiveNumber"),
 	PREDICATE("Predicate"),
+	PRETTY_STRING("prettyString"),
 	PRETTY_STRING_CANONICAL("prettyString-Canonical"),
 	QUOTED_ISA("quotedIsa"),
 	RESULT_GENL("resultGenl"),
 	RESULT_GENL_ARG("resultGenlArg"),
 	RESULT_ISA("resultIsa"),
 	RESULT_ISA_ARG("resultIsaArg"),
+	REWRITE_OF("rewriteOf"),
 	SIBLING_DISJOINT_COLLECTION_TYPE("SiblingDisjointCollectionType"),
 	SIBLING_DISJOINT_EXCEPTION("siblingDisjointExceptions"),
 	STRING("CharacterString"),
@@ -69,10 +82,7 @@ public enum CommonConcepts {
 	TRUE("True"),
 	UNREIFIABLE_FUNCTION("UnreifiableFunction"),
 	YEARFN("YearFn"),
-	ZERO("Zero"),
-	REWRITE_OF("rewriteOf"),
-	PRETTY_STRING("prettyString"),
-	BROADER_TERM("broaderTerm");
+	ZERO("Zero");
 
 	private static final StringNode _COMMON_CONCEPT = new StringNode(
 			"CommonConcept");
@@ -133,19 +143,16 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), ISA.getNode(dag),
 				BINARY_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
 		dag.findOrCreateEdge(
-
 				new Node[] { ARGISA.getNode(dag), ISA.getNode(dag),
 						PrimitiveNode.parseNode("2"), COLLECTION.getNode(dag) },
 				_COMMON_CONCEPT, true);
 		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), GENLS.getNode(dag),
 				BINARY_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
 		dag.findOrCreateEdge(
-
 				new Node[] { ARGISA.getNode(dag), GENLS.getNode(dag),
 						PrimitiveNode.parseNode("1"), COLLECTION.getNode(dag) },
 				_COMMON_CONCEPT, true);
 		dag.findOrCreateEdge(
-
 				new Node[] { ARGISA.getNode(dag), GENLS.getNode(dag),
 						PrimitiveNode.parseNode("2"), COLLECTION.getNode(dag) },
 				_COMMON_CONCEPT, true);
@@ -362,9 +369,29 @@ public enum CommonConcepts {
 		// $1 |1(is)|(are)| <text string> $2
 		nlpPredicates(ARGGENL,
 				"|2(argument $2)|(what arguments)| of $1 is a type of $3", dag);
+		nlpPredicates(ARG1GENL, "argument 1 of $1 is a type of $2", dag);
+		nlpPredicates(ARG2GENL, "argument 2 of $1 is a type of $2", dag);
 		nlpPredicates(ARGISA,
 				"|2(argument $2)|(what arguments)| of $1 is an instance of $3",
 				dag);
+		nlpPredicates(ARG1ISA, "argument 1 of $1 is an instance of $2", dag);
+		nlpPredicates(ARG2ISA, "argument 2 of $1 is an instance of $2", dag);
+		nlpPredicates(
+				ARGNOTGENL,
+				"|2(argument $2)|(what arguments)| of $1 cannot be a type of $3",
+				dag);
+		nlpPredicates(ARG1NOTGENL, "argument 1 of $1 cannot be a type of $2",
+				dag);
+		nlpPredicates(ARG2NOTGENL, "argument 2 of $1 cannot be a type of $2",
+				dag);
+		nlpPredicates(
+				ARGNOTISA,
+				"|2(argument $2)|(what arguments)| of $1 cannot be an instance of $3",
+				dag);
+		nlpPredicates(ARG1NOTISA,
+				"argument 1 of $1 cannot be an instance of $2", dag);
+		nlpPredicates(ARG2NOTISA,
+				"argument 2 of $1 cannot be an instance of $2", dag);
 		nlpPredicates(ARITY, "$1 |1(has)|(have)| arity |2($2)|(what)|", dag);
 		nlpPredicates(ASSERTED_SENTENCE, "$1 |1(is)|(are)| asserted directly",
 				dag);
