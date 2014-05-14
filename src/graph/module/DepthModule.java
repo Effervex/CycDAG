@@ -116,6 +116,7 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 			return true;
 
 		if (!incrementalSupported_) {
+			depthCalculated_ = false;
 			return true;
 		}
 

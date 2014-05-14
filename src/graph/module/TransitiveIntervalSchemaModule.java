@@ -57,6 +57,7 @@ public class TransitiveIntervalSchemaModule extends
 	private DAGNode virtualRoot_;
 	protected DAGNode transitiveNode_;
 	private boolean incrementalSupported_ = false;
+	private boolean requiresRebuild_ = true;
 
 	/**
 	 * Builds a spanning tree for a given topologically sorted collection of
@@ -160,6 +161,7 @@ public class TransitiveIntervalSchemaModule extends
 			return true;
 
 		if (!incrementalSupported_) {
+			requiresRebuild_ = true;
 			return true;
 		}
 
@@ -227,7 +229,7 @@ public class TransitiveIntervalSchemaModule extends
 	@Override
 	public boolean initialisationComplete(Collection<DAGNode> nodes,
 			Collection<DAGEdge> edges, boolean forceRebuild) {
-		if (isReady() && !forceRebuild)
+		if (!requiresRebuild_ && !forceRebuild)
 			return false;
 		virtualRoot_ = null;
 		initMembers();
@@ -257,6 +259,7 @@ public class TransitiveIntervalSchemaModule extends
 		predecessorMap_ = predecessorMap;
 		ancestorMap_ = ancestorMap;
 		System.out.println("Done!");
+		requiresRebuild_ = false;
 		return true;
 	}
 
@@ -320,8 +323,7 @@ public class TransitiveIntervalSchemaModule extends
 			return true;
 
 		if (!incrementalSupported_) {
-			System.err.println("Incremental updates not supported "
-					+ "for TransitiveIntervalSchemaModule!");
+			requiresRebuild_ = true;
 			return true;
 		}
 
