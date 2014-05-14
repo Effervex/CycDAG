@@ -116,8 +116,6 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 			return true;
 
 		if (!incrementalSupported_) {
-			System.err.println("Incremental updates not supported "
-					+ "for DepthModule!");
 			return true;
 		}
 

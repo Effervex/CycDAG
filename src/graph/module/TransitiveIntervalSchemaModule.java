@@ -160,8 +160,6 @@ public class TransitiveIntervalSchemaModule extends
 			return true;
 
 		if (!incrementalSupported_) {
-			System.err.println("Incremental updates not supported "
-					+ "for TransitiveIntervalSchemaModule!");
 			return true;
 		}
 
