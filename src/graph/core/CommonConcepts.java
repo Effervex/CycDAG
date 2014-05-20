@@ -73,6 +73,7 @@ public enum CommonConcepts {
 	REWRITE_OF("rewriteOf"),
 	SIBLING_DISJOINT_COLLECTION_TYPE("SiblingDisjointCollectionType"),
 	SIBLING_DISJOINT_EXCEPTION("siblingDisjointExceptions"),
+	STRICTLY_FUNCTIONAL_SLOT("StrictlyFunctionalSlot"),
 	STRING("CharacterString"),
 	SYMMETRIC_BINARY("SymmetricBinaryPredicate"),
 	TERM_STRING("termStrings"),
@@ -240,6 +241,24 @@ public enum CommonConcepts {
 				new Node[] { ARGISA.getNode(dag), RESULT_ISA_ARG.getNode(dag),
 						PrimitiveNode.parseNode("2"),
 						POSITIVE_INTEGER.getNode(dag) }, _COMMON_CONCEPT, true);
+
+		// Strictly Functional
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag),
+						STRICTLY_FUNCTIONAL_SLOT.getNode(dag),
+						COLLECTION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), COMMENT.getNode(dag),
+						STRICTLY_FUNCTIONAL_SLOT.getNode(dag) },
+				_COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), ARITY.getNode(dag),
+						STRICTLY_FUNCTIONAL_SLOT.getNode(dag) },
+				_COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), NLP_PREDICATE_STRING.getNode(dag),
+						STRICTLY_FUNCTIONAL_SLOT.getNode(dag) },
+				_COMMON_CONCEPT, true);
 
 		// NLP Predicates
 		dag.findOrCreateEdge(

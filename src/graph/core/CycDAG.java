@@ -509,10 +509,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 			try {
 				// Remove SUBL edges
-				if (containsSubL(split[0])) {
-					nullCount++;
-					continue;
-				}
+				// if (containsSubL(split[0])) {
+				// nullCount++;
+				// continue;
+				// }
 
 				Node[] nodes = parseNodes(split[0], creator, true, false, false);
 				if (nodes != null) {

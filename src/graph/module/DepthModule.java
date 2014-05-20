@@ -180,8 +180,7 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	@Override
 	public boolean removeEdge(DAGEdge edge) {
 		if (!incrementalSupported_) {
-			System.err.println("Incremental updates not supported "
-					+ "for DepthModule!");
+			depthCalculated_ = false;
 			return true;
 		}
 
