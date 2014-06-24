@@ -104,7 +104,7 @@ public class OntologyFunction extends DAGNode implements Edge {
 		if (id_ != -1 && !useName)
 			return id_ + "";
 
-		StringBuffer buffer = new StringBuffer("(");
+		StringBuilder buffer = new StringBuilder("(");
 		boolean first = true;
 		for (Node n : nodes_) {
 			if (!first)
@@ -142,7 +142,7 @@ public class OntologyFunction extends DAGNode implements Edge {
 	public String toString(boolean useIDs) {
 		if (!useIDs)
 			return toString();
-		StringBuffer buffer = new StringBuffer("(");
+		StringBuilder buffer = new StringBuilder("(");
 		boolean first = true;
 		for (Node n : nodes_) {
 			if (!first)

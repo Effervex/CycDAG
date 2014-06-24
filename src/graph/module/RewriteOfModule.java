@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (C) 2013 University of Waikato, Hamilton, New Zealand.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the GNU Public License v3.0
+ * which accompanies this distribution, and is available at
+ * http://www.gnu.org/licenses/gpl.html
+ * 
+ * Contributors:
+ *    Sam Sarjant - initial API and implementation
+ ******************************************************************************/
 package graph.module;
 
 import java.util.Arrays;
@@ -35,6 +45,16 @@ public class RewriteOfModule extends DAGModule<DAGNode> {
 			return null;
 		Node node = (Node) args[0];
 		return rewriteMap_.get(node);
+	}
+
+	@Override
+	public boolean initialisationComplete(Collection<DAGNode> nodes,
+			Collection<DAGEdge> edges, boolean forceRebuild) {
+		if (forceRebuild) {
+			defaultRebuild(nodes, false, edges, true);
+			return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -154,6 +174,7 @@ public class RewriteOfModule extends DAGModule<DAGNode> {
 
 	@Override
 	public String toString() {
-		return "RewriteOf Module: " + rewriteMap_.size() + " rewritten concepts";
+		return "RewriteOf Module: " + rewriteMap_.size()
+				+ " rewritten concepts";
 	}
 }

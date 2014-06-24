@@ -42,7 +42,7 @@ public class NLPToSyntaxModule extends DAGModule<Edge> {
 		Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
 		str = pattern.matcher(temp).replaceAll("");
 	
-		StringBuffer buffer = new StringBuffer();
+		StringBuilder buffer = new StringBuilder();
 		char[] strArray = str.toCharArray();
 		for (int i = 0; i < strArray.length; i++) {
 			char c = strArray[i];

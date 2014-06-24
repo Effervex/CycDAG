@@ -28,7 +28,7 @@ public class QuickQueryCommand extends CollectionCommand {
 
 	@Override
 	public String helpText() {
-		StringBuffer buffer = new StringBuffer(
+		StringBuilder buffer = new StringBuilder(
 				"{0} <shortCommand> <nodeArgs> [A,B) : Poses a query "
 						+ "to the DAG using the CommonQuery enum. "
 						+ "Each query returns a set of nodes."

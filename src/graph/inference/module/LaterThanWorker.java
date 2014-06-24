@@ -72,7 +72,7 @@ public class LaterThanWorker extends QueryWorker {
 		// Parse the date from the DAGNode
 		String parsePattern = null;
 		for (int i = DATE_PARSE_INTERVALS.length - 1; i >= 0; i--) {
-			StringBuffer newPattern = new StringBuffer("("
+			StringBuilder newPattern = new StringBuilder("("
 					+ DATE_PARSE_INTERVALS[i]);
 			if (parsePattern != null)
 				newPattern.append(" " + parsePattern);

@@ -19,6 +19,7 @@ import graph.module.FunctionIndex;
 import graph.module.NodeAliasModule;
 import graph.module.QueryModule;
 import graph.module.RelatedEdgeModule;
+import graph.module.StringStorageModule;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -43,8 +44,13 @@ import util.BooleanFlags;
 import util.UtilityMethods;
 
 public class CycDAG extends DirectedAcyclicGraph {
+	private static final Pattern CODE_PATTERN = Pattern
+			.compile("<code>.+?</code>");
+
 	private static final Pattern CONCEPT_PATTERN = Pattern
 			.compile("\\[?#\\$([\\w-:]+[\\w])\\]?");
+
+	private static final String CSV_FUNCTION_PREFIX = "FUNCTION_";
 
 	private static final Node CYC_IMPORT = new StringNode("CYCImport");
 
@@ -52,15 +58,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	private static final Pattern SUBL_PATTERN = Pattern.compile("[:A-Z].+");
 
-	public static final String MICROTHEORY = "MT";
-
-	private static final Pattern CODE_PATTERN = Pattern
-			.compile("<code>.+?</code>");
-
 	private static final Pattern UNCODED_PATTERN = Pattern
 			.compile("(?<!<code>)\\(#\\$\\S+( ((#\\$\\S+)|[^a-z\\s]+))+\\)");
 
-	private static final String CSV_FUNCTION_PREFIX = "FUNCTION_";
+	public static final String MICROTHEORY = "MT";
 
 	private transient QueryModule querier_;
 
@@ -157,6 +158,45 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return false;
 	}
 
+	private String exportCSVNodes(Node[] nodes,
+			Map<OntologyFunction, Integer> functions) throws IOException {
+		StringBuilder line = new StringBuilder();
+		for (Node n : nodes) {
+			String name = n.getIdentifier(true);
+			if (n instanceof OntologyFunction) {
+				if (functions.containsKey(n))
+					name = CSV_FUNCTION_PREFIX + functions.get(n);
+				else {
+					int num = functions.size();
+					functions.put((OntologyFunction) n, num);
+					exportCSVNodes(((OntologyFunction) n).getNodes(), functions);
+					name = CSV_FUNCTION_PREFIX + num;
+				}
+			}
+			line.append(name + ",");
+		}
+		line.append("\n");
+		return line.toString();
+	}
+
+	private CyclicErrorEdge isCyclic(Node[] edgeNodes) {
+		// Cannot prove non-binary edges
+		if (edgeNodes.length != 3)
+			return null;
+
+		// Self-referential
+		if (edgeNodes[1].equals(edgeNodes[2]))
+			return null;
+
+		// If the edge is not symmetric, but is defined symmetrically
+		// TODO Technically not correct, but it works.
+		if (!querier_.prove(CommonConcepts.ISA.getNode(this), edgeNodes[0],
+				CommonConcepts.SYMMETRIC_BINARY.getNode(this))
+				&& querier_.prove(edgeNodes[0], edgeNodes[2], edgeNodes[1]))
+			return new CyclicErrorEdge(edgeNodes);
+		return null;
+	}
+
 	private DisjointErrorEdge isDisjoint(Node[] edgeNodes) {
 		// If not isa/genls, return true
 		Collection<Node> existingCols = null;
@@ -176,22 +216,77 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return null;
 	}
 
-	private CyclicErrorEdge isCyclic(Node[] edgeNodes) {
-		// Cannot prove non-binary edges
-		if (edgeNodes.length != 3)
-			return null;
+	private StringNode processComment(Node[] nodes) {
+		String comment = nodes[2].toString();
+		// Find uncoded expressions
+		Matcher m = UNCODED_PATTERN.matcher(comment);
+		comment = m.replaceAll("<code>$0</code>");
 
-		// Self-referential
-		if (edgeNodes[1].equals(edgeNodes[2]))
-			return null;
+		// Remove #$ in code tags
+		m = CODE_PATTERN.matcher(comment);
+		StringBuilder replComment = new StringBuilder();
+		int start = 0;
+		while (m.find()) {
+			int end = m.start();
+			replComment.append(comment.substring(start, end));
+			replComment.append(m.group().replaceAll("#\\$", ""));
+			start = m.end();
+		}
+		replComment.append(comment.substring(start, comment.length()));
 
-		// If the edge is not symmetric, but is defined symmetrically
-		// TODO Technically not correct, but it works.
-		if (!querier_.prove(CommonConcepts.ISA.getNode(this), edgeNodes[0],
-				CommonConcepts.SYMMETRIC_BINARY.getNode(this))
-				&& querier_.prove(edgeNodes[0], edgeNodes[2], edgeNodes[1]))
-			return new CyclicErrorEdge(edgeNodes);
-		return null;
+		// Markup #$ tagged non-commented concepts (with depluralisation)
+		comment = replComment.toString();
+		m = CONCEPT_PATTERN.matcher(comment);
+		replComment = new StringBuilder();
+		start = 0;
+		while (m.find()) {
+			int end = m.start();
+			replComment.append(comment.substring(start, end));
+			String concept = m.group(1);
+			if (findDAGNode(concept) == null) {
+				if (findDAGNode(concept.substring(0, concept.length() - 1)) != null)
+					concept = concept.substring(0, concept.length() - 1);
+			}
+			replComment.append("[[" + concept + "]]");
+			start = m.end();
+		}
+		replComment.append(comment.substring(start, comment.length()));
+
+		return new StringNode(replComment.toString());
+	}
+
+	private void processEdgeString(Node creator, String edgeStr,
+			LinkedList<String> blocked) {
+		// Check for multiline comments.
+		String[] split = edgeStr.split("\\t");
+		if (split.length > 2) {
+			System.err.println("Edge has more than one tab field! " + edgeStr);
+			System.exit(1);
+		}
+
+		try {
+			// Remove SUBL edges
+			if (containsSubL(split[0]))
+				return;
+
+			Node[] nodes = parseNodes(split[0], creator, true, false, false);
+			if (nodes != null) {
+				// Comment cleaning
+				if (nodes[0].equals(CommonConcepts.COMMENT.getNode(this))) {
+					nodes[2] = processComment(nodes);
+				}
+
+				String microtheory = (split.length == 2) ? split[1].replaceAll(
+						"#\\$", "") : null;
+				Edge edge = findOrCreateEdge(nodes, CYC_IMPORT, microtheory,
+						true);
+				if (edge instanceof RetryableErrorEdge)
+					blocked.add(edgeStr);
+			}
+		} catch (Exception e) {
+			System.err.println(edgeStr);
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -229,6 +324,62 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	@Override
+	protected void exportToCSV(BufferedWriter out, DAGExportFormat format)
+			throws IOException {
+		Map<OntologyFunction, Integer> functions = new HashMap<>();
+		for (DAGEdge e : edges_) {
+			Node[] nodes = e.getNodes();
+			if (format == DAGExportFormat.CSV_ALL
+					|| nodes[0].equals(CommonConcepts.ISA.getNode(this))
+					|| nodes[0].equals(CommonConcepts.GENLS.getNode(this))
+					|| nodes[0].equals(CommonConcepts.GENLPREDS.getNode(this))
+					|| nodes[0].equals(CommonConcepts.GENLMT.getNode(this))) {
+				out.write(exportCSVNodes(nodes, functions));
+			}
+		}
+
+		ValueComparator vc = new ValueComparator(functions);
+		SortedMap<OntologyFunction, Integer> sortedFuncs = new TreeMap<>(vc);
+		sortedFuncs.putAll(functions);
+		for (OntologyFunction func : sortedFuncs.keySet()) {
+			out.write(CSV_FUNCTION_PREFIX + functions.get(func) + ":");
+			Node[] functionNodes = func.getNodes();
+			for (Node n : functionNodes) {
+				String name = n.getIdentifier(true);
+				if (n instanceof OntologyFunction)
+					name = CSV_FUNCTION_PREFIX + functions.get(n);
+				out.write(name + ",");
+			}
+			out.write("\n");
+		}
+	}
+
+	@Override
+	protected SortedSet<DAGEdge> orderedReassertables() {
+		Comparator<DAGEdge> depthComparator = new Comparator<DAGEdge>() {
+			@Override
+			public int compare(DAGEdge o1, DAGEdge o2) {
+				String depthStr1 = o1.getProperty(DepthModule.DEPTH_PROPERTY);
+				String depthStr2 = o2.getProperty(DepthModule.DEPTH_PROPERTY);
+				int result = 0;
+				if (depthStr1 != null) {
+					if (depthStr2 != null) {
+						result = Integer.compare(Integer.parseInt(depthStr1),
+								Integer.parseInt(depthStr2));
+					} else
+						return -1;
+				} else if (depthStr2 != null)
+					return 1;
+
+				if (result == 0)
+					return o1.compareTo(o2);
+				return result;
+			}
+		};
+		return new TreeSet<>(depthComparator);
+	}
+
+	@Override
 	protected String preParseNode(String nodeStr, Node creator,
 			boolean createNew, boolean dagNodeOnly) {
 		nodeStr = super.preParseNode(nodeStr, creator, createNew, dagNodeOnly);
@@ -248,6 +399,12 @@ public class CycDAG extends DirectedAcyclicGraph {
 		super.clear();
 		for (CommonConcepts cc : CommonConcepts.values())
 			cc.clearNode();
+	}
+
+	@Override
+	public synchronized Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
+			boolean... flags) {
+		return findOrCreateEdge(edgeNodes, creator, null, flags);
 	}
 
 	/**
@@ -325,87 +482,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return edge;
 	}
 
-	@Override
-	public synchronized Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
-			boolean... flags) {
-		return findOrCreateEdge(edgeNodes, creator, null, flags);
-	}
-
-	@Override
-	protected SortedSet<DAGEdge> orderedReassertables() {
-		Comparator<DAGEdge> depthComparator = new Comparator<DAGEdge>() {
-			@Override
-			public int compare(DAGEdge o1, DAGEdge o2) {
-				String depthStr1 = o1.getProperty(DepthModule.DEPTH_PROPERTY);
-				String depthStr2 = o2.getProperty(DepthModule.DEPTH_PROPERTY);
-				int result = 0;
-				if (depthStr1 != null) {
-					if (depthStr2 != null) {
-						result = Integer.compare(Integer.parseInt(depthStr1),
-								Integer.parseInt(depthStr2));
-					} else
-						return -1;
-				} else if (depthStr2 != null)
-					return 1;
-
-				if (result == 0)
-					return o1.compareTo(o2);
-				return result;
-			}
-		};
-		return new TreeSet<>(depthComparator);
-	}
-
-	@Override
-	public Node[] parseNodes(String strNodes, Node creator,
-			boolean createNodes, boolean dagNodeOnly) {
-		return parseNodes(strNodes, creator, createNodes, dagNodeOnly, true);
-	}
-
-	public Node[] parseNodes(String strNodes, Node creator,
-			boolean createNodes, boolean dagNodeOnly, boolean allowVariables) {
-		if (strNodes.startsWith("("))
-			strNodes = UtilityMethods.shrinkString(strNodes, 1);
-		ArrayList<String> split = UtilityMethods.split(strNodes, ' ');
-
-		Node[] nodes = new Node[split.size()];
-		int i = 0;
-		for (String arg : split) {
-			if (!allowVariables && arg.startsWith("?"))
-				return null;
-			if (i != 0)
-				dagNodeOnly = false;
-			nodes[i] = findOrCreateNode(arg, creator, createNodes, false,
-					dagNodeOnly, allowVariables);
-
-			if (nodes[i] == null)
-				return null;
-			i++;
-		}
-		return nodes;
-	}
-
-	@Override
-	public synchronized Node findOrCreateNode(String nodeStr, Node creator,
-			boolean... flags) {
-		BooleanFlags bFlags = nodeFlags_.loadFlags(flags);
-		boolean createNew = bFlags.getFlag("createNew");
-		boolean allowVariables = bFlags.getFlag("allowVariables");
-		Node node = super.findOrCreateNode(nodeStr, creator, flags);
-		if (node != null)
-			return node;
-
-		if (nodeStr.startsWith("(")) {
-			Node[] subNodes = parseNodes(nodeStr, creator, createNew, true,
-					allowVariables);
-			return findOrCreateFunctionNode(createNew,
-					bFlags.getFlag("ephemeral"), creator, subNodes);
-		} else if (allowVariables && nodeStr.startsWith("?")) {
-			return new VariableNode(nodeStr);
-		}
-		return null;
-	}
-
 	public OntologyFunction findOrCreateFunctionNode(boolean createNew,
 			boolean ephemeral, Node creator, Node... args) {
 		if (args != null
@@ -432,6 +508,27 @@ public class CycDAG extends DirectedAcyclicGraph {
 			} finally {
 				nodeLock_.unlock();
 			}
+		}
+		return null;
+	}
+
+	@Override
+	public synchronized Node findOrCreateNode(String nodeStr, Node creator,
+			boolean... flags) {
+		BooleanFlags bFlags = nodeFlags_.loadFlags(flags);
+		boolean createNew = bFlags.getFlag("createNew");
+		boolean allowVariables = bFlags.getFlag("allowVariables");
+		Node node = super.findOrCreateNode(nodeStr, creator, flags);
+		if (node != null)
+			return node;
+
+		if (nodeStr.startsWith("(")) {
+			Node[] subNodes = parseNodes(nodeStr, creator, createNew, true,
+					allowVariables);
+			return findOrCreateFunctionNode(createNew,
+					bFlags.getFlag("ephemeral"), creator, subNodes);
+		} else if (allowVariables && nodeStr.startsWith("?")) {
+			return new VariableNode(nodeStr);
 		}
 		return null;
 	}
@@ -463,6 +560,12 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	@Override
 	public void initialiseInternal() {
+		// Register the compressable types
+		if (getModule(StringStorageModule.class) != null)
+			((StringStorageModule) getModule(StringStorageModule.class))
+					.registerCompressableNode(CommonConcepts.COMMENT
+							.getNodeName());
+
 		// Need to ensure NodeAlias and RelEdge are initialised
 		getModule(NodeAliasModule.class).initialisationComplete(nodes_, edges_,
 				false);
@@ -485,6 +588,35 @@ public class CycDAG extends DirectedAcyclicGraph {
 			}
 			saveState();
 		}
+	}
+
+	@Override
+	public Node[] parseNodes(String strNodes, Node creator,
+			boolean createNodes, boolean dagNodeOnly) {
+		return parseNodes(strNodes, creator, createNodes, dagNodeOnly, true);
+	}
+
+	public Node[] parseNodes(String strNodes, Node creator,
+			boolean createNodes, boolean dagNodeOnly, boolean allowVariables) {
+		if (strNodes.startsWith("("))
+			strNodes = UtilityMethods.shrinkString(strNodes, 1);
+		ArrayList<String> split = UtilityMethods.split(strNodes, ' ');
+
+		Node[] nodes = new Node[split.size()];
+		int i = 0;
+		for (String arg : split) {
+			if (!allowVariables && arg.startsWith("?"))
+				return null;
+			if (i != 0)
+				dagNodeOnly = false;
+			nodes[i] = findOrCreateNode(arg, creator, createNodes, false,
+					dagNodeOnly, allowVariables);
+
+			if (nodes[i] == null)
+				return null;
+			i++;
+		}
+		return nodes;
 	}
 
 	public void readAssertionFile(File assertionFile, Node creator)
@@ -572,79 +704,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 				+ ", Duplicate count: " + duplicateCount + "\n");
 
 		reader.close();
-	}
-
-	private void processEdgeString(Node creator, String edgeStr,
-			LinkedList<String> blocked) {
-		// Check for multiline comments.
-		String[] split = edgeStr.split("\\t");
-		if (split.length > 2) {
-			System.err.println("Edge has more than one tab field! " + edgeStr);
-			System.exit(1);
-		}
-
-		try {
-			// Remove SUBL edges
-			if (containsSubL(split[0]))
-				return;
-
-			Node[] nodes = parseNodes(split[0], creator, true, false, false);
-			if (nodes != null) {
-				// Comment cleaning
-				if (nodes[0].equals(CommonConcepts.COMMENT.getNode(this))) {
-					nodes[2] = processComment(nodes);
-				}
-
-				String microtheory = (split.length == 2) ? split[1].replaceAll(
-						"#\\$", "") : null;
-				Edge edge = findOrCreateEdge(nodes, CYC_IMPORT, microtheory,
-						true);
-				if (edge instanceof RetryableErrorEdge)
-					blocked.add(edgeStr);
-			}
-		} catch (Exception e) {
-			System.err.println(edgeStr);
-			e.printStackTrace();
-		}
-	}
-
-	private StringNode processComment(Node[] nodes) {
-		String comment = nodes[2].toString();
-		// Find uncoded expressions
-		Matcher m = UNCODED_PATTERN.matcher(comment);
-		comment = m.replaceAll("<code>$0</code>");
-
-		// Remove #$ in code tags
-		m = CODE_PATTERN.matcher(comment);
-		StringBuffer replComment = new StringBuffer();
-		int start = 0;
-		while (m.find()) {
-			int end = m.start();
-			replComment.append(comment.substring(start, end));
-			replComment.append(m.group().replaceAll("#\\$", ""));
-			start = m.end();
-		}
-		replComment.append(comment.substring(start, comment.length()));
-
-		// Markup #$ tagged non-commented concepts (with depluralisation)
-		comment = replComment.toString();
-		m = CONCEPT_PATTERN.matcher(comment);
-		replComment = new StringBuffer();
-		start = 0;
-		while (m.find()) {
-			int end = m.start();
-			replComment.append(comment.substring(start, end));
-			String concept = m.group(1);
-			if (findDAGNode(concept) == null) {
-				if (findDAGNode(concept.substring(0, concept.length() - 1)) != null)
-					concept = concept.substring(0, concept.length() - 1);
-			}
-			replComment.append("[[" + concept + "]]");
-			start = m.end();
-		}
-		replComment.append(comment.substring(start, comment.length()));
-
-		return new StringNode(replComment.toString());
 	}
 
 	/**
@@ -736,37 +795,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 		edgeFlags_.addFlag("forceConstraints", false);
 	}
 
-	@Override
-	protected void exportToCSV(BufferedWriter out, DAGExportFormat format)
-			throws IOException {
-		Map<OntologyFunction, Integer> functions = new HashMap<>();
-		for (DAGEdge e : edges_) {
-			Node[] nodes = e.getNodes();
-			if (format == DAGExportFormat.CSV_ALL
-					|| nodes[0].equals(CommonConcepts.ISA.getNode(this))
-					|| nodes[0].equals(CommonConcepts.GENLS.getNode(this))
-					|| nodes[0].equals(CommonConcepts.GENLPREDS.getNode(this))
-					|| nodes[0].equals(CommonConcepts.GENLMT.getNode(this))) {
-				out.write(exportCSVNodes(nodes, functions));
-			}
-		}
-
-		ValueComparator vc = new ValueComparator(functions);
-		SortedMap<OntologyFunction, Integer> sortedFuncs = new TreeMap<>(vc);
-		sortedFuncs.putAll(functions);
-		for (OntologyFunction func : sortedFuncs.keySet()) {
-			out.write(CSV_FUNCTION_PREFIX + functions.get(func) + ":");
-			Node[] functionNodes = func.getNodes();
-			for (Node n : functionNodes) {
-				String name = n.getIdentifier(true);
-				if (n instanceof OntologyFunction)
-					name = CSV_FUNCTION_PREFIX + functions.get(n);
-				out.write(name + ",");
-			}
-			out.write("\n");
-		}
-	}
-
 	private class ValueComparator implements Comparator<Object> {
 		private Map<? extends Object, Integer> baseMap_;
 
@@ -783,26 +811,5 @@ public class CycDAG extends DirectedAcyclicGraph {
 			return Integer.compare(o1.hashCode(), o2.hashCode());
 		}
 
-	}
-
-	private String exportCSVNodes(Node[] nodes,
-			Map<OntologyFunction, Integer> functions) throws IOException {
-		StringBuffer line = new StringBuffer();
-		for (Node n : nodes) {
-			String name = n.getIdentifier(true);
-			if (n instanceof OntologyFunction) {
-				if (functions.containsKey(n))
-					name = CSV_FUNCTION_PREFIX + functions.get(n);
-				else {
-					int num = functions.size();
-					functions.put((OntologyFunction) n, num);
-					exportCSVNodes(((OntologyFunction) n).getNodes(), functions);
-					name = CSV_FUNCTION_PREFIX + num;
-				}
-			}
-			line.append(name + ",");
-		}
-		line.append("\n");
-		return line.toString();
 	}
 }

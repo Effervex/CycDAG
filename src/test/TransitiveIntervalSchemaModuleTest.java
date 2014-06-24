@@ -79,11 +79,13 @@ public class TransitiveIntervalSchemaModuleTest {
 		Node mammal = dag_.findOrCreateNode("Mammal", creator, true);
 		Node thing = dag_.findOrCreateNode("Thing", creator, true);
 		Node pet = dag_.findOrCreateNode("Pet", creator, true);
+		Node fluffy = dag_.findOrCreateNode("Fluffy", creator, true);
 		sut_.initialisationComplete(dag_.getNodes(), dag_.getEdges(), false);
 		Collection<DAGNode> result = sut_.execute(true, dog, thing);
 		assertNotNull(result);
 		result = sut_.execute(false, thing, dog);
-		assertNotNull(result);
+		result = sut_.execute(false, fluffy, mammal);
+		assertNull(result);
 		result = sut_.execute(true, dog, cat);
 		assertNull(result);
 		result = sut_.execute(false, cat, dog);

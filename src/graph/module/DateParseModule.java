@@ -103,7 +103,7 @@ public class DateParseModule extends DAGModule<Collection<DAGNode>> implements
 			}
 			String pattern = sdf.toPattern();
 
-			StringBuffer buffer = new StringBuffer();
+			StringBuilder buffer = new StringBuilder();
 			boolean addFurther = false;
 			int brackets = 0;
 			if (addFurther || pattern.contains("d")) {

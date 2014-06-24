@@ -14,7 +14,6 @@ import graph.core.DAGNode;
 import graph.core.Edge;
 import graph.core.Node;
 import graph.core.OntologyFunction;
-import graph.core.StringNode;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,6 +57,7 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 	private List<EdgeCol> locateEdgeCollections(String functionPrefix,
 			boolean createNew, Object... args) {
 		List<EdgeCol> edgeCols = new ArrayList<>();
+		Node predicate = null;
 		for (int i = 0; i < args.length; i++) {
 			Node n = (Node) args[i];
 			boolean additive = true;
@@ -75,7 +75,8 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 				} else if (index.startsWith("!")) {
 					allBut = true;
 					index = index.substring(1);
-				}
+				} else if (index.equals("1"))
+					predicate = n;
 			}
 
 			// Only function as index
@@ -98,7 +99,7 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 				Collection<Edge> edgeCol = (allBut) ? getAllButEdges(n, key)
 						: getEdges(n, key, createNew);
 				edgeCols.add(new EdgeCol(additive, edgeCol));
-			} else if (stringHashedModule_ != null && n instanceof StringNode) {
+			} else if (canSearchHashedModule(predicate, n)) {
 				Collection<Edge> edgeCol = stringHashedModule_.execute(n
 						.getName());
 				edgeCols.add(new EdgeCol(additive, edgeCol));
@@ -179,7 +180,7 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 			return false;
 
 		// Check the node
-		return edgeNodes[index].equals(nonDAG.objA_);
+		return edgeNodes[index].toString().equals(nonDAG.objA_.toString());
 	}
 
 	@Override
