@@ -31,10 +31,10 @@ public enum CommonQuery {
 	ARGNGENL("(argGenl $0 $1 ?X)", true),
 	ARGNISA("(argIsa $0 $1 ?X)", true),
 	COMMENT("(comment $0 ?X)"),
-	DIRECTGENLS("(assertedSentence (genls $0 ?X))"),
-	DIRECTINSTANCE("(assertedSentence (isa ?X $0))"),
-	DIRECTISA("(assertedSentence (isa $0 ?X))"),
-	DIRECTSPECS("(assertedSentence (genls ?X $0))"),
+	DIRECTGENLS("(assertedSentence (genls $0 ?X))"), // TODO This needs to take functions into account.
+	DIRECTINSTANCE("(assertedSentence (isa ?X $0))"), // TODO This needs to take functions into account.
+	DIRECTISA("(assertedSentence (isa $0 ?X))"), // TODO This needs to take functions into account.
+	DIRECTSPECS("(assertedSentence (genls ?X $0))"), // TODO This needs to take functions into account.
 	DISJOINT("(disjointWith $0 $1)"),
 	GENLSIBLINGS("(assertedSentence (genls $0 ?X))", true),
 	GENLPREDS("(genlPreds $0 ?X)"),
@@ -115,21 +115,7 @@ public enum CommonQuery {
 		case MINISA:
 		case MINARGNISA:
 		case MINARGNGENL:
-			if (results.size() <= 1)
-				return results;
-
-			Set<Node> removed = new HashSet<>();
-			for (Node node : results) {
-				if (!removed.contains(node)) {
-					// Get the genls
-					Collection<Node> genls = CommonQuery.ALLGENLS.runQuery(dag,
-							node);
-					genls.remove(node);
-
-					removed.addAll(genls);
-				}
-			}
-			results.removeAll(removed);
+			minGeneralFilter(results, dag);
 
 			// Run the Siblings
 			if (this == ISASIBLINGS || this == GENLSIBLINGS) {
@@ -142,35 +128,77 @@ public enum CommonQuery {
 				}
 				results.remove(args[0]);
 			}
-
-			return results;
+			break;
 		case MAXSPECS:
 			results.remove(args[0]);
 		case MAXINSTANCES:
-			if (results.size() <= 1)
-				return results;
 			if (this == MAXINSTANCES
 					&& querier.prove(CommonConcepts.ISA.getNode(dag), args[0],
 							CommonConcepts.FIRST_ORDER_COLLECTION.getNode(dag)))
 				return results;
-
-			removed = new HashSet<>();
-			for (Node node : results) {
-				if (!removed.contains(node)) {
-					// Get the genls
-					Collection<Node> genls = CommonQuery.SPECS.runQuery(dag,
-							node);
-					genls.remove(node);
-
-					// Remove any results that genls this node
-					removed.addAll(genls);
-				}
-			}
-			results.removeAll(removed);
-			return results;
+			maxSpecFilter(results, dag);
+			break;
 		default:
 			break;
 		}
+		return results;
+	}
+
+	/**
+	 * Filter results to find the maximally general results
+	 * 
+	 * @param results
+	 *            The results to filter.
+	 * @param dag
+	 *            The DAG access.
+	 * @return The filtered input (same collection).
+	 */
+	public static Collection<Node> maxSpecFilter(Collection<Node> results,
+			DirectedAcyclicGraph dag) {
+		if (results.size() <= 1)
+			return results;
+
+		Set<Node> removed = new HashSet<>();
+		for (Node node : results) {
+			if (!removed.contains(node)) {
+				// Get the genls
+				Collection<Node> genls = CommonQuery.SPECS.runQuery(dag, node);
+				genls.remove(node);
+
+				// Remove any results that genls this node
+				removed.addAll(genls);
+			}
+		}
+		results.removeAll(removed);
+		return results;
+	}
+
+	/**
+	 * Filters results to find the minimally general results.
+	 * 
+	 * @param results
+	 *            The results to filter.
+	 * @param dag
+	 *            The DAG access.
+	 * @return The filtered input (same collection).
+	 */
+	public static Collection<Node> minGeneralFilter(Collection<Node> results,
+			DirectedAcyclicGraph dag) {
+		if (results.size() <= 1)
+			return results;
+
+		Set<Node> removed = new HashSet<>();
+		for (Node node : results) {
+			if (!removed.contains(node)) {
+				// Get the genls
+				Collection<Node> genls = CommonQuery.ALLGENLS.runQuery(dag,
+						node);
+				genls.remove(node);
+
+				removed.addAll(genls);
+			}
+		}
+		results.removeAll(removed);
 		return results;
 	}
 

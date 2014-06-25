@@ -154,6 +154,21 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	 */
 	public Collection<Node> executeAndParseVar(QueryObject qo, String var) {
 		Collection<Substitution> subs = execute(qo);
+		return parseResultsFromSubstitutions(var, subs);
+	}
+
+	/**
+	 * Parses results from a collection of substitutions.
+	 * 
+	 * @param var
+	 *            The variable to parse out.
+	 * @param subs
+	 *            The collection of substitutions.
+	 * @return A collection of nodes representing the substitutions for the
+	 *         variable.
+	 */
+	public static Collection<Node> parseResultsFromSubstitutions(Object var,
+			Collection<Substitution> subs) {
 		if (subs == null)
 			return null;
 		Collection<Node> results = new ArrayList<>(subs.size());

@@ -14,6 +14,7 @@ import graph.core.CommonConcepts;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Node;
+import graph.core.OntologyFunction;
 import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
 import graph.inference.VariableNode;
@@ -21,6 +22,8 @@ import graph.inference.VariableNode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+
+import org.apache.commons.collections4.CollectionUtils;
 
 import util.collection.MultiMap;
 
@@ -36,31 +39,67 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 		super();
 	}
 
-	private CommonConcepts determineDepthPath(Node node) {
+	private Collection<Node> getMinimumParents(DAGNode node) {
 		QueryModule querier = (QueryModule) dag_.getModule(QueryModule.class);
-		// If a collection, use genls.
-		QueryObject qo = new QueryObject(CommonConcepts.GENLS.getNode(dag_),
-				node, new VariableNode("?X"));
-		querier.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(), qo);
-		if (qo.getResults() != null && !qo.getResults().isEmpty())
-			return CommonConcepts.GENLS;
 
-		// If a predicate, use genlPreds, if possible
-		qo = new QueryObject(CommonConcepts.GENLPREDS.getNode(dag_), node,
-				new VariableNode("?X"));
-		querier.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(), qo);
-		if (qo.getResults() != null && !qo.getResults().isEmpty())
-			return CommonConcepts.GENLPREDS;
+		Collection<Node> minParents = new ArrayList<>();
 
-		// If a MT, use genlMt, if possible
-		qo = new QueryObject(CommonConcepts.GENLMT.getNode(dag_), node,
-				new VariableNode("?X"));
-		querier.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(), qo);
-		if (qo.getResults() != null && !qo.getResults().isEmpty())
-			return CommonConcepts.GENLMT;
+		// Add genls
+		minParents.addAll(checkParentRelationship(node, CommonConcepts.GENLS,
+				querier));
 
-		// Otherwise, use isa
-		return CommonConcepts.ISA;
+		// Add isa
+		minParents.addAll(checkParentRelationship(node, CommonConcepts.ISA,
+				querier));
+
+		// Add genlPreds
+		minParents.addAll(checkParentRelationship(node,
+				CommonConcepts.GENLPREDS, querier));
+
+		// Add genlMt
+		minParents.addAll(checkParentRelationship(node, CommonConcepts.GENLMT,
+				querier));
+
+		// If function
+		if (node instanceof OntologyFunction) {
+			// Add resultIsa
+			DAGNode functionNode = (DAGNode) ((OntologyFunction) node)
+					.getNodes()[0];
+			minParents.addAll(checkParentRelationship(functionNode,
+					CommonConcepts.RESULT_ISA, querier));
+
+			// Add resultGenls
+			minParents.addAll(checkParentRelationship(functionNode,
+					CommonConcepts.RESULT_GENL, querier));
+		}
+
+		return CommonQuery.minGeneralFilter(minParents, dag_);
+	}
+
+	/**
+	 * Searches for all assertions with a given relationship and node placement
+	 * and returns all second arg values for found assertions.
+	 * 
+	 * @param node
+	 *            The node to search for.
+	 * @param relationship
+	 *            The relationship for the node.
+	 * @param querier
+	 *            The query module.
+	 * @return The collection of all second arguments for assertions with
+	 *         relationship and arg as the first and second args respectively.
+	 */
+	@SuppressWarnings("unchecked")
+	private Collection<Node> checkParentRelationship(DAGNode node,
+			CommonConcepts relationship, QueryModule querier) {
+		VariableNode x = new VariableNode("?X");
+		QueryObject qo = new QueryObject(relationship.getNode(dag_), node, x);
+		querier.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(), qo);
+		Collection<Node> results = QueryModule.parseResultsFromSubstitutions(x,
+				qo.getResults());
+		if (results != null)
+			return results;
+		return CollectionUtils.EMPTY_COLLECTION;
 	}
 
 	/**
@@ -85,13 +124,7 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 		int depth = 1;
 		String depthStr = node.getProperty(DEPTH_PROPERTY);
 		if (depthStr == null || depthStr.equals("-1")) {
-			Collection<Node> minCol = null;
-			CommonConcepts depthType = determineDepthPath(node);
-			if (depthType == CommonConcepts.GENLS)
-				minCol = CommonQuery.MINGENLS.runQuery(dag_, node);
-			else
-				minCol = CommonQuery.MINISA.runQuery(dag_, node);
-			minCol.remove(node);
+			Collection<Node> minCol = getMinimumParents(node);
 			for (Node superGenls : minCol) {
 				depth = Math
 						.max(processNode((DAGNode) superGenls, new HashSet<>(
