@@ -40,6 +40,12 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	}
 
 	private Collection<Node> getMinimumParents(DAGNode node) {
+		// Check for rewrite
+		RewriteOfModule rewriteModule = (RewriteOfModule) dag_
+				.getModule(RewriteOfModule.class);
+		if (rewriteModule != null)
+			node = rewriteModule.getRewrite(node);
+
 		QueryModule querier = (QueryModule) dag_.getModule(QueryModule.class);
 
 		Collection<Node> minParents = new ArrayList<>();
@@ -63,16 +69,15 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 		// If function
 		if (node instanceof OntologyFunction) {
 			// Add resultIsa
-			DAGNode functionNode = (DAGNode) ((OntologyFunction) node)
-					.getNodes()[0];
-			minParents.addAll(checkParentRelationship(functionNode,
-					CommonConcepts.RESULT_ISA, querier));
-
+			minParents.addAll(querier.functionResults((OntologyFunction) node,
+					CommonConcepts.RESULT_ISA));
+			
 			// Add resultGenls
-			minParents.addAll(checkParentRelationship(functionNode,
-					CommonConcepts.RESULT_GENL, querier));
+			minParents.addAll(querier.functionResults((OntologyFunction) node,
+					CommonConcepts.RESULT_GENL));
 		}
 
+		minParents.remove(node);
 		return CommonQuery.minGeneralFilter(minParents, dag_);
 	}
 

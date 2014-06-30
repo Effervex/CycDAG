@@ -14,6 +14,7 @@ import graph.core.CommonConcepts;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
+import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
 import graph.module.QueryModule;
 
@@ -31,10 +32,10 @@ public enum CommonQuery {
 	ARGNGENL("(argGenl $0 $1 ?X)", true),
 	ARGNISA("(argIsa $0 $1 ?X)", true),
 	COMMENT("(comment $0 ?X)"),
-	DIRECTGENLS("(assertedSentence (genls $0 ?X))"), // TODO This needs to take functions into account.
-	DIRECTINSTANCE("(assertedSentence (isa ?X $0))"), // TODO This needs to take functions into account.
-	DIRECTISA("(assertedSentence (isa $0 ?X))"), // TODO This needs to take functions into account.
-	DIRECTSPECS("(assertedSentence (genls ?X $0))"), // TODO This needs to take functions into account.
+	DIRECTGENLS("(assertedSentence (genls $0 ?X))", true),
+	DIRECTINSTANCE("(assertedSentence (isa ?X $0))", true),
+	DIRECTISA("(assertedSentence (isa $0 ?X))", true),
+	DIRECTSPECS("(assertedSentence (genls ?X $0))", true),
 	DISJOINT("(disjointWith $0 $1)"),
 	GENLSIBLINGS("(assertedSentence (genls $0 ?X))", true),
 	GENLPREDS("(genlPreds $0 ?X)"),
@@ -138,6 +139,20 @@ public enum CommonQuery {
 				return results;
 			maxSpecFilter(results, dag);
 			break;
+		case DIRECTISA:
+			if (args[0] instanceof OntologyFunction)
+				results.addAll(querier.functionResults(
+						(OntologyFunction) args[0], CommonConcepts.RESULT_ISA));
+			break;
+		case DIRECTGENLS:
+			if (args[0] instanceof OntologyFunction)
+				results.addAll(querier.functionResults(
+						(OntologyFunction) args[0], CommonConcepts.RESULT_GENL));
+			break;
+		case DIRECTINSTANCE:
+			// TODO
+		case DIRECTSPECS:
+			// TODO
 		default:
 			break;
 		}

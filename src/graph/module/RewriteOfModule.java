@@ -43,8 +43,11 @@ public class RewriteOfModule extends DAGModule<DAGNode> {
 			ModuleException {
 		if (args == null || args.length < 1)
 			return null;
-		Node node = (Node) args[0];
-		return rewriteMap_.get(node);
+		DAGNode node = (DAGNode) args[0];
+		DAGNode rewrite = rewriteMap_.get(node);
+		if (rewrite != null)
+			return rewrite;
+		return node;
 	}
 
 	@Override
@@ -176,5 +179,9 @@ public class RewriteOfModule extends DAGModule<DAGNode> {
 	public String toString() {
 		return "RewriteOf Module: " + rewriteMap_.size()
 				+ " rewritten concepts";
+	}
+
+	public DAGNode getRewrite(DAGNode node) {
+		return execute(node);
 	}
 }
