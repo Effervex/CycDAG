@@ -88,11 +88,12 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 			// TODO This is not ideal for functions.
 			String key = (index == null || functionPrefix == null) ? null
 					: functionPrefix + index;
-			if (allBut && key != null && !key.startsWith("!"))
-				key = "!" + key;
 			if (n instanceof Edge) {
-				if (key != null)
+				if (key != null) {
+					if (allBut && !key.startsWith("!"))
+						key = "!" + key;
 					key = key + FUNC_SPLIT;
+				}
 				edgeCols.addAll(locateEdgeCollections(key, createNew,
 						asIndexed(((Edge) n).getNodes())));
 			} else if (n instanceof DAGNode) {
