@@ -66,6 +66,7 @@ public enum CommonConcepts {
 	PRETTY_STRING("prettyString"),
 	PRETTY_STRING_CANONICAL("prettyString-Canonical"),
 	QUOTED_ISA("quotedIsa"),
+	REIFIABLE_FUNCTION("ReifiableFunction"),
 	RESULT_GENL("resultGenl"),
 	RESULT_GENL_ARG("resultGenlArg"),
 	RESULT_ISA("resultIsa"),
@@ -82,6 +83,7 @@ public enum CommonConcepts {
 	THING("Thing"),
 	TRUE("True"),
 	UNREIFIABLE_FUNCTION("UnreifiableFunction"),
+	URLFN("URLFn"),
 	YEARFN("YearFn"),
 	ZERO("Zero");
 
@@ -251,12 +253,11 @@ public enum CommonConcepts {
 				new Node[] { ISA.getNode(dag), COMMENT.getNode(dag),
 						STRICTLY_FUNCTIONAL_SLOT.getNode(dag) },
 				_COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), ARITY.getNode(dag),
+				STRICTLY_FUNCTIONAL_SLOT.getNode(dag) }, _COMMON_CONCEPT, true);
 		dag.findOrCreateEdge(
-				new Node[] { ISA.getNode(dag), ARITY.getNode(dag),
-						STRICTLY_FUNCTIONAL_SLOT.getNode(dag) },
-				_COMMON_CONCEPT, true);
-		dag.findOrCreateEdge(
-				new Node[] { ISA.getNode(dag), NLP_PREDICATE_STRING.getNode(dag),
+				new Node[] { ISA.getNode(dag),
+						NLP_PREDICATE_STRING.getNode(dag),
 						STRICTLY_FUNCTIONAL_SLOT.getNode(dag) },
 				_COMMON_CONCEPT, true);
 
@@ -312,6 +313,15 @@ public enum CommonConcepts {
 								+ "described using NLPSTR in the context of "
 								+ "an adverb (e.g. 'an instance of', 'broader "
 								+ "than', etc).") }, _COMMON_CONCEPT, true);
+		Edge e = dag.findEdge(ISA.getNode(dag), URLFN.getNode(dag),
+				REIFIABLE_FUNCTION.getNode(dag));
+		dag.removeEdge(e);
+		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), URLFN.getNode(dag),
+				UNREIFIABLE_FUNCTION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(new Node[] { PRETTY_STRING_CANONICAL.getNode(dag),
+				URLFN.getNode(dag),
+				new StringNode("<a href=\"______\">______</a>") },
+				_COMMON_CONCEPT, true);
 
 		// First Order Collection
 		dag.findOrCreateEdge(new Node[] { GENLS.getNode(dag),

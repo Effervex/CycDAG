@@ -116,6 +116,16 @@ public class NLPToStringModuleTest {
 				new StringNode("fermented apple") }, creator, true);
 		result = sut_.nodeToString(fermentedApple, false);
 		assertEquals(result, "fermented apple");
+
+		// URLFn
+		DAGNode url = (DAGNode) dag_.findOrCreateNode("URLFn", creator, true,
+				true, true);
+		OntologyFunction urlFn = dag_.findOrCreateFunctionNode(true, false,
+				null, url, new StringNode(
+						"http://en.wikipedia.org/wiki/Gaetano_Salvemini"));
+		result = sut_.nodeToString(urlFn, false);
+		assertEquals(result,
+				"<a href=\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\">http://en.wikipedia.org/wiki/Gaetano_Salvemini</a>");
 	}
 
 	@Test
@@ -152,11 +162,6 @@ public class NLPToStringModuleTest {
 						CommonConcepts.ISA.getNode(dag_), broader,
 						CommonConcepts.PREDICATE.getNode(dag_) }, creator, true) instanceof ErrorEdge);
 		qo = new QueryObject(broader, samuel, actor);
-		result = sut_.edgeToString(qo, false, false, false);
-		assertEquals(result,
-				"Samuel L Jackson has 'broaderTerm' relation to Actor");
-
-		// Markup predicate
 		assertFalse(dag_.findOrCreateEdge(new Node[] { nlpPred, broader,
 				new StringNode("$2 |2(is)|(are)| broader than $1") }, creator,
 				true) instanceof ErrorEdge);

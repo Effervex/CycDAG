@@ -19,6 +19,7 @@ import graph.module.FunctionIndex;
 import graph.module.NodeAliasModule;
 import graph.module.QueryModule;
 import graph.module.RelatedEdgeModule;
+import graph.module.RewriteOfModule;
 import graph.module.StringStorageModule;
 
 import java.io.BufferedReader;
@@ -67,6 +68,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	public boolean loadAssertions_ = true;
 
+	private RewriteOfModule rewriteModule_;
+
 	public CycDAG() {
 		this(new File("cyc"));
 	}
@@ -74,6 +77,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 	public CycDAG(File rootDir) {
 		super(rootDir);
 		querier_ = (QueryModule) getModule(QueryModule.class);
+		rewriteModule_ = (RewriteOfModule) getModule(RewriteOfModule.class);
 	}
 
 	private DAGErrorEdge checkArity(DAGNode predNode, Node[] edgeNodes) {
@@ -519,8 +523,11 @@ public class CycDAG extends DirectedAcyclicGraph {
 		boolean createNew = bFlags.getFlag("createNew");
 		boolean allowVariables = bFlags.getFlag("allowVariables");
 		Node node = super.findOrCreateNode(nodeStr, creator, flags);
-		if (node != null)
+		if (node != null) {
+			if (rewriteModule_ != null && node instanceof DAGNode)
+				return rewriteModule_.getRewrite((DAGNode) node);
 			return node;
+		}
 
 		if (nodeStr.startsWith("(")) {
 			Node[] subNodes = parseNodes(nodeStr, creator, createNew, true,

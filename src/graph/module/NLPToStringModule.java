@@ -276,7 +276,9 @@ public class NLPToStringModule extends DAGModule<String> {
 				return function.replaceAll("\\) \\(", ", ");
 			}
 		} else {
-			return conceptToPlainText(node.getName());
+			if (node instanceof DAGNode)
+				return conceptToPlainText(node.getName());
+			return node.getName();
 		}
 	}
 

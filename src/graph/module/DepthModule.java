@@ -15,7 +15,6 @@ import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Node;
 import graph.core.OntologyFunction;
-import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
 import graph.inference.VariableNode;
 
@@ -40,12 +39,6 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	}
 
 	private Collection<Node> getMinimumParents(DAGNode node) {
-		// Check for rewrite
-		RewriteOfModule rewriteModule = (RewriteOfModule) dag_
-				.getModule(RewriteOfModule.class);
-		if (rewriteModule != null)
-			node = rewriteModule.getRewrite(node);
-
 		QueryModule querier = (QueryModule) dag_.getModule(QueryModule.class);
 
 		Collection<Node> minParents = new ArrayList<>();
@@ -71,14 +64,14 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 			// Add resultIsa
 			minParents.addAll(querier.functionResults((OntologyFunction) node,
 					CommonConcepts.RESULT_ISA));
-			
+
 			// Add resultGenls
 			minParents.addAll(querier.functionResults((OntologyFunction) node,
 					CommonConcepts.RESULT_GENL));
 		}
 
 		minParents.remove(node);
-		return CommonQuery.minGeneralFilter(minParents, dag_);
+		return minParents;//CommonQuery.minGeneralFilter(minParents, dag_);
 	}
 
 	/**
@@ -116,7 +109,9 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	 *            If the node has been seen already in this calculation.
 	 * @return The minimum depth of the above node.
 	 */
-	private int processNode(DAGNode node, HashSet<Integer> seen) {
+	public int processNode(DAGNode node, HashSet<Integer> seen) {
+		if (depthMap_ == null)
+			depthMap_ = MultiMap.createConcurrentHashSetMultiMap();
 		if (node.equals(CommonConcepts.THING.getNode(dag_))) {
 			dag_.addProperty(node, DEPTH_PROPERTY, "0");
 			depthMap_.put(0, node);
@@ -125,6 +120,21 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 		if (seen.contains(node.getID()))
 			return 0;
 		seen.add(node.getID());
+
+		// Check for rewrite
+		RewriteOfModule rewriteModule = (RewriteOfModule) dag_
+				.getModule(RewriteOfModule.class);
+		if (rewriteModule != null) {
+			DAGNode rewrite = rewriteModule.getRewrite(node);
+			if (rewrite != node) {
+				processNode(rewrite, seen);
+				String rewriteDepth = rewrite.getProperty(DEPTH_PROPERTY);
+				int depth = Integer.parseInt(rewriteDepth);
+				dag_.addProperty(node, DEPTH_PROPERTY, rewriteDepth);
+				depthMap_.put(depth, node);
+				return depth;
+			}
+		}
 
 		int depth = 1;
 		String depthStr = node.getProperty(DEPTH_PROPERTY);
