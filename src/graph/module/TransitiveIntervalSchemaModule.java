@@ -359,7 +359,11 @@ public class TransitiveIntervalSchemaModule extends
 	 */
 	public List<DAGNode> topologicalList(Collection<DAGNode> nodes) {
 		LinkedList<DAGNode> sortedNodes = new LinkedList<>();
+		RewriteOfModule rewriteModule = (RewriteOfModule) dag_
+				.getModule(RewriteOfModule.class);
 		for (DAGNode n : nodes) {
+			if (rewriteModule != null)
+				n = rewriteModule.getRewrite(n);
 			topologicalVisit(n, sortedNodes, new HashMap<DAGNode, String>());
 		}
 		return sortedNodes;
