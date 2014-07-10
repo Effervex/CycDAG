@@ -125,36 +125,29 @@ public class NLPToStringModule extends DAGModule<String> {
 			return buffer.toString();
 		} else {
 			// Replace elements in the NLP string
-			String nlpString = UtilityMethods.shrinkString(predicateStrings
+			String replaced = UtilityMethods.shrinkString(predicateStrings
 					.iterator().next().getSubstitution(VariableNode.DEFAULT)
 					.toString(), 1);
-			String replaced = UtilityMethods.replaceToken(nlpString,
-					replacements);
 
 			// Query checking
 			if (isQuery && queryObject.isProof()) {
 				// Remove the 1st arg pattern
-				int oldLength = replaced.length();
-				replaced = replaced.replaceAll(
-						" ?\\|1\\((.+?)\\)\\|\\((.+?)\\)\\| ?", " ");
-				if (replaced.length() == oldLength)
-					replaced = replaced.replaceFirst(
-							" ?\\|\\d+\\((.+?)\\)\\|\\((.+?)\\)\\| ?", " ");
+				replaced = replaced.replaceFirst(
+						" ?/\\d+\\((.+?)\\)/\\((.+?)\\)/ ?", " ");
 				replaced = "is " + replaced;
 			}
 
 			for (int i = 0; i < replacements.length; i++) {
 				Matcher m = Pattern.compile(
-						"\\|" + i + "\\((.+?)\\)\\|\\((.+?)\\)\\|").matcher(
-						replaced);
-				if (replacements[i].startsWith(WHAT_THINGS)) {
+						"/" + i + "\\((.+?)\\)/\\((.+?)\\)/").matcher(replaced);
+				if (replacements[i].startsWith(WHAT_THINGS))
 					replaced = m.replaceAll("$2");
-					// Ensuring variable remains in
-					if (!replaced.contains(replacements[i]))
-						replaced = m.replaceAll("$2 " + nodes[i]);
-				} else
+				else
 					replaced = m.replaceAll("$1");
 			}
+
+			// Insert the arguments
+			replaced = UtilityMethods.replaceToken(replaced, replacements);
 
 			if (isQuery)
 				replaced += "?";

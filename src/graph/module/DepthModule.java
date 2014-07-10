@@ -155,7 +155,8 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	@Override
 	public void clear() {
 		depthCalculated_ = false;
-		depthMap_.clear();
+		if (depthMap_ != null)
+			depthMap_.clear();
 	}
 
 	@Override

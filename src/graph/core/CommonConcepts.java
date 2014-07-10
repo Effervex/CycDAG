@@ -395,19 +395,19 @@ public enum CommonConcepts {
 						UNREIFIABLE_FUNCTION.getNode(dag) }, _COMMON_CONCEPT,
 				true);
 
-		// $1 |1(is)|(are)| <text string> $2
+		// $1 /1(is)/(are)/ <text string> $2
 		nlpPredicates(ARGGENL,
-				"|2(argument $2)|(what arguments)| of $1 is a type of $3", dag);
+				"/2(argument $2)/(what arguments)/ of $1 is a type of $3", dag);
 		nlpPredicates(ARG1GENL, "argument 1 of $1 is a type of $2", dag);
 		nlpPredicates(ARG2GENL, "argument 2 of $1 is a type of $2", dag);
 		nlpPredicates(ARGISA,
-				"|2(argument $2)|(what arguments)| of $1 is an instance of $3",
+				"/2(argument $2)/(what arguments)/ of $1 is an instance of $3",
 				dag);
 		nlpPredicates(ARG1ISA, "argument 1 of $1 is an instance of $2", dag);
 		nlpPredicates(ARG2ISA, "argument 2 of $1 is an instance of $2", dag);
 		nlpPredicates(
 				ARGNOTGENL,
-				"|2(argument $2)|(what arguments)| of $1 cannot be a type of $3",
+				"/2(argument $2)/(what arguments)/ of $1 cannot be a type of $3",
 				dag);
 		nlpPredicates(ARG1NOTGENL, "argument 1 of $1 cannot be a type of $2",
 				dag);
@@ -415,51 +415,51 @@ public enum CommonConcepts {
 				dag);
 		nlpPredicates(
 				ARGNOTISA,
-				"|2(argument $2)|(what arguments)| of $1 cannot be an instance of $3",
+				"/2(argument $2)/(what arguments)/ of $1 cannot be an instance of $3",
 				dag);
 		nlpPredicates(ARG1NOTISA,
 				"argument 1 of $1 cannot be an instance of $2", dag);
 		nlpPredicates(ARG2NOTISA,
 				"argument 2 of $1 cannot be an instance of $2", dag);
-		nlpPredicates(ARITY, "$1 |1(has)|(have)| arity |2($2)|(what)|", dag);
-		nlpPredicates(ASSERTED_SENTENCE, "$1 |1(is)|(are)| asserted directly",
+		nlpPredicates(ARITY, "$1 /1(has)/(have)/ arity /2($2)/(what)/", dag);
+		nlpPredicates(ASSERTED_SENTENCE, "$1 /1(is)/(are)/ asserted directly",
 				dag);
-		nlpPredicates(BROADER_TERM, "$2 |2(is)|(are)| broader than $1", dag);
+		nlpPredicates(BROADER_TERM, "$2 /2(is)/(are)/ broader than $1", dag);
 		nlpPredicates(COMMENT,
-				"$1 |1(has)|(have)| |2(comment $2)|(what comment)|", dag);
-		nlpPredicates(DIFFERENT, "$1 |1(is)|(are)| different to $2", dag);
-		nlpPredicates(DISJOINTWITH, "$1 |1(is)|(are)| disjoint with $2", dag);
-		nlpPredicates(GENLINVERSE, "$1 |1(is)|(are)| a supertype of $2", dag);
-		nlpPredicates(GENLMT, "$1 |1(is)|(are)| a sub-microtheory of $2", dag);
-		nlpPredicates(GENLPREDS, "$1 |1(is)|(are)| a sub-predicate of $2", dag);
-		nlpPredicates(GENLS, "$1 |1(is)|(are)| a kind of $2", dag);
-		nlpPredicates(ISA, "$1 |1(is)|(are)| an instance of $2", dag);
-		nlpPredicates(LATER_PREDICATE, "$1 |1(is)|(are)| later than $2", dag);
+				"$1 /1(has)/(have)/ /2(comment $2)/(what comment)/", dag);
+		nlpPredicates(DIFFERENT, "$1 /1(is)/(are)/ different to $2", dag);
+		nlpPredicates(DISJOINTWITH, "$1 /1(is)/(are)/ disjoint with $2", dag);
+		nlpPredicates(GENLINVERSE, "$1 /1(is)/(are)/ a supertype of $2", dag);
+		nlpPredicates(GENLMT, "$1 /1(is)/(are)/ a sub-microtheory of $2", dag);
+		nlpPredicates(GENLPREDS, "$1 /1(is)/(are)/ a sub-predicate of $2", dag);
+		nlpPredicates(GENLS, "$1 /1(is)/(are)/ a kind of $2", dag);
+		nlpPredicates(ISA, "$1 /1(is)/(are)/ an instance of $2", dag);
+		nlpPredicates(LATER_PREDICATE, "$1 /1(is)/(are)/ later than $2", dag);
 		nlpPredicates(NLP_PREDICATE_STRING,
-				"$2 |2(is)|(are)| the NL predicate for $1", dag);
-		nlpPredicates(NOT, "$1 |1(is)|(are)| not true", dag);
-		nlpPredicates(PRETTY_STRING, "$1 |1(is)|(are)| known as $2", dag);
+				"$2 /2(is)/(are)/ the NL predicate string for $1", dag);
+		nlpPredicates(NOT, "$1 /1(is)/(are)/ not true", dag);
+		nlpPredicates(PRETTY_STRING, "$1 /1(is)/(are)/ known as $2", dag);
 		nlpPredicates(PRETTY_STRING_CANONICAL,
-				"$1 |1(is)|(are)| commonly known as $2", dag);
+				"$1 /1(is)/(are)/ commonly known as $2", dag);
 		nlpPredicates(QUOTED_ISA,
-				"$1 |1(is)|(are)| implicitly an instance of $2", dag);
-		nlpPredicates(RESULT_GENL, "$2 |2(is)|(are)| the type produced by $1",
+				"$1 /1(is)/(are)/ implicitly an instance of $2", dag);
+		nlpPredicates(RESULT_GENL, "$2 /2(is)/(are)/ the type produced by $1",
 				dag);
 		nlpPredicates(RESULT_ISA,
-				"$2 |2(is)|(are)| the instance produced by $1", dag);
+				"$2 /2(is)/(are)/ the instance produced by $1", dag);
 		nlpPredicates(
 				RESULT_GENL_ARG,
-				"the type produced by $1 |1(is)|(are)| the same as |2(argument $2)|(what arguments)|",
+				"the type produced by $1 /1(is)/(are)/ the same as /2(argument $2)/(what arguments)/",
 				dag);
 		nlpPredicates(
 				RESULT_ISA_ARG,
-				"the instance produced by $1 |1(is)|(are)| the same as |2(argument $2)|(what arguments)|",
+				"the instance produced by $1 /1(is)/(are)/ the same as /2(argument $2)/(what arguments)/",
 				dag);
-		nlpPredicates(TERM_STRING, "$1 |1(is)|(are)| also known as $2", dag);
+		nlpPredicates(TERM_STRING, "$1 /1(is)/(are)/ also known as $2", dag);
 		nlpPredicates(SIBLING_DISJOINT_EXCEPTION,
-				"$1 |1(is)|(are)| exempt from disjointness with $2", dag);
+				"$1 /1(is)/(are)/ exempt from disjointness with $2", dag);
 		nlpPredicates(REWRITE_OF,
-				"$1 |1(is)|(are)| the favoured rewrite of $2", dag);
+				"$1 /1(is)/(are)/ the favoured rewrite of $2", dag);
 		dag.noChecks_ = checks;
 	}
 

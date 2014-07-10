@@ -124,7 +124,8 @@ public class NLPToStringModuleTest {
 				null, url, new StringNode(
 						"http://en.wikipedia.org/wiki/Gaetano_Salvemini"));
 		result = sut_.nodeToString(urlFn, false);
-		assertEquals(result,
+		assertEquals(
+				result,
 				"<a href=\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\">http://en.wikipedia.org/wiki/Gaetano_Salvemini</a>");
 	}
 
@@ -149,7 +150,7 @@ public class NLPToStringModuleTest {
 		// Markup predicate
 		DAGNode nlpPred = CommonConcepts.NLP_PREDICATE_STRING.getNode(dag_);
 		assertFalse(dag_.findOrCreateEdge(new Node[] { nlpPred, isa2,
-				new StringNode("$1 |1(is)|(are)| an instance of $2") },
+				new StringNode("$1 /1(is)/(are)/ an instance of $2") },
 				creator, true) instanceof ErrorEdge);
 		result = sut_.edgeToString(qo, false, false, false);
 		assertEquals(result, "Samuel L Jackson is an instance of Actor");
@@ -163,7 +164,7 @@ public class NLPToStringModuleTest {
 						CommonConcepts.PREDICATE.getNode(dag_) }, creator, true) instanceof ErrorEdge);
 		qo = new QueryObject(broader, samuel, actor);
 		assertFalse(dag_.findOrCreateEdge(new Node[] { nlpPred, broader,
-				new StringNode("$2 |2(is)|(are)| broader than $1") }, creator,
+				new StringNode("$2 /2(is)/(are)/ broader than $1") }, creator,
 				true) instanceof ErrorEdge);
 		result = sut_.edgeToString(qo, false, false, false);
 		assertEquals(result, "Actor is broader than Samuel L Jackson");
@@ -193,6 +194,13 @@ public class NLPToStringModuleTest {
 		result = sut_.edgeToString(qo, false, false, false);
 		assertEquals(result,
 				"broader Term has 'argIsa2' relation to 1 and Thing");
+
+		// Self referential edge
+		qo = new QueryObject(nlpPred, isa2, new StringNode(
+				"$1 /1(is)/(are)/ an instance of $2"));
+		result = sut_.edgeToString(qo, false, false, false);
+		assertEquals(result, "\"$1 /1(is)/(are)/ an instance of $2\" is the "
+				+ "NL predicate string for isa 2");
 	}
 
 	@Test
@@ -224,7 +232,7 @@ public class NLPToStringModuleTest {
 		// Markup predicate
 		DAGNode nlpPred = CommonConcepts.NLP_PREDICATE_STRING.getNode(dag_);
 		assertFalse(dag_.findOrCreateEdge(new Node[] { nlpPred, isa2,
-				new StringNode("$1 |1(is)|(are)| an instance of $2") },
+				new StringNode("$1 /1(is)/(are)/ an instance of $2") },
 				creator, true) instanceof ErrorEdge);
 		qo = new QueryObject(isa2, samuel, actor);
 		result = sut_.edgeToString(qo, true, false, false);
@@ -238,7 +246,7 @@ public class NLPToStringModuleTest {
 						CommonConcepts.ISA.getNode(dag_), broader,
 						CommonConcepts.PREDICATE.getNode(dag_) }, creator, true) instanceof ErrorEdge);
 		assertFalse(dag_.findOrCreateEdge(new Node[] { nlpPred, broader,
-				new StringNode("$2 |2(is)|(are)| broader than $1") }, creator,
+				new StringNode("$2 /2(is)/(are)/ broader than $1") }, creator,
 				true) instanceof ErrorEdge);
 		qo = new QueryObject(broader, samuel, actor);
 		result = sut_.edgeToString(qo, true, false, false);
