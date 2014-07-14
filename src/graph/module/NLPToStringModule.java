@@ -282,7 +282,7 @@ public class NLPToStringModule extends DAGModule<String> {
 		// Hierarchy
 		initQuerier();
 		String result = nodeToStringInternal(node);
-		if (markup)
+		if (markup && !(result.startsWith("<") && result.endsWith(">")))
 			return "[[" + node.toString() + "|" + result + "]]";
 		return result;
 	}
