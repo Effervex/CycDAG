@@ -32,6 +32,10 @@ public enum CommonQuery {
 	ARGNGENL("(argGenl $0 $1 ?X)", true),
 	ARGNISA("(argIsa $0 $1 ?X)", true),
 	COMMENT("(comment $0 ?X)"),
+	COMMONISA("(and (isa $0 ?X) (isa $1 ?X))"),
+	COMMONGENLS("(and (genls $0 ?X) (genls $1 ?X))"),
+	COMMONINSTANCES("(and (isa ?X $0) (isa ?X $1))"),
+	COMMONSPECS("(and (genls ?X $0) (genls ?X $1))"),
 	DIRECTGENLS("(assertedSentence (genls $0 ?X))", true),
 	DIRECTINSTANCE("(assertedSentence (isa ?X $0))", true),
 	DIRECTISA("(assertedSentence (isa $0 ?X))", true),
@@ -43,10 +47,14 @@ public enum CommonQuery {
 	ISASIBLINGS("(assertedSentence (isa $0 ?X))", true),
 	MAXINSTANCES("(isa ?X $0)", true),
 	MAXSPECS("(assertedSentence (genls ?X $0))", true),
+	MAXCOMMONINSTANCES("(and (isa ?X $0) (isa ?X $1))"),
+	MAXCOMMONSPECS("(and (genls ?X $0) (genls ?X $1))"),
 	MINARGNGENL("(argGenl $0 $1 ?X)", true),
 	MINARGNISA("(argIsa $0 $1 ?X)", true),
 	MINGENLS("(assertedSentence (genls $0 ?X))", true),
 	MINISA("(assertedSentence (isa $0 ?X))", true),
+	MINCOMMONISA("(and (isa $0 ?X) (isa $1 ?X))", true),
+	MINCOMMONGENLS("(and (genls $0 ?X) (genls $1 ?X))", true),
 	SPECPREDS("(genlPreds ?X $0)"),
 	SPECS("(genls ?X $0)");
 
@@ -114,6 +122,8 @@ public enum CommonQuery {
 			results.remove(args[0]);
 		case ISASIBLINGS:
 		case MINISA:
+		case MINCOMMONISA:
+		case MINCOMMONGENLS:
 		case MINARGNISA:
 		case MINARGNGENL:
 			minGeneralFilter(results, dag);
@@ -133,6 +143,8 @@ public enum CommonQuery {
 		case MAXSPECS:
 			results.remove(args[0]);
 		case MAXINSTANCES:
+		case MAXCOMMONINSTANCES:
+		case MAXCOMMONSPECS:
 			if (this == MAXINSTANCES
 					&& querier.prove(CommonConcepts.ISA.getNode(dag), args[0],
 							CommonConcepts.FIRST_ORDER_COLLECTION.getNode(dag)))
