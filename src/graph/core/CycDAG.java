@@ -87,9 +87,14 @@ public class CycDAG extends DirectedAcyclicGraph {
 		for (Substitution sub : subs) {
 			PrimitiveNode numArgs = (PrimitiveNode) sub
 					.getSubstitution(VariableNode.DEFAULT);
-			if (!numArgs.getName().equals("" + (edgeNodes.length - 1)))
-				return new ArityErrorEdge(predNode,
-						(int) numArgs.getPrimitive());
+			if (!numArgs.getName().equals("" + (edgeNodes.length - 1))) {
+				if (numArgs.getPrimitive() instanceof Integer)
+					return new ArityErrorEdge(predNode,
+							(int) numArgs.getPrimitive());
+				if (numArgs.getPrimitive() instanceof Short)
+					return new ArityErrorEdge(predNode,
+							(short) numArgs.getPrimitive());
+			}
 		}
 		return null;
 	}
