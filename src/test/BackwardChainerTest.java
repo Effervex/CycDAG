@@ -26,7 +26,7 @@ public class BackwardChainerTest {
 
 	@Before
 	public void setUp() throws Exception {
-		dag_ = new DirectedAcyclicGraph(new File("test"));
+		dag_ = new DirectedAcyclicGraph(new File("test"), null, null);
 		QueryModule queryModule = (QueryModule) dag_
 				.getModule(QueryModule.class);
 		assertNotNull(queryModule);

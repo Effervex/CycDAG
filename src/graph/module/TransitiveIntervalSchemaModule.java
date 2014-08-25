@@ -364,7 +364,10 @@ public class TransitiveIntervalSchemaModule extends
 		for (DAGNode n : nodes) {
 			if (rewriteModule != null)
 				n = rewriteModule.getRewrite(n);
-			topologicalVisit(n, sortedNodes, new HashMap<DAGNode, String>());
+			// Ignore non-collections
+			if (queryModule_.prove(CommonConcepts.ISA.getNode(dag_), n,
+					CommonConcepts.COLLECTION.getNode(dag_)))
+				topologicalVisit(n, sortedNodes, new HashMap<DAGNode, String>());
 		}
 		return sortedNodes;
 	}

@@ -43,7 +43,7 @@ public class CycDAGTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		sut_ = new CycDAG(new File("test"));
+		sut_ = new CycDAG(new File("test"), null, null);
 		CommonConcepts.initialise(sut_);
 		CommonConcepts.createCommonAssertions(sut_);
 	}

@@ -35,7 +35,7 @@ public class OntologyEdgeModuleTest {
 
 	@Before
 	public void setUp() throws Exception {
-		dag_ = new CycDAG(new File("test"));
+		dag_ = new CycDAG(new File("test"), null, null);
 		sut_ = (OntologyEdgeModule) dag_.getModule(OntologyEdgeModule.class);
 		sut_.clear();
 		CommonConcepts.initialise((CycDAG) dag_);

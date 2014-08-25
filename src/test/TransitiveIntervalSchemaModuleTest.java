@@ -34,7 +34,7 @@ public class TransitiveIntervalSchemaModuleTest {
 
 	@Before
 	public void setUp() throws Exception {
-		dag_ = new CycDAG(new File("test"));
+		dag_ = new CycDAG(new File("test"), null, null);
 		sut_ = (TransitiveIntervalSchemaModule) dag_
 				.getModule(TransitiveIntervalSchemaModule.class);
 		sut_.clear();

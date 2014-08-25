@@ -28,7 +28,7 @@ public class NLPToSyntaxModuleTest {
 
 	@Before
 	public void setUp() throws Exception {
-		dag_ = new CycDAG(new File("test"));
+		dag_ = new CycDAG(new File("test"), null, null);
 		sut_ = (NLPToSyntaxModule) dag_.getModule(NLPToSyntaxModule.class);
 		assertNotNull(sut_);
 	}

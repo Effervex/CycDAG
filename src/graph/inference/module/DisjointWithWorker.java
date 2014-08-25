@@ -21,6 +21,7 @@ import graph.inference.QueryObject;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
 import graph.inference.VariableNode;
+import graph.module.DisjointModule;
 import graph.module.QueryModule;
 import graph.module.SiblingDisjointModule;
 import graph.module.TransitiveIntervalSchemaModule;
@@ -36,6 +37,7 @@ import org.apache.commons.collections4.CollectionUtils;
 public class DisjointWithWorker extends QueryWorker {
 	private static final long serialVersionUID = -2014914913163958118L;
 	private transient SiblingDisjointModule sibModule_;
+	private transient DisjointModule disjointModule_;
 
 	public DisjointWithWorker(QueryModule queryModule) {
 		super(queryModule);
@@ -120,8 +122,6 @@ public class DisjointWithWorker extends QueryWorker {
 							(DAGNode) otherNode), edgeNodes);
 			}
 		}
-
-		checkSiblingDisjoint(queryObj);
 	}
 
 	private Collection<? extends Node[]> alterGenlJustification(
@@ -247,6 +247,9 @@ public class DisjointWithWorker extends QueryWorker {
 						// A match!
 						if (!isException(atomic, otherNode)) {
 							queryObj.addResult(new Substitution());
+							// TODO This should probably be added back in. Can't
+							// recall what the issue was - probably introduced a
+							// bug
 							// processSiblingJustification(,
 							// sub.getSubstitution(transTwo),
 							// sub.getSubstitution(queryVar), queryObj);
@@ -255,7 +258,7 @@ public class DisjointWithWorker extends QueryWorker {
 					}
 			}
 		} else {
-
+			// TODO This should be filled in.
 		}
 	}
 
@@ -333,11 +336,53 @@ public class DisjointWithWorker extends QueryWorker {
 	@Override
 	public void queryInternal(QueryObject queryObj)
 			throws IllegalArgumentException {
-		// Disjoint edges
-		Collection<Edge> disjointWithEdges = relatedModule_
-				.findEdgeByNodes(CommonConcepts.DISJOINTWITH.getNode(dag_));
+		// Use disjoint module if possible
+		if (disjointModule_ != null && notAnonymous(queryObj)) {
+			if (queryObj.isProof()) {
+				Collection<DAGNode> disjointNodes = disjointModule_.execute(
+						queryObj.getNode(1), queryObj.getNode(2));
+				// TODO Might need justification
+				if (disjointNodes != null)
+					queryObj.addResult(new Substitution());
+			} else {
+				Collection<DAGNode> disjointNodes = disjointModule_
+						.execute(queryObj.getAtomic());
+				for (DAGNode node : disjointNodes)
+					queryObj.addResult(new Substitution(queryObj.getVariable(),
+							node));
+			}
+		} else {
+			// Disjoint edges
+			Collection<Edge> disjointWithEdges = relatedModule_
+					.findEdgeByNodes(CommonConcepts.DISJOINTWITH.getNode(dag_));
 
-		findDisjoint(queryObj, disjointWithEdges);
+			// Find direct disjoints
+			findDisjoint(queryObj, disjointWithEdges);
+		}
+
+		if (queryObj.isProof() && queryObj.getResults() != null)
+			return;
+
+		// Find sibling disjoints
+		checkSiblingDisjoint(queryObj);
+	}
+
+	/**
+	 * Checking there are no anonymous nodes in the disjoint query - the
+	 * disjoint module can't cope with them.
+	 * 
+	 * @param queryObj
+	 *            The query object to check.
+	 * @return True if the query does not contain any anonymous nodes.
+	 */
+	private boolean notAnonymous(QueryObject queryObj) {
+		Node[] nodes = queryObj.getNodes();
+		for (int i = 1; i < nodes.length; i++) {
+			if (nodes[i] instanceof DAGNode
+					&& ((DAGNode) nodes[i]).isAnonymous())
+				return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -345,5 +390,11 @@ public class DisjointWithWorker extends QueryWorker {
 		super.setDAG(dag);
 		sibModule_ = (SiblingDisjointModule) dag_
 				.getModule(SiblingDisjointModule.class);
+		disjointModule_ = (DisjointModule) dag_.getModule(DisjointModule.class);
+		if (disjointModule_ == null)
+			System.out.println("Warning: Disjointness calculations "
+					+ "are more efficient with Disjoint Module active. "
+					+ "It is recommended to restart with the Disjoint "
+					+ "Module active.");
 	}
 }

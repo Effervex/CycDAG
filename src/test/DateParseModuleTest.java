@@ -32,7 +32,7 @@ public class DateParseModuleTest {
 
 	@Before
 	public void setUp() throws Exception {
-		dag_ = new CycDAG(new File("test"));
+		dag_ = new CycDAG(new File("test"), null, null);
 		CommonConcepts.initialise(dag_);
 		sut_ = (DateParseModule) dag_.getModule(DateParseModule.class);
 		sut_.clear();

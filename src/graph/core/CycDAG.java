@@ -71,11 +71,11 @@ public class CycDAG extends DirectedAcyclicGraph {
 	private RewriteOfModule rewriteModule_;
 
 	public CycDAG() {
-		this(new File("cyc"));
+		this(new File("cyc"), null, null);
 	}
 
-	public CycDAG(File rootDir) {
-		super(rootDir);
+	public CycDAG(File rootDir, File nodeFile, File edgeFile) {
+		super(rootDir, nodeFile, edgeFile);
 		querier_ = (QueryModule) getModule(QueryModule.class);
 		rewriteModule_ = (RewriteOfModule) getModule(RewriteOfModule.class);
 	}

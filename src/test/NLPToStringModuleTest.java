@@ -37,7 +37,7 @@ public class NLPToStringModuleTest {
 
 	@Before
 	public void setUp() throws Exception {
-		dag_ = new CycDAG(new File("test"));
+		dag_ = new CycDAG(new File("test"), null, null);
 		sut_ = (NLPToStringModule) dag_.getModule(NLPToStringModule.class);
 		assertNotNull(sut_);
 		CommonConcepts.initialise(dag_);

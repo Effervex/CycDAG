@@ -65,7 +65,7 @@ public class SubCycDAGExtractorModule extends SubDAGExtractorModule {
 
 	@Override
 	protected DirectedAcyclicGraph createNewDAG(File folder) {
-		CycDAG dag = new CycDAG(folder);
+		CycDAG dag = new CycDAG(folder, null, null);
 		dag.loadAssertions_ = false;
 		querier_ = (QueryModule) dag_.getModule(QueryModule.class);
 		return dag;
