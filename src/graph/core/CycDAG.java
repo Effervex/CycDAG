@@ -411,30 +411,52 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	@Override
-	public synchronized Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
+	public Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
 			boolean... flags) {
 		return findOrCreateEdge(edgeNodes, creator, null, flags);
 	}
 
 	/**
-	 * Finds or creates an edge from a set of nodes. The returned edge either
-	 * already exists, or is newly created and added. Edges can specify a
-	 * microtheory as well.
+	 * Convenience method for identifying the boolean args.
 	 * 
 	 * @param edgeNodes
 	 *            The nodes of the edge.
 	 * @param creator
-	 *            The creator of the edge.
+	 *            The creator of the edge (can be null).
 	 * @param microtheory
-	 *            The optional microtheory for the edge.
+	 *            The optional microtheory to create the edge under.
+	 * @param createNew
+	 *            If the edge can be created if not found (default false).
+	 * @param ephemeral
+	 *            If the edge should be created as ephemeral (default false).
+	 * @param forceConstraints
+	 *            If unmet constraints should be forcefully created (if
+	 *            possible, default false).
+	 * @return The created edge or an ErrorEdge if there was an error.
+	 */
+	public Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
+			String microtheory, boolean createNew, boolean ephemeral,
+			boolean forceConstraints) {
+		return findOrCreateEdge(edgeNodes, creator, microtheory, new boolean[] {
+				createNew, ephemeral, forceConstraints });
+	}
+
+	/**
+	 * Finds or creates an edge from a set of nodes. The returned edge either
+	 * already exists, or is newly created and added.
+	 * 
+	 * @param edgeNodes
+	 *            The nodes of the edge.
+	 * @param creator
+	 *            The creator of the edge (can be null).
+	 * @param microtheory
+	 *            The optional microtheory to create the edge under.
 	 * @param flags
 	 *            The boolean flags to use during edge creation: createNew
 	 *            (false), ephemeral (false), forceConstraints (false).
-	 * 
-	 * @return True if the edge was not already in the graph.
-	 * @throws DAGException
+	 * @return The created edge or an ErrorEdge if there was an error.
 	 */
-	public Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
+	public synchronized Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
 			String microtheory, boolean... flags) {
 		BooleanFlags bFlags = edgeFlags_.loadFlags(flags);
 		boolean createNew = bFlags.getFlag("createNew");
@@ -491,6 +513,20 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return edge;
 	}
 
+	/**
+	 * Finds or creates a new functionally-defined node.
+	 * 
+	 * @param createNew
+	 *            If the node can be created if not found.
+	 * @param ephemeral
+	 *            If the node should be ephemeral.
+	 * @param creator
+	 *            The creator (can be null).
+	 * @param args
+	 *            The functional args.
+	 * @return The OntologyFunction representing the node or null if there is a
+	 *         problem.
+	 */
 	public OntologyFunction findOrCreateFunctionNode(boolean createNew,
 			boolean ephemeral, Node creator, Node... args) {
 		if (args != null
@@ -519,6 +555,30 @@ public class CycDAG extends DirectedAcyclicGraph {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Convenience node find/creation method with identified boolean args.
+	 * 
+	 * @param nodeStr
+	 *            The name of the node to find/create.
+	 * @param creator
+	 *            The optional creator.
+	 * @param createNew
+	 *            If a new node should be created if not found.
+	 * @param ephemeral
+	 *            If the created node should be ephemeral.
+	 * @param dagNodeOnly
+	 *            If only DAG nodes can be found/created.
+	 * @param allowVariables
+	 *            If variable nodes are allowed to be created.
+	 * @return The found/created node, or null.
+	 */
+	public Node findOrCreateNode(String nodeStr, Node creator,
+			boolean createNew, boolean ephemeral, boolean dagNodeOnly,
+			boolean allowVariables) {
+		return findOrCreateNode(nodeStr, creator, new boolean[] { createNew,
+				ephemeral, dagNodeOnly, allowVariables });
 	}
 
 	@Override

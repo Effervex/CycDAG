@@ -13,6 +13,7 @@ package test;
 import static org.junit.Assert.*;
 import graph.core.CommonConcepts;
 import graph.core.CycDAG;
+import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Edge;
 import graph.core.ErrorEdge;
@@ -21,12 +22,16 @@ import graph.core.StringNode;
 import graph.module.TransitiveIntervalSchemaModule;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import util.Pair;
 
 public class TransitiveIntervalSchemaModuleTest {
 	private CycDAG dag_;
@@ -38,6 +43,7 @@ public class TransitiveIntervalSchemaModuleTest {
 		sut_ = (TransitiveIntervalSchemaModule) dag_
 				.getModule(TransitiveIntervalSchemaModule.class);
 		sut_.clear();
+		sut_.incrementalSupported_ = true;
 	}
 
 	@After
@@ -59,13 +65,57 @@ public class TransitiveIntervalSchemaModuleTest {
 		Node thing = dag_.findOrCreateNode("Thing", creator, true);
 		Node pet = dag_.findOrCreateNode("Pet", creator, true);
 		System.out.println(topSort);
-		assertEquals(topSort.size(), 12);
+		assertEquals(topSort.size(), 8);
 		assertTrue(topSort.indexOf(dog) < topSort.indexOf(canis));
 		assertTrue(topSort.indexOf(dog) < topSort.indexOf(thing));
 		assertTrue(topSort.indexOf(dog) < topSort.indexOf(pet));
 		assertTrue(topSort.indexOf(pet) < topSort.indexOf(thing));
 		assertTrue(topSort.indexOf(canis) < topSort.indexOf(thing));
 		assertTrue(topSort.indexOf(cat) < topSort.indexOf(thing));
+	}
+
+	@Test
+	public void testIdentifyCycles() {
+		Node creator = new StringNode("TestCreator");
+		setUpDAG(creator);
+		dag_.noChecks_ = true;
+
+		// Default
+		Collection<Pair<DAGEdge, DAGEdge>> cycles = sut_.identifyCycles(dag_
+				.getNodes());
+		assertTrue(cycles.isEmpty());
+
+		// Single link cycle
+		Node genls = CommonConcepts.GENLS.getNode(dag_);
+		dag_.noChecks_ = true;
+		Node dog = dag_.findOrCreateNode("Dog", creator, true);
+		Node canis = dag_.findOrCreateNode("Canis", creator, true);
+		Node mammal = dag_.findOrCreateNode("Mammal", creator, true);
+		Node cat = dag_.findOrCreateNode("Cat", creator, true);
+		DAGEdge genlsMammalCat = (DAGEdge) dag_.findOrCreateEdge(new Node[] {
+				genls, mammal, cat }, null, true, false);
+		cycles = sut_.identifyCycles(dag_.getNodes());
+		assertFalse(cycles.isEmpty());
+		DAGEdge genlsCatMammal = (DAGEdge) dag_.findOrCreateEdge(new Node[] {
+				genls, cat, mammal }, null, true, false);
+		Pair<DAGEdge, DAGEdge> catMammalCycle = new Pair<DAGEdge, DAGEdge>(
+				genlsCatMammal, genlsMammalCat);
+		assertTrue(cycles.size() == 1);
+		assertTrue(cycles.toString(), cycles.contains(catMammalCycle));
+		dag_.removeEdge(genlsMammalCat);
+
+		// Long link cycle
+		DAGEdge genlsMammalDog = (DAGEdge) dag_.findOrCreateEdge(new Node[] {
+				genls, mammal, dog }, null, true, false);
+		cycles = sut_.identifyCycles(dag_.getNodes());
+		assertFalse(cycles.isEmpty());
+		DAGEdge genlsDogCanis = (DAGEdge) dag_.findOrCreateEdge(new Node[] {
+				genls, dog, canis }, null, true, false);
+		Pair<DAGEdge, DAGEdge> dogMammalCycle = new Pair<DAGEdge, DAGEdge>(
+				genlsMammalDog, genlsDogCanis);
+		assertTrue(cycles.size() == 1);
+		assertTrue(cycles.toString(), cycles.contains(dogMammalCycle));
+		dag_.removeEdge(genlsMammalDog);
 	}
 
 	@Test
@@ -134,6 +184,8 @@ public class TransitiveIntervalSchemaModuleTest {
 		setUpDAG(creator);
 
 		DAGNode genls = CommonConcepts.GENLS.getNode(dag_);
+		DAGNode isa = CommonConcepts.ISA.getNode(dag_);
+		DAGNode collection = CommonConcepts.COLLECTION.getNode(dag_);
 		DAGNode dog = (DAGNode) dag_.findOrCreateNode("Dog", creator, true);
 		DAGNode canis = (DAGNode) dag_.findOrCreateNode("Canis", creator, true);
 		DAGNode cat = (DAGNode) dag_.findOrCreateNode("Cat", creator, true);
@@ -168,11 +220,48 @@ public class TransitiveIntervalSchemaModuleTest {
 
 		// Non-tree addition (genls Cow Mammal)
 		DAGNode cow = (DAGNode) dag_.findOrCreateNode("Cow", creator, true);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { isa, cow, collection },
+				creator, true) instanceof ErrorEdge);
 		assertFalse(dag_.findOrCreateEdge(new Node[] { genls, cow, mammal },
 				creator, true) instanceof ErrorEdge);
 		assertNotNull(sut_.execute(true, cow, mammal));
 		assertNotNull(sut_.execute(true, cow, animal));
 		assertNotNull(sut_.execute(true, cow, thing));
+
+		// Add a whole barn of animals!
+		String[] animals = { "Horse", "Chicken", "Pig", "Duck", "Goose",
+				"Spider", "Rat", "Mouse" };
+		for (String aStr : animals) {
+			DAGNode anim = (DAGNode) dag_.findOrCreateNode(aStr, creator, true);
+			assertFalse(dag_.findOrCreateEdge(new Node[] { isa, anim,
+					collection }, creator, true) instanceof ErrorEdge);
+			assertFalse(dag_.findOrCreateEdge(
+					new Node[] { genls, anim, mammal }, creator, true) instanceof ErrorEdge);
+			assertNotNull(sut_.execute(true, cow, mammal));
+			assertNotNull(sut_.execute(true, cow, animal));
+			assertNotNull(sut_.execute(true, cow, thing));
+		}
+
+		// Even more, but random parents
+		ArrayList<DAGNode> randomParent = new ArrayList<>();
+		randomParent.add(mammal);
+		randomParent.add(dog);
+		randomParent.add(thing);
+		randomParent.add(cat);
+		randomParent.add(canis);
+		randomParent.add(fluffy);
+		randomParent.add(cow);
+		Random rand = new Random();
+		for (int i = 0; i < 1000; i++) {
+			DAGNode anim = (DAGNode) dag_.findOrCreateNode("Animal" + i,
+					creator, true);
+			assertFalse(dag_.findOrCreateEdge(new Node[] { isa, anim,
+					collection }, creator, true) instanceof ErrorEdge);
+			assertFalse(dag_.findOrCreateEdge(new Node[] { genls, anim,
+					randomParent.get(rand.nextInt(randomParent.size())) },
+					creator, true) instanceof ErrorEdge);
+			randomParent.add(anim);
+		}
 	}
 
 	@Test
@@ -209,7 +298,9 @@ public class TransitiveIntervalSchemaModuleTest {
 	}
 
 	private void setUpDAG(Node creator) {
+		CommonConcepts.initialise(dag_);
 		Node genls = CommonConcepts.GENLS.getNode(dag_);
+		Node isa = CommonConcepts.ISA.getNode(dag_);
 		dag_.noChecks_ = true;
 		Node thing = dag_.findOrCreateNode("Thing", creator, true);
 		Node dog = dag_.findOrCreateNode("Dog", creator, true);
@@ -222,14 +313,33 @@ public class TransitiveIntervalSchemaModuleTest {
 		dag_.findOrCreateEdge(new Node[] { genls, dog, thing }, creator, true);
 		dag_.findOrCreateEdge(new Node[] { genls, dog, canis }, creator, true);
 		dag_.findOrCreateEdge(new Node[] { genls, dog, pet }, creator, true);
+		dag_.findOrCreateEdge(
+				new Node[] { isa, dog, CommonConcepts.COLLECTION.getNode(dag_) },
+				creator, true);
 		dag_.findOrCreateEdge(new Node[] { genls, cat, pet }, creator, true);
+		dag_.findOrCreateEdge(
+				new Node[] { isa, cat, CommonConcepts.COLLECTION.getNode(dag_) },
+				creator, true);
 		dag_.findOrCreateEdge(new Node[] { genls, pet, thing }, creator, true);
+		dag_.findOrCreateEdge(
+				new Node[] { isa, pet, CommonConcepts.COLLECTION.getNode(dag_) },
+				creator, true);
+		dag_.findOrCreateEdge(new Node[] { isa, thing,
+				CommonConcepts.COLLECTION.getNode(dag_) }, creator, true);
 		dag_.findOrCreateEdge(new Node[] { genls, canis, mammal }, creator,
 				true);
+		dag_.findOrCreateEdge(new Node[] { isa, canis,
+				CommonConcepts.COLLECTION.getNode(dag_) }, creator, true);
 		dag_.findOrCreateEdge(new Node[] { genls, plant, thing }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { isa, plant,
+				CommonConcepts.COLLECTION.getNode(dag_) }, creator, true);
 		dag_.findOrCreateEdge(new Node[] { genls, cat, fluffy }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { isa, fluffy,
+				CommonConcepts.COLLECTION.getNode(dag_) }, creator, true);
 		dag_.findOrCreateEdge(new Node[] { genls, mammal, thing }, creator,
 				true);
+		dag_.findOrCreateEdge(new Node[] { isa, mammal,
+				CommonConcepts.COLLECTION.getNode(dag_) }, creator, true);
 		dag_.findOrCreateEdge(new Node[] { genls, cat, mammal }, creator, true);
 		dag_.noChecks_ = false;
 		sut_.initMembers();

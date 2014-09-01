@@ -39,25 +39,60 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import util.Pair;
+
 public class TransitiveIntervalSchemaModule extends
 		DAGModule<Collection<DAGNode>> {
-	private static final float INTERVAL_SPLIT = 0.5f;
+	/** Serialisation. */
 	private static final long serialVersionUID = 6562719667555853873L;
+
+	/** Temp mark for node scanning. */
 	private static final String TEMP_MARK = "tmp";
+
+	/** Ancestor ID property. */
 	public static final String ANCESTOR_ID = "ancsID";
-	public static final int INITIAL_INTERVAL = 16;
+
+	/** The interval size for the tree. */
+	public static final int INITIAL_INTERVAL = 1024;
+
+	/** The mark for topological scanning. */
 	public static final String MARK = "topMark";
+
+	/** A permanent mark for topological scanning. */
 	public static final String PERMANENT_MARK = "prm";
+
+	/** Predecessor ID property. */
 	public static final String PREDECESSOR_ID = "predID";
+
+	/** The ancestor map of transitive intervals. */
 	private IntervalSchema ancestorMap_;
+
+	/** All identified cycles from the last scan. */
+	private transient Collection<Pair<DAGEdge, DAGEdge>> cycles_;
+
+	/** The initial tree interval size (can be reduced if tree gets too big). */
 	private int interval_ = INITIAL_INTERVAL;
+
+	/** The predecessor map of transitive intervals. */
 	private IntervalSchema predecessorMap_;
+
+	/** A link to the query module. */
 	private transient QueryModule queryModule_;
+
+	/** A link to the related edge module. */
 	private transient RelatedEdgeModule relEdgeModule_;
-	private DAGNode virtualRoot_;
-	protected DAGNode transitiveNode_;
-	private boolean incrementalSupported_ = false;
+
+	/** If the maps require a rebuild. */
 	private boolean requiresRebuild_ = true;
+
+	/** A link to the virtual root node in predecessor and ancestor map. */
+	private DAGNode virtualRoot_;
+
+	/** The transitive predicate this module is for. */
+	protected DAGNode transitiveNode_;
+
+	/** If incremental updates are allowed. */
+	public boolean incrementalSupported_ = false;
 
 	/**
 	 * Builds a spanning tree for a given topologically sorted collection of
@@ -148,11 +183,132 @@ public class TransitiveIntervalSchemaModule extends
 		return transitiveNodes;
 	}
 
+	private List<Node[]> justifyTransitiveR(DAGNode baseNode,
+			DAGNode transNode, List<Node[]> justification,
+			Set<DAGNode> seenNodes) {
+		if (baseNode.equals(transNode))
+			return justification;
+
+		for (DAGNode directNext : getTransitiveNodes(baseNode, true)) {
+			if (!seenNodes.contains(directNext)
+					&& predecessorMap_.isTransitive(directNext, transNode)) {
+				seenNodes.add(directNext);
+				if (justifyTransitiveR(directNext, transNode, justification,
+						seenNodes) != null) {
+					justification.add(new Node[] { transitiveNode_, baseNode,
+							directNext });
+					return justification;
+				}
+			}
+		}
+		return null;
+	}
+
 	private boolean rebuildTrees() {
 		ancestorMap_ = null;
 		predecessorMap_ = null;
-		initialisationComplete(dag_.getNodes(), dag_.getEdges(), false);
+		initialisationComplete(dag_.getNodes(), dag_.getEdges(), true);
 		return true;
+	}
+
+	/**
+	 * Topologically sorts a collection of nodes.
+	 * 
+	 * @param nodes
+	 *            The nodes to sort.
+	 * @return The topologically sorted list of nodes.
+	 */
+	public List<DAGNode> topologicalList(Collection<DAGNode> nodes) {
+		cycles_ = new ArrayList<>();
+		LinkedList<DAGNode> sortedNodes = new LinkedList<>();
+		RewriteOfModule rewriteModule = (RewriteOfModule) dag_
+				.getModule(RewriteOfModule.class);
+		for (DAGNode n : nodes) {
+			if (rewriteModule != null)
+				n = rewriteModule.getRewrite(n);
+			// Ignore non-collections
+			if (queryModule_.prove(CommonConcepts.ISA.getNode(dag_), n,
+					CommonConcepts.COLLECTION.getNode(dag_)))
+				topologicalVisit(n, sortedNodes,
+						new HashMap<DAGNode, String>(),
+						new ArrayList<DAGNode>());
+		}
+		return sortedNodes;
+	}
+
+	/**
+	 * Visits a node and follows it up to establish a topological sort.
+	 * 
+	 * @param n
+	 *            The node to check.
+	 * @param sortedNodes
+	 *            The currently topologically sorted nodes
+	 * @param markMap
+	 *            A map to mark scanned nodes.
+	 * @param cycle
+	 *            Keeps track of cycles.
+	 * @return A node if there is a cycle, otherwise null.
+	 */
+	protected DAGNode topologicalVisit(DAGNode n,
+			LinkedList<DAGNode> sortedNodes, HashMap<DAGNode, String> markMap,
+			ArrayList<DAGNode> cycle) {
+		String permaMark = n.getProperty(MARK);
+		if (permaMark != null && permaMark.equals(PERMANENT_MARK))
+			return null;
+
+		String mark = markMap.get(n);
+		if (mark != null && mark.equals(TEMP_MARK)) {
+			System.out.print("Cycle");
+			// Does it have a rewrite of?
+			if (!relEdgeModule_.execute(
+					CommonConcepts.REWRITE_OF.getNode(dag_), "1", n, "-F")
+					.isEmpty())
+				System.out.print(" (has rewriteOf)");
+			System.out.print(": " + n);
+			cycle.add(n);
+			return n;
+		}
+		DAGNode cycleNode = null;
+		if (mark == null) {
+			markMap.put(n, TEMP_MARK);
+			Collection<DAGNode> transitiveNodes = getTransitiveNodes(n, true);
+			for (DAGNode edgeNode : transitiveNodes) {
+				if (!edgeNode.equals(n)) {
+					DAGNode tempNode = topologicalVisit(edgeNode, sortedNodes,
+							markMap, cycle);
+					if (cycleNode == null)
+						cycleNode = tempNode;
+					if (tempNode != null) {
+						cycle.add(n);
+						System.out.print(" -> " + n);
+						if (n.equals(tempNode)) {
+							System.out.println();
+							cycleNode = null;
+
+							// Add a cycle to the cycles collection
+							Edge firstEdge = dag_.findOrCreateEdge(
+									new Node[] { transitiveNode_, cycle.get(1),
+											cycle.get(0) }, null, false, false);
+							Edge secondEdge = dag_.findOrCreateEdge(
+									new Node[] { transitiveNode_,
+											cycle.get(cycle.size() - 1),
+											cycle.get(cycle.size() - 2) },
+									null, false, false);
+							if (firstEdge instanceof DAGEdge
+									&& secondEdge instanceof DAGEdge) {
+								cycles_.add(new Pair<DAGEdge, DAGEdge>(
+										(DAGEdge) firstEdge,
+										(DAGEdge) secondEdge));
+							}
+						}
+					}
+				}
+			}
+			dag_.addProperty(n, MARK, PERMANENT_MARK);
+			markMap.put(n, PERMANENT_MARK);
+			sortedNodes.push(n);
+		}
+		return cycleNode;
 	}
 
 	@Override
@@ -204,6 +360,12 @@ public class TransitiveIntervalSchemaModule extends
 	}
 
 	@Override
+	public void disableCached() {
+		predecessorMap_ = null;
+		ancestorMap_ = null;
+	}
+
+	@Override
 	public Collection<DAGNode> execute(Object... args)
 			throws IllegalArgumentException, ModuleException {
 		if (args.length < 2)
@@ -222,8 +384,31 @@ public class TransitiveIntervalSchemaModule extends
 		return schema.getTransitivePredecessors(node, false);
 	}
 
+	@Override
+	public Collection<String> getPertinentProperties() {
+		Collection<String> props = new ArrayList<String>(2);
+		props.add(ANCESTOR_ID);
+		props.add(PREDECESSOR_ID);
+		return props;
+	}
+
 	public DAGNode getTransitiveNode() {
 		return transitiveNode_;
+	}
+
+	/**
+	 * Identifies pairs of edges that create cycles, such that removing one of
+	 * the edges should remove the cycle.
+	 * 
+	 * @return A collection pairs of edges, where each pair of edges create a
+	 *         cycle.
+	 */
+	public Collection<Pair<DAGEdge, DAGEdge>> identifyCycles(
+			Collection<DAGNode> nodes) {
+		topologicalList(nodes);
+		for (DAGNode n : nodes)
+			dag_.removeProperty(n, MARK);
+		return cycles_;
 	}
 
 	@Override
@@ -233,8 +418,13 @@ public class TransitiveIntervalSchemaModule extends
 			return false;
 		virtualRoot_ = null;
 		initMembers();
-		System.out.print("Creating transitive interval schema for "
-				+ transitiveNode_ + "... ");
+		long startTime = System.currentTimeMillis();
+		if (requiresRebuild_)
+			System.out.print("Recreating transitive interval schema for "
+					+ transitiveNode_ + "... ");
+		else
+			System.out.print("Creating transitive interval schema for "
+					+ transitiveNode_ + "... ");
 
 		// Sort topologically
 		List<DAGNode> topologicalList = topologicalList(nodes);
@@ -258,7 +448,9 @@ public class TransitiveIntervalSchemaModule extends
 		ancestorMap.linkIntervals(topologicalList, false);
 		predecessorMap_ = predecessorMap;
 		ancestorMap_ = ancestorMap;
-		System.out.println("Done!");
+
+		System.out.println("Done! (" + (System.currentTimeMillis() - startTime)
+				/ 1000f + "s)");
 		requiresRebuild_ = false;
 		return true;
 	}
@@ -282,12 +474,6 @@ public class TransitiveIntervalSchemaModule extends
 		return predecessorMap_ != null && ancestorMap_ != null;
 	}
 
-	@Override
-	public void disableCached() {
-		predecessorMap_ = null;
-		ancestorMap_ = null;
-	}
-
 	public List<Node[]> justifyTransitive(DAGNode baseNode, DAGNode transNode) {
 		List<Node[]> justification = new ArrayList<Node[]>();
 		justifyTransitiveR(baseNode, transNode, justification,
@@ -295,26 +481,6 @@ public class TransitiveIntervalSchemaModule extends
 		Collections.reverse(justification);
 
 		return justification;
-	}
-
-	public List<Node[]> justifyTransitiveR(DAGNode baseNode, DAGNode transNode,
-			List<Node[]> justification, Set<DAGNode> seenNodes) {
-		if (baseNode.equals(transNode))
-			return justification;
-
-		for (DAGNode directNext : getTransitiveNodes(baseNode, true)) {
-			if (!seenNodes.contains(directNext)
-					&& predecessorMap_.isTransitive(directNext, transNode)) {
-				seenNodes.add(directNext);
-				if (justifyTransitiveR(directNext, transNode, justification,
-						seenNodes) != null) {
-					justification.add(new Node[] { transitiveNode_, baseNode,
-							directNext });
-					return justification;
-				}
-			}
-		}
-		return null;
 	}
 
 	@Override
@@ -343,87 +509,11 @@ public class TransitiveIntervalSchemaModule extends
 	}
 
 	@Override
-	public Collection<String> getPertinentProperties() {
-		Collection<String> props = new ArrayList<String>(2);
-		props.add(ANCESTOR_ID);
-		props.add(PREDECESSOR_ID);
-		return props;
-	}
-
-	/**
-	 * Topologically sorts a collection of nodes.
-	 * 
-	 * @param nodes
-	 *            The nodes to sort.
-	 * @return The topologically sorted list of nodes.
-	 */
-	public List<DAGNode> topologicalList(Collection<DAGNode> nodes) {
-		LinkedList<DAGNode> sortedNodes = new LinkedList<>();
-		RewriteOfModule rewriteModule = (RewriteOfModule) dag_
-				.getModule(RewriteOfModule.class);
-		for (DAGNode n : nodes) {
-			if (rewriteModule != null)
-				n = rewriteModule.getRewrite(n);
-			// Ignore non-collections
-			if (queryModule_.prove(CommonConcepts.ISA.getNode(dag_), n,
-					CommonConcepts.COLLECTION.getNode(dag_)))
-				topologicalVisit(n, sortedNodes, new HashMap<DAGNode, String>());
-		}
-		return sortedNodes;
-	}
-
-	/**
-	 * Visits a node and follows it up to establish a topological sort.
-	 * 
-	 * @param n
-	 *            The node to check.
-	 * @param sortedNodes
-	 *            The currently topologically sorted nodes
-	 * @param markMap
-	 *            A map to mark scanned nodes.
-	 * @return A node if there is a cycle, otherwise null.
-	 */
-	public DAGNode topologicalVisit(DAGNode n, LinkedList<DAGNode> sortedNodes,
-			HashMap<DAGNode, String> markMap) {
-		String permaMark = n.getProperty(MARK);
-		if (permaMark != null && permaMark.equals(PERMANENT_MARK))
-			return null;
-
-		String mark = markMap.get(n);
-		if (mark != null && mark.equals(TEMP_MARK)) {
-			System.out.print("Cycle");
-			// Does it have a rewrite of?
-			if (!relEdgeModule_.execute(
-					CommonConcepts.REWRITE_OF.getNode(dag_), "1", n, "-F")
-					.isEmpty())
-				System.out.print(" (has rewriteOf)");
-			System.out.print(": " + n);
-			return n;
-		}
-		DAGNode cycleNode = null;
-		if (mark == null) {
-			markMap.put(n, TEMP_MARK);
-			Collection<DAGNode> transitiveNodes = getTransitiveNodes(n, true);
-			for (DAGNode edgeNode : transitiveNodes) {
-				if (!edgeNode.equals(n)) {
-					DAGNode tempNode = topologicalVisit(edgeNode, sortedNodes,
-							markMap);
-					if (cycleNode == null)
-						cycleNode = tempNode;
-					if (tempNode != null) {
-						System.out.print(" -> " + n);
-						if (n.equals(tempNode)) {
-							System.out.println();
-							cycleNode = null;
-						}
-					}
-				}
-			}
-			dag_.addProperty(n, MARK, PERMANENT_MARK);
-			markMap.put(n, PERMANENT_MARK);
-			sortedNodes.push(n);
-		}
-		return cycleNode;
+	public String toString() {
+		if (predecessorMap_ == null)
+			return "Transitive Interval Module: <EMPTY>";
+		return "Transitive Interval Module: "
+				+ predecessorMap_.schemaMap_.size();
 	}
 
 	private class IDOrder implements Comparator<DAGNode> {
@@ -456,8 +546,8 @@ public class TransitiveIntervalSchemaModule extends
 		private String intervalIDKey_;
 		private SortedMap<Integer, DAGNode> inverseMap_;
 		private int maxIndex_;
-		private Map<Integer, Collection<int[]>> schemaMap_;
 		private transient Lock schemaLock_;
+		private Map<Integer, Collection<int[]>> schemaMap_;
 
 		public IntervalSchema(int size, String intervalIDKey) {
 			schemaMap_ = new ConcurrentHashMap<>(size);
@@ -648,8 +738,9 @@ public class TransitiveIntervalSchemaModule extends
 			SortedMap<Integer, DAGNode> headMap = inverseMap_.headMap(objKey);
 			int prevIndex = (headMap != null && !headMap.isEmpty()) ? headMap
 					.lastKey() : 0;
-			int childID = (int) Math.ceil(prevIndex * INTERVAL_SPLIT + objKey
-					* (1 - INTERVAL_SPLIT));
+			// int childID = (int) Math.ceil(prevIndex * INTERVAL_SPLIT + objKey
+			// * (1 - INTERVAL_SPLIT));
+			int childID = prevIndex + 1;
 			if (inverseMap_.containsKey(childID))
 				return false;
 

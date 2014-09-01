@@ -155,10 +155,7 @@ public class TransitiveWorker extends QueryWorker {
 	public void queryInternal(QueryObject queryObj)
 			throws IllegalArgumentException {
 		// Use the interval module if available
-		if (transIntModule_ != null
-				&& transIntModule_.isReady()
-				&& transIntModule_.getTransitiveNode().equals(
-						queryObj.getNode(0))) {
+		if (canUseTransitiveMNodule(queryObj)) {
 			runIntervalModule(queryObj);
 		} else {
 			transitiveSearch(queryObj);
@@ -167,6 +164,21 @@ public class TransitiveWorker extends QueryWorker {
 				queryObj.cleanTransitiveJustification(queryObj
 						.getJustification());
 		}
+	}
+
+	private boolean canUseTransitiveMNodule(QueryObject queryObj) {
+		Node[] nodes = queryObj.getNodes();
+		if (transIntModule_ == null
+				|| !transIntModule_.getTransitiveNode().equals(nodes[0]))
+			return false;
+		// Make sure all nodes are present in the transitive interval module.
+		for (int i = 1; i < nodes.length; i++)
+			if (nodes[i] instanceof DAGNode
+					&& ((DAGNode) nodes[i])
+							.getProperty(TransitiveIntervalSchemaModule.PREDECESSOR_ID) == null)
+				return false;
+		// Otherwise, check it's ready
+		return transIntModule_.isReady();
 	}
 
 	@Override

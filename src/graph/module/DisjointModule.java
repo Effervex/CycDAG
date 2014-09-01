@@ -6,7 +6,6 @@ import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
 import graph.core.OntologyFunction;
-import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
 import graph.inference.VariableNode;
 
@@ -16,7 +15,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import util.UtilityMethods;
