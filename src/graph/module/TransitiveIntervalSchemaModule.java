@@ -92,7 +92,7 @@ public class TransitiveIntervalSchemaModule extends
 	protected DAGNode transitiveNode_;
 
 	/** If incremental updates are allowed. */
-	public boolean incrementalSupported_ = false;
+	public boolean incrementalSupported_ = true;
 
 	/**
 	 * Builds a spanning tree for a given topologically sorted collection of
@@ -190,15 +190,19 @@ public class TransitiveIntervalSchemaModule extends
 			return justification;
 
 		for (DAGNode directNext : getTransitiveNodes(baseNode, true)) {
-			if (!seenNodes.contains(directNext)
-					&& predecessorMap_.isTransitive(directNext, transNode)) {
-				seenNodes.add(directNext);
-				if (justifyTransitiveR(directNext, transNode, justification,
-						seenNodes) != null) {
-					justification.add(new Node[] { transitiveNode_, baseNode,
-							directNext });
-					return justification;
+			try {
+				if (!seenNodes.contains(directNext)
+						&& predecessorMap_.isTransitive(directNext, transNode)) {
+					seenNodes.add(directNext);
+					if (justifyTransitiveR(directNext, transNode,
+							justification, seenNodes) != null) {
+						justification.add(new Node[] { transitiveNode_,
+								baseNode, directNext });
+						return justification;
+					}
 				}
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
 		return null;
@@ -376,10 +380,15 @@ public class TransitiveIntervalSchemaModule extends
 		DAGNode node = (DAGNode) args[1];
 		if (args.length >= 3) {
 			DAGNode otherNode = (DAGNode) args[2];
-			if (schema.isTransitive(node, otherNode))
-				return new ArrayList<DAGNode>(0);
-			else
+			try {
+				if (schema.isTransitive(node, otherNode))
+					return new ArrayList<DAGNode>(0);
+				else
+					return null;
+			} catch (Exception e) {
+				e.printStackTrace();
 				return null;
+			}
 		}
 		return schema.getTransitivePredecessors(node, false);
 	}
@@ -824,8 +833,12 @@ public class TransitiveIntervalSchemaModule extends
 		 * @param otherNode
 		 *            The query node.
 		 * @return True if the otherNode is transitively accessed from node.
+		 * @throws Exception
+		 *             If the node properties are misaligned to the transitive
+		 *             properties.
 		 */
-		public boolean isTransitive(DAGNode node, DAGNode otherNode) {
+		public boolean isTransitive(DAGNode node, DAGNode otherNode)
+				throws Exception {
 			String predIDStr = node.getProperty(intervalIDKey_);
 			if (predIDStr == null)
 				return false;
@@ -837,6 +850,9 @@ public class TransitiveIntervalSchemaModule extends
 			int otherID = Integer.parseInt(otherIDStr);
 
 			Collection<int[]> intervals = schemaMap_.get(predID);
+			if (intervals == null)
+				throw new Exception("Transitive properties misaligned! Please "
+						+ "wipe properties and rebuild.");
 			for (int[] interval : intervals)
 				if (otherID >= interval[0] && otherID <= interval[1])
 					return true;

@@ -205,6 +205,26 @@ public class NLPToStringModule extends DAGModule<String> {
 		return super.addNode(node);
 	}
 
+	@Override
+	public boolean removeNode(DAGNode node) {
+		// Remove the node alias
+		NodeAliasModule nam = (NodeAliasModule) dag_
+				.getModule(NodeAliasModule.class);
+		if (nam != null) {
+			String nodeName = nodeToString(node, false);
+			if (!nodeName.isEmpty())
+				nam.removeAlias(node, nodeName);
+			if (!node.getName().startsWith("(")) {
+				String basicName = conceptToPlainText(node.getName());
+				if (!basicName.equals(nodeName)
+						&& !basicName.equals(node.getName())
+						&& !basicName.isEmpty())
+					nam.removeAlias(node, basicName);
+			}
+		}
+		return super.addNode(node);
+	}
+
 	public String markupToString(String string, boolean markup) {
 		// Find all instances of [[text]] and swap it for dag-to-text, OR append
 		// it with dag-to-text if markup is active.
