@@ -1,7 +1,6 @@
 package graph.core.cli;
 
 import graph.core.CommonConcepts;
-import graph.core.CycDAG;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;

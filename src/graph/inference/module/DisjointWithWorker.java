@@ -108,13 +108,15 @@ public class DisjointWithWorker extends QueryWorker {
 						thisNode = otherNode;
 						otherNode = temp;
 					}
-					queryObj.getJustification().addAll(
-							alterGenlJustification(genlResults1,
-									(DAGNode) thisNode, false));
+					if (queryObj.shouldJustify())
+						queryObj.getJustification().addAll(
+								alterGenlJustification(genlResults1,
+										(DAGNode) thisNode, false));
 					queryObj.addResult(new Substitution(), edgeNodes);
-					queryObj.getJustification().addAll(
-							alterGenlJustification(genlResults2,
-									(DAGNode) otherNode, true));
+					if (queryObj.shouldJustify())
+						queryObj.getJustification().addAll(
+								alterGenlJustification(genlResults2,
+										(DAGNode) otherNode, true));
 
 					return;
 				} else if (!queryObj.isProof())
@@ -286,42 +288,53 @@ public class DisjointWithWorker extends QueryWorker {
 		// Add transitive query 1, unless it is the same
 		Node arg1 = queryObj.getNode(1);
 		if (!arg1.equals(transOne)) {
-			proof = new QueryObject(CommonConcepts.GENLS.getNode(dag_), arg1,
-					transOne);
+			proof = new QueryObject(queryObj.shouldJustify(),
+					CommonConcepts.GENLS.getNode(dag_), arg1, transOne);
 			querier_.prove(proof);
-			justification.addAll(proof.getJustification());
-			justification.add(new Node[0]);
+			if (queryObj.shouldJustify()) {
+				justification.addAll(proof.getJustification());
+				justification.add(new Node[0]);
+			}
 		}
 
 		// Add isa sibling query for arg 1
-		proof = new QueryObject(CommonConcepts.ISA.getNode(dag_), transOne,
-				queryVar);
+		proof = new QueryObject(queryObj.shouldJustify(),
+				CommonConcepts.ISA.getNode(dag_), transOne, queryVar);
 		querier_.prove(proof);
-		justification.addAll(proof.getJustification());
-		justification.add(new Node[0]);
+		if (queryObj.shouldJustify()) {
+			justification.addAll(proof.getJustification());
+			justification.add(new Node[0]);
+		}
 
 		// Add transitive query 2, unless it is the same
 		Node arg2 = queryObj.getNode(2);
 		if (!arg2.equals(transTwo)) {
-			proof = new QueryObject(CommonConcepts.GENLS.getNode(dag_), arg2,
-					transTwo);
+			proof = new QueryObject(queryObj.shouldJustify(),
+					CommonConcepts.GENLS.getNode(dag_), arg2, transTwo);
 			querier_.prove(proof);
+			if (queryObj.shouldJustify()) {
+				justification.addAll(proof.getJustification());
+				justification.add(new Node[0]);
+			}
+		}
+
+		// Add isa sibling query for arg 2
+		proof = new QueryObject(queryObj.shouldJustify(),
+				CommonConcepts.ISA.getNode(dag_), transTwo, queryVar);
+		querier_.prove(proof);
+		if (queryObj.shouldJustify()) {
 			justification.addAll(proof.getJustification());
 			justification.add(new Node[0]);
 		}
 
-		// Add isa sibling query for arg 2
-		proof = new QueryObject(CommonConcepts.ISA.getNode(dag_), transTwo,
-				queryVar);
-		querier_.prove(proof);
-		justification.addAll(proof.getJustification());
-		justification.add(new Node[0]);
-
 		// Add isa sibling collection to sibling collection type
-		proof = new QueryObject(CommonConcepts.ISA.getNode(dag_), queryVar,
+		proof = new QueryObject(queryObj.shouldJustify(),
+				CommonConcepts.ISA.getNode(dag_), queryVar,
 				CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE.getNode(dag_));
 		querier_.prove(proof);
-		justification.addAll(proof.getJustification());
+		if (queryObj.shouldJustify()) {
+			justification.addAll(proof.getJustification());
+		}
 	}
 
 	private boolean isException(Node node, Node node2) {
@@ -338,19 +351,7 @@ public class DisjointWithWorker extends QueryWorker {
 			throws IllegalArgumentException {
 		// Use disjoint module if possible
 		if (disjointModule_ != null && notAnonymous(queryObj)) {
-			if (queryObj.isProof()) {
-				Collection<DAGNode> disjointNodes = disjointModule_.execute(
-						queryObj.getNode(1), queryObj.getNode(2));
-				// TODO Might need justification
-				if (disjointNodes != null)
-					queryObj.addResult(new Substitution());
-			} else {
-				Collection<DAGNode> disjointNodes = disjointModule_
-						.execute(queryObj.getAtomic());
-				for (DAGNode node : disjointNodes)
-					queryObj.addResult(new Substitution(queryObj.getVariable(),
-							node));
-			}
+			disjointModule_.execute(queryObj);
 		} else {
 			// Disjoint edges
 			Collection<Edge> disjointWithEdges = relatedModule_

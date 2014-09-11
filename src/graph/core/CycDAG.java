@@ -723,8 +723,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 							.replaceAll("#\\$", "") : null;
 					Edge edge = findOrCreateEdge(nodes, CYC_IMPORT,
 							microtheory, true);
-					if (edge instanceof ErrorEdge)
+					if (edge instanceof ErrorEdge) {
+						System.out.println("Error: " + edge.toString());
 						nullCount++;
+					}
 				} else
 					nullCount++;
 			} catch (Exception e) {

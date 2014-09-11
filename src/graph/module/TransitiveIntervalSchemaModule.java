@@ -670,12 +670,15 @@ public class TransitiveIntervalSchemaModule extends
 		private void recordID(DAGNode node, int id, int[] interval) {
 			if (schemaLock_ == null)
 				schemaLock_ = new ReentrantLock();
-			schemaLock_.lock();
-			inverseMap_.put(id, node);
-			Collection<int[]> intervals = new ArrayList<>(1);
-			intervals.add(interval);
-			schemaMap_.put(id, intervals);
-			schemaLock_.unlock();
+			try {
+				schemaLock_.lock();
+				inverseMap_.put(id, node);
+				Collection<int[]> intervals = new ArrayList<>(1);
+				intervals.add(interval);
+				schemaMap_.put(id, intervals);
+			} finally {
+				schemaLock_.unlock();
+			}
 		}
 
 		/**
@@ -818,9 +821,17 @@ public class TransitiveIntervalSchemaModule extends
 			Collection<int[]> intervals = schemaMap_.get(predID);
 			Collection<DAGNode> transitive = new TreeSet<>(new IDOrder(
 					intervalIDKey_, reversed));
-			for (int[] interval : intervals)
-				transitive.addAll(inverseMap_.subMap(interval[0],
-						interval[1] + 1).values());
+			
+			if (schemaLock_ == null)
+				schemaLock_ = new ReentrantLock();
+			try {
+				schemaLock_.lock();
+				for (int[] interval : intervals)
+					transitive.addAll(inverseMap_.subMap(interval[0],
+							interval[1] + 1).values());
+			} finally {
+				schemaLock_.unlock();
+			}
 
 			return transitive;
 		}
@@ -927,16 +938,19 @@ public class TransitiveIntervalSchemaModule extends
 
 			if (schemaLock_ == null)
 				schemaLock_ = new ReentrantLock();
-			schemaLock_.lock();
-			for (DAGNode predecessor : predecessors) {
-				// Remove the subjIntervals from the obj
-				removeIntervals(predecessor, nodeSubj);
-				Collection<DAGNode> transitives = getTransitiveNodes(
-						predecessor, intervalIDKey_.equals(PREDECESSOR_ID));
-				for (DAGNode n : transitives)
-					addIntervals(predecessor, n);
+			try {
+				schemaLock_.lock();
+				for (DAGNode predecessor : predecessors) {
+					// Remove the subjIntervals from the obj
+					removeIntervals(predecessor, nodeSubj);
+					Collection<DAGNode> transitives = getTransitiveNodes(
+							predecessor, intervalIDKey_.equals(PREDECESSOR_ID));
+					for (DAGNode n : transitives)
+						addIntervals(predecessor, n);
+				}
+			} finally {
+				schemaLock_.unlock();
 			}
-			schemaLock_.unlock();
 		}
 	}
 

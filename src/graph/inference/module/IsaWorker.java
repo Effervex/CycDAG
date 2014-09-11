@@ -36,7 +36,7 @@ public class IsaWorker extends QueryWorker {
 
 	protected QueryObject composeTransitive(DAGNode transitivePred,
 			int atomicIndex, DAGNode atomicNode, Node varNode,
-			QueryObject queryObj) {
+			QueryObject queryObj, boolean shouldJustify) {
 		Node[] transitiveArgs = new Node[3];
 		transitiveArgs[0] = transitivePred;
 		transitiveArgs[atomicIndex] = atomicNode;
@@ -46,7 +46,8 @@ public class IsaWorker extends QueryWorker {
 			transitiveArgs[1] = varNode;
 
 		QueryObject transitiveObj = (queryObj == null) ? new QueryObject(
-				transitiveArgs) : queryObj.modifyNodes(transitiveArgs);
+				shouldJustify, transitiveArgs) : queryObj.modifyNodes(
+				transitiveArgs);
 		querier_.applyModule(transitivePred.getName(), transitiveObj);
 		return transitiveObj;
 	}
@@ -66,7 +67,7 @@ public class IsaWorker extends QueryWorker {
 		if (atomicIndex != 1)
 			transitiveQO = composeTransitive(
 					CommonConcepts.GENLS.getNode(dag_), atomicIndex, atomic,
-					varNode, null);
+					varNode, null, queryObj.shouldJustify());
 
 		Collection<Substitution> genlsSubs = new ArrayList<>(1);
 		if (transitiveQO != null)
@@ -94,7 +95,8 @@ public class IsaWorker extends QueryWorker {
 				Node[] edgeNodes = e.getNodes();
 				if (queryObj.isCompleted(edgeNodes[varIndex]))
 					continue;
-				queryObj.getJustification().clear();
+				if (queryObj.shouldJustify())
+					queryObj.getJustification().clear();
 				if (queryObj.addResult(edgeNodes))
 					return;
 
@@ -103,20 +105,22 @@ public class IsaWorker extends QueryWorker {
 					transitiveQO = composeTransitive(
 							CommonConcepts.GENLS.getNode(dag_), atomicIndex,
 							(DAGNode) edgeNodes[varIndex],
-							queryObj.getNode(varIndex), queryObj);
+							queryObj.getNode(varIndex), queryObj,
+							queryObj.shouldJustify());
 
 					// If the proof is met, exit
 					if (queryObj != null && queryObj.isProof()
 							&& queryObj.getResults() != null) {
-						queryObj.getJustification().addAll(
-								transitiveQO.getJustification());
+						if (queryObj.shouldJustify())
+							queryObj.getJustification().addAll(
+									transitiveQO.getJustification());
 						return;
 					}
 				}
 			}
 		}
 
-		if (atomicIndex != 1) {
+		if (atomicIndex != 1 && queryObj.shouldJustify()) {
 			transitiveQO.cleanTransitiveJustification(transitiveQO
 					.getJustification());
 			queryObj.getJustification().addAll(transitiveQO.getJustification());

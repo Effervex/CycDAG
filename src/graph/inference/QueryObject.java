@@ -34,6 +34,7 @@ public class QueryObject {
 	private ArrayList<DAGNode> completed_;
 	private Set<DAGNode> completedSet_;
 	private List<Node[]> justification_;
+	private boolean needJustification_;
 	private Node[] nodes_;
 	private Substitution priorSubstitution_;
 	private ArrayList<Substitution> results_;
@@ -42,18 +43,64 @@ public class QueryObject {
 	private int variableIndex_ = -1;
 	private ArrayList<VariableNode> variables_;
 
+	/**
+	 * Constructor for a new QueryObject. This QO is initialised with no
+	 * justification.
+	 * 
+	 * @param nodes
+	 *            The nodes of the query.
+	 */
 	public QueryObject(Node... nodes) {
+		this(false, nodes);
+	}
+
+	/**
+	 * Constructor for a new QueryObject with optional justification.
+	 * 
+	 * @param needJustification
+	 *            If a justification is required.
+	 * @param nodes
+	 *            The nodes of the query.
+	 */
+	public QueryObject(boolean needJustification, Node... nodes) {
 		nodes_ = nodes;
 		buildAtomicVariableSets(nodes);
 		results_ = new ArrayList<>();
 		resultsSet_ = new HashSet<>();
 		completed_ = new ArrayList<>();
 		completedSet_ = new HashSet<>();
-		justification_ = new ArrayList<>();
+		needJustification_ = needJustification;
+		if (needJustification_)
+			justification_ = new ArrayList<>();
 	}
 
+	/**
+	 * Constructor for a new QueryObject with a prior substitution. No
+	 * justification.
+	 * 
+	 * @param priorSubstitution
+	 *            The prior substitution to apply to the query.
+	 * @param nodes
+	 *            The nodes of the query.
+	 */
 	public QueryObject(Substitution priorSubstitution, Node... nodes) {
-		this(nodes);
+		this(false, priorSubstitution, nodes);
+	}
+
+	/**
+	 * Constructor for a new QueryObject with a prior substitution and optional
+	 * justification.
+	 * 
+	 * @param needJustification
+	 *            If a justification is required.
+	 * @param priorSubstitution
+	 *            The prior substitution to apply to the query.
+	 * @param nodes
+	 *            The nodes of the query.
+	 */
+	public QueryObject(boolean needJustification,
+			Substitution priorSubstitution, Node... nodes) {
+		this(needJustification, nodes);
 		priorSubstitution_ = priorSubstitution;
 	}
 
@@ -122,7 +169,8 @@ public class QueryObject {
 			return false;
 
 		// Note the justification chain
-		justification_.add(nodes);
+		if (needJustification_)
+			justification_.add(nodes);
 
 		// Create a substitution
 		Substitution s = new Substitution();
@@ -149,7 +197,8 @@ public class QueryObject {
 	 */
 	public boolean addResult(Substitution substitution,
 			Node... justificationNodes) {
-		if (justificationNodes != null && justificationNodes.length > 0)
+		if (needJustification_ && justificationNodes != null
+				&& justificationNodes.length > 0)
 			justification_.add(justificationNodes);
 
 		if (isProof()) {
@@ -188,6 +237,8 @@ public class QueryObject {
 	}
 
 	public void cleanTransitiveJustification(List<Node[]> justifications) {
+		if (!needJustification_)
+			return;
 		List<Node[]> transitiveJustification = new ArrayList<>();
 		Node transitiveNode = null;
 		for (int i = justifications.size() - 1; i >= 0; i--) {
@@ -277,10 +328,11 @@ public class QueryObject {
 	 * 
 	 * @param nodes
 	 *            The new nodes.
+	 * 
 	 * @return The new QueryObject sharing the results.
 	 */
 	public QueryObject modifyNodes(Node... nodes) {
-		QueryObject newObj = new QueryObject(nodes);
+		QueryObject newObj = new QueryObject(needJustification_, nodes);
 		newObj.completed_ = completed_;
 		newObj.completedSet_ = completedSet_;
 		newObj.results_ = results_;
@@ -303,5 +355,9 @@ public class QueryObject {
 	@Override
 	public String toString() {
 		return Arrays.toString(nodes_);
+	}
+
+	public boolean shouldJustify() {
+		return needJustification_;
 	}
 }

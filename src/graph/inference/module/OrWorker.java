@@ -38,7 +38,9 @@ public class OrWorker extends QueryWorker {
 
 			// Intersect results
 			queryObj.addResults(funcObject.getResults());
-			queryObj.getJustification().addAll(funcObject.getJustification());
+			if (queryObj.shouldJustify())
+				queryObj.getJustification().addAll(
+						funcObject.getJustification());
 		}
 	}
 }

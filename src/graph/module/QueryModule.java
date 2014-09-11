@@ -119,11 +119,14 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				QueryObject instantiated = queryObj.modifyNodes(variableMatch,
 						variableMatch.applySubstitution(nodes));
 				applyModule(module, instantiated);
-				List<Node[]> justification = instantiated.getJustification();
-				if (!justification.isEmpty()) {
-					for (Node[] step : justification) {
-						if (!queryObj.getJustification().contains(step))
-							queryObj.getJustification().add(step);
+				if (instantiated.shouldJustify()) {
+					List<Node[]> justification = instantiated
+							.getJustification();
+					if (!justification.isEmpty()) {
+						for (Node[] step : justification) {
+							if (!queryObj.getJustification().contains(step))
+								queryObj.getJustification().add(step);
+						}
 					}
 				}
 			}
@@ -133,6 +136,12 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 			applyModule(module, queryObj);
 			return queryObj.getResults();
 		}
+	}
+
+	public List<Node[]> justify(Node... nodes) {
+		QueryObject qo = new QueryObject(true, nodes);
+		execute(qo);
+		return qo.getJustification();
 	}
 
 	public boolean prove(Node... nodes) {

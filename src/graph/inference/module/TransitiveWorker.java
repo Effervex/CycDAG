@@ -53,11 +53,13 @@ public class TransitiveWorker extends QueryWorker {
 					queryObj.getNode(1), queryObj.getNode(2));
 			if (result != null) {
 				queryObj.addResult(new Substitution(), queryObj.getNodes());
-				List<Node[]> justification = queryObj.getJustification();
-				justification.clear();
-				justification.addAll(transIntModule_.justifyTransitive(
-						(DAGNode) queryObj.getNode(1),
-						(DAGNode) queryObj.getNode(2)));
+				if (queryObj.shouldJustify()) {
+					List<Node[]> justification = queryObj.getJustification();
+					justification.clear();
+					justification.addAll(transIntModule_.justifyTransitive(
+							(DAGNode) queryObj.getNode(1),
+							(DAGNode) queryObj.getNode(2)));
+				}
 			}
 		} else {
 			// Find the results and add them to the query object.
@@ -160,7 +162,7 @@ public class TransitiveWorker extends QueryWorker {
 		} else {
 			transitiveSearch(queryObj);
 
-			if (queryObj.isProof())
+			if (queryObj.isProof() && queryObj.shouldJustify())
 				queryObj.cleanTransitiveJustification(queryObj
 						.getJustification());
 		}
