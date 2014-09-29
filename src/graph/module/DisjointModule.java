@@ -254,8 +254,9 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 				return disjointCollections;
 			} else {
 				// If proof, check if true and add justification.
+				int varIndex = (queryObj.getAtomicIndex() == 1) ? 2 : 1;
 				Collection<DAGNode> otherCollections = getParents((DAGNode) queryObj
-						.getNode(queryObj.getVariableIndex()));
+						.getNode(varIndex));
 				disjointCollections.retainAll(otherCollections);
 				if (!disjointCollections.isEmpty()) {
 					if (queryObj.shouldJustify()) {
@@ -270,7 +271,7 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 								CommonConcepts.DISJOINTWITH.getNode(dag_),
 								disjMap.get(key), key });
 						List<Node[]> revJust = queryModule_.justify(genls,
-								queryObj.getNode(queryObj.getVariableIndex()),
+								queryObj.getNode(varIndex),
 								key);
 						Collections.reverse(revJust);
 						justification.addAll(revJust);

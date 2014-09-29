@@ -253,9 +253,20 @@ public class NLPToStringModule extends DAGModule<String> {
 	private String nodeToStringInternal(Node node) {
 		// Use prettyString-Canonical where possible
 		Collection<Node> canonicalStrs = querier_.executeAndParseVar(
-				new QueryObject(CommonConcepts.PRETTY_STRING_CANONICAL
-						.getNode(dag_), node, VariableNode.DEFAULT),
-				VariableNode.DEFAULT.toString());
+				new QueryObject(CommonConcepts.ASSERTED_SENTENCE.getNode(dag_),
+						new OntologyFunction(
+								CommonConcepts.PRETTY_STRING_CANONICAL
+										.getNode(dag_), node,
+								VariableNode.DEFAULT)), VariableNode.DEFAULT
+						.toString());
+		if (!canonicalStrs.isEmpty())
+			return UtilityMethods.shrinkString(
+					returnSmallestString(canonicalStrs), 1);
+
+		// Use children of prettyString-Canonical
+		canonicalStrs = querier_.executeAndParseVar(new QueryObject(
+				CommonConcepts.PRETTY_STRING_CANONICAL.getNode(dag_), node,
+				VariableNode.DEFAULT), VariableNode.DEFAULT.toString());
 		if (!canonicalStrs.isEmpty())
 			return UtilityMethods.shrinkString(
 					returnSmallestString(canonicalStrs), 1);
