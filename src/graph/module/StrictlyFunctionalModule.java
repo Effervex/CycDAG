@@ -23,10 +23,8 @@ public class StrictlyFunctionalModule extends DAGModule<DAGNode> {
 	private static final long serialVersionUID = 1L;
 	private Collection<DAGNode> strictlyFunctionalPreds_;
 	private transient RelatedEdgeModule relEdgeModule_;
-	private boolean overwriting_;
 
 	public StrictlyFunctionalModule() {
-		strictlyFunctionalPreds_ = new HashSet<>();
 	}
 
 	@Override
@@ -37,6 +35,8 @@ public class StrictlyFunctionalModule extends DAGModule<DAGNode> {
 
 	@Override
 	public boolean addEdge(DAGEdge edge) {
+		if (strictlyFunctionalPreds_ == null)
+			strictlyFunctionalPreds_ = new HashSet<>();
 		Node[] edgeNodes = edge.getNodes();
 
 		// Check if the edge is a new strictly functional predicate
@@ -70,7 +70,7 @@ public class StrictlyFunctionalModule extends DAGModule<DAGNode> {
 	@Override
 	public boolean initialisationComplete(Collection<DAGNode> nodes,
 			Collection<DAGEdge> edges, boolean forceRebuild) {
-		if (forceRebuild) {
+		if (forceRebuild || strictlyFunctionalPreds_ == null) {
 			defaultRebuild(nodes, false, edges, true);
 			return true;
 		}
