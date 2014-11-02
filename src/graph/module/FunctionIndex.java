@@ -17,6 +17,8 @@ import graph.core.OntologyFunction;
 
 import java.util.Collection;
 
+import org.apache.commons.collections4.CollectionUtils;
+
 import util.collection.Trie;
 
 public class FunctionIndex extends DAGModule<OntologyFunction> {
@@ -50,13 +52,14 @@ public class FunctionIndex extends DAGModule<OntologyFunction> {
 	}
 
 	public OntologyFunction findFunction(Node[] args) {
-		Collection<OntologyFunction> vals = index_.getValue(args, 0, null, false);
+		Collection<OntologyFunction> vals = index_.getValue(args, 0, null,
+				false);
 		if (vals == null || vals.isEmpty())
 			return null;
 		OntologyFunction func = vals.iterator().next();
 		return func;
 	}
-	
+
 	@Override
 	public boolean initialisationComplete(Collection<DAGNode> nodes,
 			Collection<DAGEdge> edges, boolean forceRebuild) {
@@ -76,7 +79,13 @@ public class FunctionIndex extends DAGModule<OntologyFunction> {
 		return "Function Index Module: " + index_.toString();
 	}
 
-	public Collection<OntologyFunction> getAllFunctions(DAGNode functionNode) {
-		return index_.getValue(new Node[] { functionNode }, 0, null, true);
+	@SuppressWarnings("unchecked")
+	public Collection<OntologyFunction> getInstantiatedFunctionConcepts(
+			DAGNode functionNode) {
+		Collection<OntologyFunction> funcs = index_.getValue(
+				new Node[] { functionNode }, 0, null, true);
+		if (funcs != null)
+			return funcs;
+		return CollectionUtils.EMPTY_COLLECTION;
 	}
 }

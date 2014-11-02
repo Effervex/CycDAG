@@ -145,11 +145,15 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	}
 
 	public boolean prove(Node... nodes) {
-		return execute((Object[]) nodes) != null;
+		QueryObject qo = new QueryObject(false, nodes);
+		return prove(qo);
 	}
 
 	public boolean prove(QueryObject queryObject) {
-		return execute(queryObject) != null;
+		if (queryObject.isProof())
+			return execute(queryObject) != null;
+		else
+			return !execute(queryObject).isEmpty();
 	}
 
 	/**

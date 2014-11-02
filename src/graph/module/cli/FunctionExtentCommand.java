@@ -53,7 +53,7 @@ public class FunctionExtentCommand extends CollectionCommand {
 		Node functionNode = (DAGNode) dagHandler.getDAG().findOrCreateNode(
 				data, null, flags);
 		Collection<OntologyFunction> narts = functionModule
-				.getAllFunctions((DAGNode) functionNode);
+				.getInstantiatedFunctionConcepts((DAGNode) functionNode);
 		if (narts == null) {
 			print("0|");
 			return;

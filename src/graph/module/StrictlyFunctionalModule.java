@@ -23,6 +23,7 @@ public class StrictlyFunctionalModule extends DAGModule<DAGNode> {
 	private static final long serialVersionUID = 1L;
 	private Collection<DAGNode> strictlyFunctionalPreds_;
 	private transient RelatedEdgeModule relEdgeModule_;
+	private boolean overwriting_;
 
 	public StrictlyFunctionalModule() {
 		strictlyFunctionalPreds_ = new HashSet<>();
@@ -55,6 +56,7 @@ public class StrictlyFunctionalModule extends DAGModule<DAGNode> {
 			// Check if the first argument already has an edge
 			Collection<Edge> existing = relEdgeModule_.findEdgeByNodes(
 					edgeNodes[0], edgeNodes[1]);
+			
 			// Remove all existing edges (hopefully only one)
 			for (Edge e : existing) {
 				if (!edge.equals(e))
