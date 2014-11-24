@@ -15,7 +15,7 @@ public class VariableErrorEdge extends DAGErrorEdge {
 	private static VariableErrorEdge instance_ = new VariableErrorEdge();
 
 	@Override
-	public String getError() {
+	public String getError(boolean isPretty) {
 		return "Variable(s) found in assertion.";
 	}
 

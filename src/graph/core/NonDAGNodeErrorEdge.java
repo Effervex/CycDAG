@@ -19,7 +19,7 @@ public class NonDAGNodeErrorEdge extends DAGErrorEdge {
 	}
 
 	@Override
-	public String getError() {
+	public String getError(boolean isPretty) {
 		return "Edge cannot have non-DAG node as first argument!";
 	}
 

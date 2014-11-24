@@ -52,7 +52,7 @@ public class DepthCommand extends CollectionCommand {
 		}
 
 		// Apply sorting
-		nodes = dagHandler.postProcess(nodes, rangeStart_, rangeEnd_);
+		nodes = dagHandler.postProcess(nodes, rangeStart_, rangeEnd_, true);
 
 		print(nodes.size() + "|");
 		for (DAGNode n : nodes)

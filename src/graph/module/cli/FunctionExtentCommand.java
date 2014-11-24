@@ -60,7 +60,7 @@ public class FunctionExtentCommand extends CollectionCommand {
 		}
 
 		// Apply sorting
-		narts = dagHandler.postProcess(narts, rangeStart_, rangeEnd_);
+		narts = dagHandler.postProcess(narts, rangeStart_, rangeEnd_, true);
 
 		print(narts.size() + "|");
 		for (OntologyFunction nart : narts)

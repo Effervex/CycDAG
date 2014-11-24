@@ -291,10 +291,15 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), theString, STRING.getNode(dag) },
 				_COMMON_CONCEPT, true);
-		dag.findOrCreateEdge(
 
-		new Node[] { ISA.getNode(dag), NLP_PREDICATE_STRING.getNode(dag),
-				BINARY_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag),
+						NLP_PREDICATE_STRING.getNode(dag),
+						BINARY_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ARITY.getNode(dag),
+						NLP_PREDICATE_STRING.getNode(dag),
+						PrimitiveNode.parseNode("2") }, _COMMON_CONCEPT, true);
 		dag.findOrCreateEdge(new Node[] { ARGISA.getNode(dag),
 				NLP_PREDICATE_STRING.getNode(dag),
 				PrimitiveNode.parseNode("1"), PREDICATE.getNode(dag) },
@@ -439,7 +444,8 @@ public enum CommonConcepts {
 		nlpPredicates(NLP_PREDICATE_STRING,
 				"$2 /2(is)/(are)/ the NL predicate string for $1", dag);
 		nlpPredicates(NOT, "$1 /1(is)/(are)/ not true", dag);
-		nlpPredicates(PRETTY_STRING, "$1 /1(is)/(are)/ known as $2", dag);
+		nlpPredicates(PRETTY_STRING, "$1 /1(is)/(are)/ known as $2",
+				dag);
 		nlpPredicates(PRETTY_STRING_CANONICAL,
 				"$1 /1(is)/(are)/ commonly known as $2", dag);
 		nlpPredicates(QUOTED_ISA,

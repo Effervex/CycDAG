@@ -10,6 +10,8 @@
  ******************************************************************************/
 package graph.core;
 
+import graph.module.NLPToStringModule;
+
 public class ArityErrorEdge extends DAGErrorEdge {
 	private static final long serialVersionUID = 1L;
 	private int numArgs_;
@@ -21,7 +23,14 @@ public class ArityErrorEdge extends DAGErrorEdge {
 	}
 
 	@Override
-	public String getError() {
+	public String getError(boolean isPretty) {
+		if (isPretty) {
+			NLPToStringModule nlpModule = (NLPToStringModule) DirectedAcyclicGraph.selfRef_
+					.getModule(NLPToStringModule.class);
+			if (nlpModule != null)
+				return "Predicate " + nlpModule.nodeToString(predicate_, false)
+						+ " should only have " + numArgs_ + " arguments.";
+		}
 		return "Predicate " + predicate_ + " should only have " + numArgs_
 				+ " arguments.";
 	}

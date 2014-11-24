@@ -53,7 +53,7 @@ public class MicrotheoryCommand extends CollectionCommand {
 		}
 
 		// Apply sorting
-		edges = dagHandler.postProcess(edges, rangeStart_, rangeEnd_);
+		edges = dagHandler.postProcess(edges, rangeStart_, rangeEnd_, true);
 
 		print(edges.size() + "|");
 		for (DAGEdge e : edges)

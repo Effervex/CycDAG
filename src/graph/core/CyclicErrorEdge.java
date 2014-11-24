@@ -10,6 +10,9 @@
  ******************************************************************************/
 package graph.core;
 
+import graph.inference.QueryObject;
+import graph.module.NLPToStringModule;
+
 import org.apache.commons.lang3.StringUtils;
 
 public class CyclicErrorEdge extends DAGErrorEdge {
@@ -21,7 +24,16 @@ public class CyclicErrorEdge extends DAGErrorEdge {
 	}
 
 	@Override
-	public String getError() {
+	public String getError(boolean isPretty) {
+		if (isPretty) {
+			NLPToStringModule nlpModule = (NLPToStringModule) DirectedAcyclicGraph.selfRef_
+					.getModule(NLPToStringModule.class);
+			if (nlpModule != null)
+				return "Asserting '"
+						+ nlpModule.edgeToString(new QueryObject(
+								cyclicAssertion_), false, false, false)
+						+ "' would create a cycle.";
+		}
 		return "Asserting (" + StringUtils.join(cyclicAssertion_, " ")
 				+ ") would create a cycle.";
 	}

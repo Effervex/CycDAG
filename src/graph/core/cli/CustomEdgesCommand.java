@@ -22,7 +22,7 @@ import util.UtilityMethods;
 public class CustomEdgesCommand extends CollectionCommand {
 	@Override
 	public String helpText() {
-		return "{0} <node> T/N/O : Returns all edges for a given node, "
+		return "{0} <node> T/TU/TD/N/O : Returns all edges for a given node, "
 				+ "for three groups of edges: taxonomic, natural language, "
 				+ "and other. The set of outputs consist of a predicate, "
 				+ "the number of edges under that predicate, and a triple "
@@ -77,6 +77,8 @@ public class CustomEdgesCommand extends CollectionCommand {
 			print("-1|Could not parse node.\n");
 			return;
 		}
+		boolean isPredicate = querier.prove(CommonConcepts.ISA.getNode(dag),
+				conceptNode, CommonConcepts.PREDICATE.getNode(dag));
 
 		// Run through every edge involving concept, enforcing range constraints
 		// manually.
@@ -84,10 +86,17 @@ public class CustomEdgesCommand extends CollectionCommand {
 		Collection<Edge> edges = relatedEdge.execute(conceptNode, "!1");
 		SortedMap<DAGNode, SortedSet<Edge>> predEdges = new TreeMap<>(
 				dagHandler.getComparator());
+		preLoadPreEdges(conceptNode, type, isPredicate, predEdges, dag);
 		for (Edge e : edges) {
 			DAGNode pred = (DAGNode) e.getNodes()[0];
 			if (isHierarchical(pred, dag)) {
-				if (!type.equalsIgnoreCase("T"))
+				if (!type.startsWith("T"))
+					continue;
+				if (e.getNodes()[1].equals(conceptNode)
+						&& type.equalsIgnoreCase("TD"))
+					continue;
+				if (e.getNodes()[2].equals(conceptNode)
+						&& type.equalsIgnoreCase("TU"))
 					continue;
 			} else if (isNaturalLanguage(pred, querier, dag)) {
 				if (!type.equalsIgnoreCase("N"))
@@ -96,7 +105,7 @@ public class CustomEdgesCommand extends CollectionCommand {
 				if (!type.equalsIgnoreCase("O"))
 					continue;
 			}
-			
+
 			// Initialise the sorted edge set per predicate
 			SortedSet<Edge> predEdge = predEdges.get(pred);
 			if (predEdge == null) {
@@ -111,7 +120,7 @@ public class CustomEdgesCommand extends CollectionCommand {
 			// Pred key
 			print(dagHandler.textIDObject(key) + "|");
 			Collection<Edge> sortedEdges = dagHandler.postProcess(
-					predEdges.get(key), rangeStart_, rangeEnd_);
+					predEdges.get(key), rangeStart_, rangeEnd_, true);
 			// Num edges
 			print(sortedEdges.size() + "|");
 
@@ -122,6 +131,26 @@ public class CustomEdgesCommand extends CollectionCommand {
 						+ ((DAGEdge) e).getCreator() + "|");
 			}
 			print("\n");
+		}
+	}
+
+	private void preLoadPreEdges(Node conceptNode,
+			String type, boolean isPredicate,
+			SortedMap<DAGNode, SortedSet<Edge>> predEdges, DirectedAcyclicGraph dag) {
+		if (type.equals("N")) {
+			predEdges.put(CommonConcepts.PRETTY_STRING.getNode(dag),
+					new TreeSet<>());
+			predEdges.put(CommonConcepts.PRETTY_STRING_CANONICAL.getNode(dag),
+					new TreeSet<>());
+			if (isPredicate)
+				predEdges.put(CommonConcepts.NLP_PREDICATE_STRING.getNode(dag),
+						new TreeSet<>());
+		} else if (type.startsWith("T")) {
+			predEdges.put(CommonConcepts.ISA.getNode(dag), new TreeSet<>());
+			predEdges.put(CommonConcepts.GENLS.getNode(dag), new TreeSet<>());
+			if (isPredicate)
+				predEdges.put(CommonConcepts.GENLPREDS.getNode(dag),
+						new TreeSet<>());
 		}
 	}
 

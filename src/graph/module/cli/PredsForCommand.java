@@ -57,7 +57,7 @@ public class PredsForCommand extends CollectionCommand {
 		for (Edge e : edges)
 			preds.add(e.getNodes()[0]);
 		
-		preds = dagHandler.postProcess(preds, rangeStart_, rangeEnd_);
+		preds = dagHandler.postProcess(preds, rangeStart_, rangeEnd_, true);
 		
 		print(preds.size() + "|");
 		for (Node pred : preds)

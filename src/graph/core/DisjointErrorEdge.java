@@ -9,12 +9,16 @@
  *     Sam Sarjant - initial API and implementation
  ******************************************************************************/
 package graph.core;
+
 import graph.core.DAGErrorEdge;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
+import graph.inference.QueryObject;
+import graph.module.NLPToStringModule;
 
-public class DisjointErrorEdge extends DAGErrorEdge implements RetryableErrorEdge {
+public class DisjointErrorEdge extends DAGErrorEdge implements
+		RetryableErrorEdge {
 	private static final long serialVersionUID = 3921728486130853014L;
 	private Node[] disjointNodes_;
 
@@ -27,7 +31,14 @@ public class DisjointErrorEdge extends DAGErrorEdge implements RetryableErrorEdg
 	}
 
 	@Override
-	public String getError() {
+	public String getError(boolean isPretty) {
+		if (isPretty) {
+			NLPToStringModule nlpModule = (NLPToStringModule) DirectedAcyclicGraph.selfRef_
+					.getModule(NLPToStringModule.class);
+			if (nlpModule != null)
+				return nlpModule.edgeToString(new QueryObject(disjointNodes_),
+						false, false, false);
+		}
 		return disjointNodes_[1] + " is disjoint with asserted collection "
 				+ disjointNodes_[2];
 	}

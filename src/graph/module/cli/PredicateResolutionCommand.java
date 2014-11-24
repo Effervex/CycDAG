@@ -56,7 +56,7 @@ public class PredicateResolutionCommand extends CollectionCommand {
 			return;
 		}
 		Collection<DAGNode> sorted = dagHandler.postProcess(predicates,
-				rangeStart_, rangeEnd_);
+				rangeStart_, rangeEnd_, true);
 		print(predicates.size() + "");
 		for (DAGNode predicate : sorted) {
 			print("|" + dagHandler.textIDObject(predicate) + ","

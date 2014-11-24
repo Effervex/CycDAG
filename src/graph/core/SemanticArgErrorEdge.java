@@ -10,7 +10,10 @@
  ******************************************************************************/
 package graph.core;
 
-public class SemanticArgErrorEdge extends DAGErrorEdge implements RetryableErrorEdge{
+import graph.module.NLPToStringModule;
+
+public class SemanticArgErrorEdge extends DAGErrorEdge implements
+		RetryableErrorEdge {
 	private static final long serialVersionUID = 1L;
 	private Node proposedNode_;
 	private int argNum_;
@@ -23,7 +26,16 @@ public class SemanticArgErrorEdge extends DAGErrorEdge implements RetryableError
 	}
 
 	@Override
-	public String getError() {
+	public String getError(boolean isPretty) {
+		if (isPretty) {
+			NLPToStringModule nlpModule = (NLPToStringModule) DirectedAcyclicGraph.selfRef_
+					.getModule(NLPToStringModule.class);
+			if (nlpModule != null)
+				return nlpModule.nodeToString(proposedNode_, false)
+						+ " is not a valid argument for arg " + argNum_
+						+ " of " + nlpModule.nodeToString(predicate_, false)
+						+ ".";
+		}
 		return proposedNode_ + " is not a valid argument for arg " + argNum_
 				+ " of " + predicate_ + ".";
 	}

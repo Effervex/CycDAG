@@ -77,7 +77,7 @@ public class AddCycEdgeCommand extends AddEdgeCommand {
 			dagHandler.getDAG().writeCommand("addedge " + data);
 
 			if (edge instanceof ErrorEdge) {
-				print("-1|" + ((ErrorEdge) edge).getError() + "\n");
+				print("-1|" + ((ErrorEdge) edge).getError(true) + "\n");
 			} else {
 				DAGEdge dagEdge = (DAGEdge) edge;
 				print(dagEdge.getID()
