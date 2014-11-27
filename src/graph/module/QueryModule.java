@@ -21,14 +21,13 @@ import graph.core.StringNode;
 import graph.inference.QueryObject;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
+import graph.inference.VariableNode;
 import graph.inference.module.AndWorker;
 import graph.inference.module.AssertedSentenceWorker;
-import graph.inference.module.DifferentWorker;
 import graph.inference.module.DisjointWithWorker;
-import graph.inference.module.EqualsWorker;
+import graph.inference.module.EvaluatablePredicateWorker;
 import graph.inference.module.GenlPredTransitiveWorker;
 import graph.inference.module.IsaWorker;
-import graph.inference.module.LaterThanWorker;
 import graph.inference.module.OrWorker;
 import graph.inference.module.TransitiveWorker;
 
@@ -41,10 +40,12 @@ import java.util.Map;
 public class QueryModule extends DAGModule<Collection<Substitution>> {
 	private static final long serialVersionUID = 1925714026500662430L;
 
-	private static final String DEFAULT_WORKER = "_DEFAULT_";
+	public static final String DEFAULT_WORKER = "_DEFAULT_";
+
+	public static final String EVALUATABLE_WORKER = "_EVALUATABLE_";
 
 	private transient Map<String, QueryWorker> inferenceModules_;
-	private transient Map<String, String> regexRedirects_;
+	private transient Map<QueryObject, String> queryRedirects_;
 
 	// private BackwardChainer backwardChainer_;
 
@@ -60,19 +61,23 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				this));
 		inferenceModules_.put("genls", new TransitiveWorker(this));
 		inferenceModules_.put("genlPreds", new TransitiveWorker(this));
-		inferenceModules_.put("equals", new EqualsWorker(this));
-		inferenceModules_.put("different", new DifferentWorker(this));
+		inferenceModules_.put(EVALUATABLE_WORKER,
+				new EvaluatablePredicateWorker(this));
 		inferenceModules_.put("isa", new IsaWorker(this));
 		inferenceModules_.put("disjointWith", new DisjointWithWorker(this));
 		inferenceModules_.put("and", new AndWorker(this));
 		inferenceModules_.put("or", new OrWorker(this));
 		inferenceModules_.put("resultIsa", new IsaWorker(this));
 		inferenceModules_.put("resultGenl", new IsaWorker(this));
-		inferenceModules_.put("laterThan", new LaterThanWorker(this));
 		inferenceModules_.put(DEFAULT_WORKER,
 				new GenlPredTransitiveWorker(this));
 
-		regexRedirects_ = new HashMap<>();
+		queryRedirects_ = new HashMap<>();
+		queryRedirects_.put(
+				new QueryObject(CommonConcepts.ISA.getNode(dag_),
+						VariableNode.DEFAULT,
+						CommonConcepts.EVALUATABLE_PREDICATE.getNode(dag_)),
+				EVALUATABLE_WORKER);
 	}
 
 	public void applyModule(String moduleName, QueryObject queryObj)
@@ -99,10 +104,13 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		if (inferenceModules_.containsKey(queryObj.getNode(0).toString()))
 			module = queryObj.getNode(0).getName();
 		else {
-			// Try the regex's
-			for (String regex : regexRedirects_.keySet()) {
-				if (queryObj.getNode(0).toString().matches(regex)) {
-					module = regexRedirects_.get(regex);
+			// Try the queries's
+			for (QueryObject qo : queryRedirects_.keySet()) {
+				QueryObject newQO = new QueryObject(new Substitution(
+						VariableNode.DEFAULT, (DAGNode) queryObj.getNode(0)),
+						qo.getNodes());
+				if (prove(newQO)) {
+					module = queryRedirects_.get(qo);
 					break;
 				}
 			}

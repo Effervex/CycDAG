@@ -19,7 +19,8 @@ public class CycDAGVarHelpCommand extends DAGVarHelpCommand {
 					+ "different sort orders include: alpha, for "
 					+ "alphabetical; alphaNoCase, for alphabetical "
 					+ "(caseless); id, for ID ordered results; depth, "
-					+ "for depth (from Thing) ordered results.";
+					+ "for depth (from Thing) ordered results; alias "
+					+ "for special string ordering of 'findnodes'.";
 		return super.getVarHelp(variable);
 	}
 }

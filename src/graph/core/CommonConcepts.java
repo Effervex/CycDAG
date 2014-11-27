@@ -42,6 +42,7 @@ public enum CommonConcepts {
 	DIFFERENT("different"),
 	DISJOINTWITH("disjointWith"),
 	EQUALS("equals"),
+	EVALUATABLE_PREDICATE("EvaluatablePredicate"),
 	FALSE("False"),
 	FIRST_ORDER_COLLECTION("FirstOrderCollection"),
 	FUNCTION("Function-Denotational"),
@@ -49,16 +50,21 @@ public enum CommonConcepts {
 	GENLMT("genlMt"),
 	GENLPREDS("genlPreds"),
 	GENLS("genls"),
+	GREATER_THAN("greaterThan"),
+	GREATER_THAN_EQUAL("greaterThanOrEqualTo"),
 	INDIVIDUAL("Individual"),
 	INTERVAL_BOUND("TimeInterval"),
 	INTERVAL_FUNCTION("TimeIntervalInclusiveFn"),
 	ISA("isa"),
 	LATER_PREDICATE("laterThan"),
+	LESS_THAN("lessThan"),
+	LESS_THAN_EQUAL("lessThanOrEqualTo"),
 	MONTHFN("MonthFn"),
 	NEGATIVE_INTEGER("NegativeInteger"),
 	NEGATIVE_NUMBER("NegativeNumber"),
 	NLP_PREDICATE_STRING("nlpPredicateString"),
 	NOT("not"),
+	NUMERICALLY_EQUAL("numericallyEquals"),
 	OR("or"),
 	PARTIALLY_TANGIBLE("PartiallyTangible"),
 	POSITIVE_INTEGER("PositiveInteger"),
@@ -444,8 +450,7 @@ public enum CommonConcepts {
 		nlpPredicates(NLP_PREDICATE_STRING,
 				"$2 /2(is)/(are)/ the NL predicate string for $1", dag);
 		nlpPredicates(NOT, "$1 /1(is)/(are)/ not true", dag);
-		nlpPredicates(PRETTY_STRING, "$1 /1(is)/(are)/ known as $2",
-				dag);
+		nlpPredicates(PRETTY_STRING, "$1 /1(is)/(are)/ known as $2", dag);
 		nlpPredicates(PRETTY_STRING_CANONICAL,
 				"$1 /1(is)/(are)/ commonly known as $2", dag);
 		nlpPredicates(QUOTED_ISA,
