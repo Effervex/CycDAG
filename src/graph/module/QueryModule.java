@@ -50,7 +50,6 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	// private BackwardChainer backwardChainer_;
 
 	public QueryModule() {
-		initInferenceModules();
 	}
 
 	private void initInferenceModules() {
@@ -71,13 +70,6 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		inferenceModules_.put("resultGenl", new IsaWorker(this));
 		inferenceModules_.put(DEFAULT_WORKER,
 				new GenlPredTransitiveWorker(this));
-
-		queryRedirects_ = new HashMap<>();
-		queryRedirects_.put(
-				new QueryObject(CommonConcepts.ISA.getNode(dag_),
-						VariableNode.DEFAULT,
-						CommonConcepts.EVALUATABLE_PREDICATE.getNode(dag_)),
-				EVALUATABLE_WORKER);
 	}
 
 	public void applyModule(String moduleName, QueryObject queryObj)
@@ -100,6 +92,8 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	}
 
 	public Collection<Substitution> execute(QueryObject queryObj) {
+		initQueryRedirects();
+
 		String module = DEFAULT_WORKER;
 		if (inferenceModules_.containsKey(queryObj.getNode(0).toString()))
 			module = queryObj.getNode(0).getName();
@@ -143,6 +137,20 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		} else {
 			applyModule(module, queryObj);
 			return queryObj.getResults();
+		}
+	}
+
+	/**
+	 * A workaround method for constructors creating a cycle with CommonConcepts
+	 */
+	private void initQueryRedirects() {
+		if (queryRedirects_ == null) {
+			queryRedirects_ = new HashMap<>();
+			queryRedirects_
+					.put(new QueryObject(CommonConcepts.ISA.getNode(dag_),
+							VariableNode.DEFAULT,
+							CommonConcepts.EVALUATABLE_PREDICATE.getNode(dag_)),
+							EVALUATABLE_WORKER);
 		}
 	}
 
