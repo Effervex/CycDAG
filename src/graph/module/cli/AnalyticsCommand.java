@@ -17,9 +17,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.lang3.StringUtils;
 
 import util.UtilityMethods;
@@ -163,7 +163,7 @@ public class AnalyticsCommand extends Command {
 			AnalyticTypes type, CycDAG dag, BufferedWriter out)
 			throws IOException {
 		// Write header
-		Map<String, Integer> indexMap = new HashedMap<>();
+		Map<String, Integer> indexMap = new HashMap<>();
 		for (int i = 0; i < fields.length; i++)
 			indexMap.put(fields[i], i);
 		out.write(StringUtils.join(fields, '\t') + "\n");

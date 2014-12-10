@@ -14,11 +14,11 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.lang3.StringUtils;
 
 import util.UtilityMethods;
@@ -78,7 +78,7 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 	 */
 	private Map<DAGNode, DAGNode> getDisjoints(
 			Collection<DAGNode> parentCollectionIDs) {
-		Map<DAGNode, DAGNode> disjMap = new HashedMap<>();
+		Map<DAGNode, DAGNode> disjMap = new HashMap<>();
 		for (DAGNode n : parentCollectionIDs) {
 			Collection<DAGNode> disjointCollection = disjointMap_.get(n);
 			if (disjointCollection != null) {

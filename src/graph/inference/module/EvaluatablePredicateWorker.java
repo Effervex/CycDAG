@@ -3,7 +3,6 @@ package graph.inference.module;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.commons.lang3.math.NumberUtils;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.joda.time.format.DateTimeFormat;
