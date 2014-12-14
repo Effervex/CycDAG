@@ -29,22 +29,32 @@ public class OntologyFunction extends DAGNode implements Edge {
 		super();
 		nodes_ = nodes;
 		notAnonymous_ = false;
-		id_ = requestID();
+		id_ = -1;
 	}
 
 	protected OntologyFunction(DirectedAcyclicGraph dag, Node... nodes) {
 		super();
 		nodes_ = nodes;
 		notAnonymous_ = !checkIfAnonymous(dag);
-		id_ = requestID();
+		id_ = -1;
 	}
 
 	@Override
 	protected int requestID() {
-		// Default to -1, unless not anonymous
-		if (notAnonymous_)
-			return super.requestID();
 		return -1;
+	}
+
+	public void reify(Node creator, CycDAG cycDAG) {
+		if (id_ == -1 && notAnonymous_) {
+			DAGNode existingNode = cycDAG.findDAGNode(getIdentifier(true));
+			if (existingNode != null)
+				id_ = existingNode.id_;
+			else {
+				id_ = super.requestID();
+				if (creator != null)
+					put(CREATOR, creator.getIdentifier(true));
+			}
+		}
 	}
 
 	private boolean checkIfAnonymous(DirectedAcyclicGraph dag) {

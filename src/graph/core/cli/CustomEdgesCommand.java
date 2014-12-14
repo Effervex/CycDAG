@@ -139,18 +139,18 @@ public class CustomEdgesCommand extends CollectionCommand {
 			SortedMap<DAGNode, SortedSet<Edge>> predEdges, DirectedAcyclicGraph dag) {
 		if (type.equals("N")) {
 			predEdges.put(CommonConcepts.PRETTY_STRING.getNode(dag),
-					new TreeSet<>());
+					new TreeSet<Edge>());
 			predEdges.put(CommonConcepts.PRETTY_STRING_CANONICAL.getNode(dag),
-					new TreeSet<>());
+					new TreeSet<Edge>());
 			if (isPredicate)
 				predEdges.put(CommonConcepts.NLP_PREDICATE_STRING.getNode(dag),
-						new TreeSet<>());
+						new TreeSet<Edge>());
 		} else if (type.startsWith("T")) {
-			predEdges.put(CommonConcepts.ISA.getNode(dag), new TreeSet<>());
-			predEdges.put(CommonConcepts.GENLS.getNode(dag), new TreeSet<>());
+			predEdges.put(CommonConcepts.ISA.getNode(dag), new TreeSet<Edge>());
+			predEdges.put(CommonConcepts.GENLS.getNode(dag), new TreeSet<Edge>());
 			if (isPredicate)
 				predEdges.put(CommonConcepts.GENLPREDS.getNode(dag),
-						new TreeSet<>());
+						new TreeSet<Edge>());
 		}
 	}
 

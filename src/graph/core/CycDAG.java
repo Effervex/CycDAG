@@ -488,6 +488,12 @@ public class CycDAG extends DirectedAcyclicGraph {
 				return cyclicEdge;
 		}
 
+		boolean ephemeral = bFlags.getFlag("ephemeral");
+		// Reify any ontology functions
+		for (Node n : edgeNodes)
+			if (n instanceof OntologyFunction)
+				reifyFunction((OntologyFunction) n, creator, ephemeral);
+
 		// Create the edge
 		Edge edge = super.findOrCreateEdge(edgeNodes, creator, flags);
 		if (edge != null && !(edge instanceof ErrorEdge)
@@ -538,16 +544,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 						.execute((Object[]) args);
 				if (ontFunc == null) {
 					ontFunc = new OntologyFunction(this, args);
-					if (!ontFunc.isAnonymous() && createNew) {
-						boolean result = nodes_.add(ontFunc);
-						if (result) {
-							if (ephemeral)
-								addProperty(ontFunc, EPHEMERAL_MARK, "T");
-							// Trigger modules
-							for (DAGModule<?> module : getModules())
-								module.addNode(ontFunc);
-						}
-					}
+					if (!ontFunc.isAnonymous() && createNew)
+						reifyFunction(ontFunc, creator, ephemeral);
 				}
 				return ontFunc;
 			} finally {
@@ -555,6 +553,35 @@ public class CycDAG extends DirectedAcyclicGraph {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Reifies the function such that it has an ID. This method is used whenever
+	 * a new function is directly added as a node, or is used in an edge.
+	 *
+	 * @param ontFunc
+	 *            The function to reify.
+	 * @param ephemeral
+	 *            If the function is ephemeral.
+	 */
+	private boolean reifyFunction(OntologyFunction ontFunc, Node creator,
+			boolean ephemeral) {
+		ontFunc.reify(creator, this);
+		boolean result = nodes_.add(ontFunc);
+		if (result) {
+			if (ephemeral)
+				addProperty(ontFunc, EPHEMERAL_MARK, "T");
+			// Trigger modules
+			for (DAGModule<?> module : getModules())
+				module.addNode(ontFunc);
+
+			// Reify internal args too
+			for (Node n : ontFunc.getNodes()) {
+				if (n instanceof OntologyFunction)
+					reifyFunction((OntologyFunction) n, creator, ephemeral);
+			}
+		}
+		return result;
 	}
 
 	/**
@@ -845,7 +872,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			String microtheory, Collection<Edge> forwardEdges, boolean ephemeral) {
 		if (arg instanceof VariableNode)
 			return true;
-		
+
 		// argNIsa
 		if (!checkSingleArg(predNode, arg, i, CommonConcepts.ARGISA,
 				CommonConcepts.ISA, CommonConcepts.RESULT_ISA, microtheory,
