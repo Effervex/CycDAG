@@ -55,8 +55,7 @@ public class OntologyFunction extends DAGNode implements Edge {
 		if (queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
 				CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag)))
 			return true;
-		// TODO Need to put this back in. But can't for now due to DAGrecreate
-		// loading.
+		// TODO If not a function
 		// if (!queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
 		// CommonConcepts.FUNCTION.getNode(dag)))
 		// return true;
@@ -98,7 +97,7 @@ public class OntologyFunction extends DAGNode implements Edge {
 	public String getIdentifier() {
 		return getIdentifier(false);
 	}
-	
+
 	@Override
 	public String getIdentifier(boolean useName) {
 		if (id_ != -1 && !useName)

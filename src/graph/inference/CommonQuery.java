@@ -11,11 +11,13 @@
 package graph.inference;
 
 import graph.core.CommonConcepts;
+import graph.core.CycDAG;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
+import graph.module.FunctionIndex;
 import graph.module.QueryModule;
 
 import java.util.ArrayList;
@@ -26,39 +28,40 @@ import java.util.Set;
 import util.UtilityMethods;
 
 public enum CommonQuery {
-	ALIAS("(termStrings $0 ?X)"),
-	ALLGENLS("(genls $0 ?X)"),
-	ALLISA("(isa $0 ?X)"),
-	ARGNGENL("(argGenl $0 $1 ?X)", true),
-	ARGNISA("(argIsa $0 $1 ?X)", true),
-	COMMENT("(comment $0 ?X)"),
-	COMMONISA("(and (isa $0 ?X) (isa $1 ?X))"),
-	COMMONGENLS("(and (genls $0 ?X) (genls $1 ?X))"),
-	COMMONINSTANCES("(and (isa ?X $0) (isa ?X $1))"),
-	COMMONSPECS("(and (genls ?X $0) (genls ?X $1))"),
-	DIRECTGENLS("(assertedSentence (genls $0 ?X))", true),
-	DIRECTINSTANCE("(assertedSentence (isa ?X $0))", true),
-	DIRECTISA("(assertedSentence (isa $0 ?X))", true),
-	DIRECTSPECS("(assertedSentence (genls ?X $0))", true),
-	DISJOINT("(disjointWith $0 $1)"),
-	GENLSIBLINGS("(assertedSentence (genls $0 ?X))", true),
-	GENLPREDS("(genlPreds $0 ?X)"),
-	INSTANCES("(isa ?X $0)"),
-	ISASIBLINGS("(assertedSentence (isa $0 ?X))", true),
-	MAXINSTANCES("(isa ?X $0)", true),
-	MAXSPECS("(assertedSentence (genls ?X $0))", true),
-	MAXCOMMONINSTANCES("(and (isa ?X $0) (isa ?X $1))"),
-	MAXCOMMONSPECS("(and (genls ?X $0) (genls ?X $1))"),
-	MINARGNGENL("(argGenl $0 $1 ?X)", true),
-	MINARGNISA("(argIsa $0 $1 ?X)", true),
-	MINGENLS("(assertedSentence (genls $0 ?X))", true),
-	MINISA("(assertedSentence (isa $0 ?X))", true),
-	MINCOMMONISA("(and (isa $0 ?X) (isa $1 ?X))", true),
-	MINCOMMONGENLS("(and (genls $0 ?X) (genls $1 ?X))", true),
-	SPECPREDS("(genlPreds ?X $0)"),
-	SPECS("(genls ?X $0)");
+	ALIAS("(termStrings ?0 ?X)"),
+	ALLGENLS("(genls ?0 ?X)"),
+	ALLISA("(isa ?0 ?X)"),
+	ARGNGENL("(argGenl ?0 ?1 ?X)", true),
+	ARGNISA("(argIsa ?0 ?1 ?X)", true),
+	COMMENT("(comment ?0 ?X)"),
+	COMMONISA("(and (isa ?0 ?X) (isa ?1 ?X))"),
+	COMMONGENLS("(and (genls ?0 ?X) (genls ?1 ?X))"),
+	COMMONINSTANCES("(and (isa ?X ?0) (isa ?X ?1))"),
+	COMMONSPECS("(and (genls ?X ?0) (genls ?X ?1))"),
+	DIRECTGENLS("(assertedSentence (genls ?0 ?X))", true),
+	DIRECTINSTANCE("(assertedSentence (isa ?X ?0))", true),
+	DIRECTISA("(assertedSentence (isa ?0 ?X))", true),
+	DIRECTSPECS("(assertedSentence (genls ?X ?0))", true),
+	DISJOINT("(disjointWith ?0 ?1)"),
+	GENLSIBLINGS("(assertedSentence (genls ?0 ?X))", true),
+	GENLPREDS("(genlPreds ?0 ?X)"),
+	INSTANCES("(isa ?X ?0)"),
+	ISASIBLINGS("(assertedSentence (isa ?0 ?X))", true),
+	MAXINSTANCES("(isa ?X ?0)", true),
+	MAXSPECS("(assertedSentence (genls ?X ?0))", true),
+	MAXCOMMONINSTANCES("(and (isa ?X ?0) (isa ?X ?1))"),
+	MAXCOMMONSPECS("(and (genls ?X ?0) (genls ?X ?1))"),
+	MINARGNGENL("(argGenl ?0 ?1 ?X)", true),
+	MINARGNISA("(argIsa ?0 ?1 ?X)", true),
+	MINGENLS("(assertedSentence (genls ?0 ?X))", true),
+	MINISA("(assertedSentence (isa ?0 ?X))", true),
+	MINCOMMONISA("(and (isa ?0 ?X) (isa ?1 ?X))", true),
+	MINCOMMONGENLS("(and (genls ?0 ?X) (genls ?1 ?X))", true),
+	SPECPREDS("(genlPreds ?X ?0)"),
+	SPECS("(genls ?X ?0)");
 
 	private String queryStr_;
+	private QueryObject queryObject_;
 
 	private boolean specialQuery_;
 
@@ -67,9 +70,27 @@ public enum CommonQuery {
 	}
 
 	private CommonQuery(String query, boolean specialQuery) {
-		// TODO Convert the query to node ID form
 		queryStr_ = UtilityMethods.shrinkString(query, 1);
+		queryObject_ = convertQueryString(queryStr_);
 		specialQuery_ = specialQuery;
+	}
+
+	/**
+	 * Converts the query string into a partially instantiated QueryObject
+	 *
+	 * @param query
+	 *            The query to convert
+	 * @return The QueryObject representing the query string, using
+	 *         VariableNodes for the replaceable arguments.
+	 */
+	private QueryObject convertQueryString(String query) {
+		ArrayList<String> split = UtilityMethods.split(query, ' ');
+		int i = 0;
+		Node[] nodes = new Node[split.size()];
+		for (String s : split)
+			nodes[i++] = CycDAG.selfRef_.findOrCreateNode(s, null, true, false,
+					false, true);
+		return new QueryObject(nodes);
 	}
 
 	/**
@@ -230,19 +251,13 @@ public enum CommonQuery {
 	}
 
 	public Collection<Node> runQuery(DirectedAcyclicGraph dag, Node... args) {
-		String[] nodeIDs = new String[args.length];
-		for (int j = 0; j < nodeIDs.length; j++)
-			nodeIDs[j] = args[j].getIdentifier();
-		String query = UtilityMethods.replaceToken(queryStr_, nodeIDs);
+		// Create a new QueryObject, replacing the placeholder variable
+		Substitution sub = new Substitution();
+		for (int j = 0; j < args.length; j++)
+			sub.addSubstitution(new VariableNode("?" + j), args[j]);
+		Node[] replacedArgs = sub.applySubstitution(queryObject_.getNodes());
+		QueryObject qo = new QueryObject(replacedArgs);
 
-		ArrayList<String> split = UtilityMethods.split(query, ' ');
-		int i = 0;
-		Node[] nodes = new Node[split.size()];
-		for (String s : split) {
-			nodes[i++] = dag.findOrCreateNode(s, null, false, false, false,
-					true);
-		}
-		QueryObject qo = new QueryObject(nodes);
 		QueryModule querier = (QueryModule) dag.getModule(QueryModule.class);
 
 		Collection<Node> results = querier.executeAndParseVar(qo, "?X");

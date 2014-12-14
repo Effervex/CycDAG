@@ -341,6 +341,10 @@ public class QueryObject {
 		return newObj;
 	}
 
+	public QueryObject clone() {
+		return modifyNodes(nodes_);
+	}
+
 	public QueryObject modifyNodes(Substitution baseSub, Node... nodes) {
 		QueryObject qo = modifyNodes(nodes);
 		qo.priorSubstitution_ = baseSub;

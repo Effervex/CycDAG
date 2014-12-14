@@ -98,7 +98,6 @@ public class Substitution {
 	public Substitution inverseSub() {
 		Substitution inverse = new Substitution();
 		for (String key : substitutionMap_.keySet()) {
-			// TODO Inefficient!
 			inverse.addSubstitution(substitutionMap_.get(key).toString(),
 					new VariableNode(key));
 		}

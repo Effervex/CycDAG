@@ -36,94 +36,11 @@ import org.apache.commons.collections4.CollectionUtils;
 
 public class DisjointWithWorker extends QueryWorker {
 	private static final long serialVersionUID = -2014914913163958118L;
-	private transient SiblingDisjointModule sibModule_;
 	private transient DisjointModule disjointModule_;
+	private transient SiblingDisjointModule sibModule_;
 
 	public DisjointWithWorker(QueryModule queryModule) {
 		super(queryModule);
-	}
-
-	private void findDisjoint(QueryObject queryObj,
-			Collection<Edge> disjointWithEdges) {
-		if (queryObj.getAtomic() == null)
-			return;
-		VariableNode varNode = (queryObj.isProof()) ? VariableNode.DEFAULT
-				: queryObj.getVariable();
-		QueryObject genlResults1 = new QueryObject(
-				CommonConcepts.GENLS.getNode(dag_), queryObj.getAtomic(),
-				varNode);
-		querier_.applyModule("genls", genlResults1);
-		QueryObject genlResults2 = null;
-
-		Collection<DAGNode> genlResults = genlResults1.getCompleted();
-		Collection<DAGNode> larger = null;
-		boolean swapped = false;
-
-		// For proofs, work out the smaller set of the two.
-		if (queryObj.isProof()) {
-			genlResults2 = new QueryObject(CommonConcepts.GENLS.getNode(dag_),
-					queryObj.getNode(2), varNode);
-			querier_.applyModule("genls", genlResults2);
-
-			genlResults = new ArrayList<>(genlResults1.getCompleted());
-			genlResults.removeAll(genlResults2.getCompleted());
-			larger = new ArrayList<>(genlResults2.getCompleted());
-			larger.removeAll(genlResults1.getCompleted());
-			if (genlResults.size() > larger.size()) {
-				Collection<DAGNode> temp = genlResults;
-				genlResults = larger;
-				larger = temp;
-				swapped = true;
-			}
-
-			// Not disjoint
-			if (genlResults.isEmpty())
-				return;
-			larger = new HashSet<>(larger);
-		}
-
-		for (DAGNode nodeA : genlResults) {
-			// Check if the node has any disjointWith assertions that are in the
-			// other genls
-			Collection<Edge> node1Edges = relatedModule_.execute(nodeA);
-			node1Edges = CollectionUtils.retainAll(node1Edges,
-					disjointWithEdges);
-			for (Edge e : node1Edges) {
-				Node[] edgeNodes = e.getNodes();
-				Node thisNode, otherNode = null;
-				if (edgeNodes[1].equals(nodeA)) {
-					thisNode = edgeNodes[1];
-					otherNode = edgeNodes[2];
-				} else if (edgeNodes[2].equals(nodeA)) {
-					thisNode = edgeNodes[2];
-					otherNode = edgeNodes[1];
-				} else
-					continue;
-
-				if (queryObj.isProof() && larger.contains(otherNode)) {
-					// Disjoint found!
-					// Add genl justifications either side.
-					if (swapped) {
-						Node temp = thisNode;
-						thisNode = otherNode;
-						otherNode = temp;
-					}
-					if (queryObj.shouldJustify())
-						queryObj.getJustification().addAll(
-								alterGenlJustification(genlResults1,
-										(DAGNode) thisNode, false));
-					queryObj.addResult(new Substitution(), edgeNodes);
-					if (queryObj.shouldJustify())
-						queryObj.getJustification().addAll(
-								alterGenlJustification(genlResults2,
-										(DAGNode) otherNode, true));
-
-					return;
-				} else if (!queryObj.isProof())
-					queryObj.addResult(new Substitution(varNode,
-							(DAGNode) otherNode), edgeNodes);
-			}
-		}
 	}
 
 	private Collection<? extends Node[]> alterGenlJustification(
@@ -220,48 +137,114 @@ public class DisjointWithWorker extends QueryWorker {
 		}
 	}
 
-	private void siblingDisjointViaModule(DAGNode atomic, QueryObject queryObj) {
+	private void findDisjoint(QueryObject queryObj,
+			Collection<Edge> disjointWithEdges) {
+		if (queryObj.getAtomic() == null)
+			return;
+		VariableNode varNode = (queryObj.isProof()) ? VariableNode.DEFAULT
+				: queryObj.getVariable();
+		QueryObject genlResults1 = new QueryObject(
+				CommonConcepts.GENLS.getNode(dag_), queryObj.getAtomic(),
+				varNode);
+		querier_.applyModule("genls", genlResults1);
+		QueryObject genlResults2 = null;
+
+		Collection<DAGNode> genlResults = genlResults1.getCompleted();
+		Collection<DAGNode> larger = null;
+		boolean swapped = false;
+
+		// For proofs, work out the smaller set of the two.
 		if (queryObj.isProof()) {
-			DAGNode otherNode = (DAGNode) queryObj.getNode(2);
+			genlResults2 = new QueryObject(CommonConcepts.GENLS.getNode(dag_),
+					queryObj.getNode(2), varNode);
+			querier_.applyModule("genls", genlResults2);
 
-			// Find the unique parents for each set
-			Collection<Node> atomicParents = CommonQuery.ALLGENLS.runQuery(
-					dag_, atomic);
-			Collection<Node> otherParents = CommonQuery.ALLGENLS.runQuery(dag_,
-					otherNode);
-			Collection<Node> commonParents = CollectionUtils.retainAll(
-					atomicParents, otherParents);
-			atomicParents.removeAll(commonParents);
-			otherParents.removeAll(commonParents);
-
-			// Find the sibling disjoint collections for atomics
-			Collection<DAGNode> atomicSibCols = new HashSet<>();
-			for (Node atomicParent : atomicParents)
-				if (atomicParent instanceof DAGNode)
-					atomicSibCols.addAll(sibModule_
-							.getSiblingDisjointParents((DAGNode) atomicParent));
-
-			// Search for match in others
-			for (Node otherParent : otherParents) {
-				if (otherParent instanceof DAGNode)
-					if (CollectionUtils.containsAny(atomicSibCols, sibModule_
-							.getSiblingDisjointParents((DAGNode) otherParent))) {
-						// A match!
-						if (!isException(atomic, otherNode)) {
-							queryObj.addResult(new Substitution());
-							// TODO This should probably be added back in. Can't
-							// recall what the issue was - probably introduced a
-							// bug
-							// processSiblingJustification(,
-							// sub.getSubstitution(transTwo),
-							// sub.getSubstitution(queryVar), queryObj);
-						}
-						return;
-					}
+			genlResults = new ArrayList<>(genlResults1.getCompleted());
+			genlResults.removeAll(genlResults2.getCompleted());
+			larger = new ArrayList<>(genlResults2.getCompleted());
+			larger.removeAll(genlResults1.getCompleted());
+			if (genlResults.size() > larger.size()) {
+				Collection<DAGNode> temp = genlResults;
+				genlResults = larger;
+				larger = temp;
+				swapped = true;
 			}
-		} else {
-			// TODO This should be filled in.
+
+			// Not disjoint
+			if (genlResults.isEmpty())
+				return;
+			larger = new HashSet<>(larger);
 		}
+
+		for (DAGNode nodeA : genlResults) {
+			// Check if the node has any disjointWith assertions that are in the
+			// other genls
+			Collection<Edge> node1Edges = relatedModule_.execute(nodeA);
+			node1Edges = CollectionUtils.retainAll(node1Edges,
+					disjointWithEdges);
+			for (Edge e : node1Edges) {
+				Node[] edgeNodes = e.getNodes();
+				Node thisNode, otherNode = null;
+				if (edgeNodes[1].equals(nodeA)) {
+					thisNode = edgeNodes[1];
+					otherNode = edgeNodes[2];
+				} else if (edgeNodes[2].equals(nodeA)) {
+					thisNode = edgeNodes[2];
+					otherNode = edgeNodes[1];
+				} else
+					continue;
+
+				if (queryObj.isProof() && larger.contains(otherNode)) {
+					// Disjoint found!
+					// Add genl justifications either side.
+					if (swapped) {
+						Node temp = thisNode;
+						thisNode = otherNode;
+						otherNode = temp;
+					}
+					if (queryObj.shouldJustify())
+						queryObj.getJustification().addAll(
+								alterGenlJustification(genlResults1,
+										(DAGNode) thisNode, false));
+					queryObj.addResult(new Substitution(), edgeNodes);
+					if (queryObj.shouldJustify())
+						queryObj.getJustification().addAll(
+								alterGenlJustification(genlResults2,
+										(DAGNode) otherNode, true));
+
+					return;
+				} else if (!queryObj.isProof())
+					queryObj.addResult(new Substitution(varNode,
+							(DAGNode) otherNode), edgeNodes);
+			}
+		}
+	}
+
+	private boolean isException(Node node, Node node2) {
+		QueryObject isException = new QueryObject(
+				CommonConcepts.SIBLING_DISJOINT_EXCEPTION.getNode(dag_), node,
+				node2);
+		querier_.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(),
+				isException);
+		return isException.getResults() != null;
+	}
+
+	/**
+	 * Checking there are no anonymous nodes in the disjoint query - the
+	 * disjoint module can't cope with them.
+	 * 
+	 * @param queryObj
+	 *            The query object to check.
+	 * @return True if the query does not contain any anonymous nodes.
+	 */
+	private boolean notAnonymous(QueryObject queryObj) {
+		Node[] nodes = queryObj.getNodes();
+		for (int i = 1; i < nodes.length; i++) {
+			if (nodes[i] instanceof DAGNode
+					&& ((DAGNode) nodes[i]).isAnonymous())
+				return false;
+		}
+		return true;
 	}
 
 	/**
@@ -337,13 +320,48 @@ public class DisjointWithWorker extends QueryWorker {
 		}
 	}
 
-	private boolean isException(Node node, Node node2) {
-		QueryObject isException = new QueryObject(
-				CommonConcepts.SIBLING_DISJOINT_EXCEPTION.getNode(dag_), node,
-				node2);
-		querier_.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(),
-				isException);
-		return isException.getResults() != null;
+	private void siblingDisjointViaModule(DAGNode atomic, QueryObject queryObj) {
+		if (queryObj.isProof()) {
+			DAGNode otherNode = (DAGNode) queryObj.getNode(2);
+
+			// Find the unique parents for each set
+			Collection<Node> atomicParents = CommonQuery.ALLGENLS.runQuery(
+					dag_, atomic);
+			Collection<Node> otherParents = CommonQuery.ALLGENLS.runQuery(dag_,
+					otherNode);
+			Collection<Node> commonParents = CollectionUtils.retainAll(
+					atomicParents, otherParents);
+			atomicParents.removeAll(commonParents);
+			otherParents.removeAll(commonParents);
+
+			// Find the sibling disjoint collections for atomics
+			Collection<DAGNode> atomicSibCols = new HashSet<>();
+			for (Node atomicParent : atomicParents)
+				if (atomicParent instanceof DAGNode)
+					atomicSibCols.addAll(sibModule_
+							.getSiblingDisjointParents((DAGNode) atomicParent));
+
+			// Search for match in others
+			for (Node otherParent : otherParents) {
+				if (otherParent instanceof DAGNode)
+					if (CollectionUtils.containsAny(atomicSibCols, sibModule_
+							.getSiblingDisjointParents((DAGNode) otherParent))) {
+						// A match!
+						if (!isException(atomic, otherNode)) {
+							queryObj.addResult(new Substitution());
+							// TODO This should probably be added back in. Can't
+							// recall what the issue was - probably introduced a
+							// bug
+							// processSiblingJustification(,
+							// sub.getSubstitution(transTwo),
+							// sub.getSubstitution(queryVar), queryObj);
+						}
+						return;
+					}
+			}
+		} else {
+			// TODO This should be filled in.
+		}
 	}
 
 	@Override
@@ -366,24 +384,6 @@ public class DisjointWithWorker extends QueryWorker {
 
 		// Find sibling disjoints
 		checkSiblingDisjoint(queryObj);
-	}
-
-	/**
-	 * Checking there are no anonymous nodes in the disjoint query - the
-	 * disjoint module can't cope with them.
-	 * 
-	 * @param queryObj
-	 *            The query object to check.
-	 * @return True if the query does not contain any anonymous nodes.
-	 */
-	private boolean notAnonymous(QueryObject queryObj) {
-		Node[] nodes = queryObj.getNodes();
-		for (int i = 1; i < nodes.length; i++) {
-			if (nodes[i] instanceof DAGNode
-					&& ((DAGNode) nodes[i]).isAnonymous())
-				return false;
-		}
-		return true;
 	}
 
 	@Override

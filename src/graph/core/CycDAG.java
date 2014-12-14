@@ -843,6 +843,9 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 */
 	public boolean singleArgCheck(DAGNode predNode, int i, Node arg,
 			String microtheory, Collection<Edge> forwardEdges, boolean ephemeral) {
+		if (arg instanceof VariableNode)
+			return true;
+		
 		// argNIsa
 		if (!checkSingleArg(predNode, arg, i, CommonConcepts.ARGISA,
 				CommonConcepts.ISA, CommonConcepts.RESULT_ISA, microtheory,
