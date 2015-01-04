@@ -79,6 +79,8 @@ public class CustomEdgesCommand extends CollectionCommand {
 		}
 		boolean isPredicate = querier.prove(CommonConcepts.ISA.getNode(dag),
 				conceptNode, CommonConcepts.PREDICATE.getNode(dag));
+		boolean isCollection = querier.prove(CommonConcepts.ISA.getNode(dag),
+				conceptNode, CommonConcepts.COLLECTION.getNode(dag));
 
 		// Run through every edge involving concept, enforcing range constraints
 		// manually.
@@ -86,7 +88,8 @@ public class CustomEdgesCommand extends CollectionCommand {
 		Collection<Edge> edges = relatedEdge.execute(conceptNode, "!1");
 		SortedMap<DAGNode, SortedSet<Edge>> predEdges = new TreeMap<>(
 				dagHandler.getComparator());
-		preLoadPreEdges(conceptNode, type, isPredicate, predEdges, dag);
+		preLoadPreEdges(conceptNode, type, isPredicate, isCollection, predEdges,
+				dag);
 		for (Edge e : edges) {
 			DAGNode pred = (DAGNode) e.getNodes()[0];
 			if (isHierarchical(pred, dag)) {
@@ -134,9 +137,10 @@ public class CustomEdgesCommand extends CollectionCommand {
 		}
 	}
 
-	private void preLoadPreEdges(Node conceptNode,
-			String type, boolean isPredicate,
-			SortedMap<DAGNode, SortedSet<Edge>> predEdges, DirectedAcyclicGraph dag) {
+	private void preLoadPreEdges(Node conceptNode, String type,
+			boolean isPredicate, boolean isCollection,
+			SortedMap<DAGNode, SortedSet<Edge>> predEdges,
+			DirectedAcyclicGraph dag) {
 		if (type.equals("N")) {
 			predEdges.put(CommonConcepts.PRETTY_STRING.getNode(dag),
 					new TreeSet<Edge>());
@@ -146,8 +150,12 @@ public class CustomEdgesCommand extends CollectionCommand {
 				predEdges.put(CommonConcepts.NLP_PREDICATE_STRING.getNode(dag),
 						new TreeSet<Edge>());
 		} else if (type.startsWith("T")) {
-			predEdges.put(CommonConcepts.ISA.getNode(dag), new TreeSet<Edge>());
-			predEdges.put(CommonConcepts.GENLS.getNode(dag), new TreeSet<Edge>());
+			if (!type.equals("TD") || isCollection)
+				predEdges.put(CommonConcepts.ISA.getNode(dag),
+						new TreeSet<Edge>());
+			if (isCollection)
+				predEdges.put(CommonConcepts.GENLS.getNode(dag),
+						new TreeSet<Edge>());
 			if (isPredicate)
 				predEdges.put(CommonConcepts.GENLPREDS.getNode(dag),
 						new TreeSet<Edge>());
