@@ -126,6 +126,8 @@ public class CustomEdgesCommand extends CollectionCommand {
 					predEdges.get(key), rangeStart_, rangeEnd_, true);
 			// Num edges
 			print(sortedEdges.size() + "|");
+			if (sortedEdges.isEmpty())
+				print("|");
 
 			// Edge triples
 			for (Edge e : sortedEdges) {
