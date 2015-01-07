@@ -11,13 +11,11 @@
 package graph.inference;
 
 import graph.core.CommonConcepts;
-import graph.core.CycDAG;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
-import graph.module.FunctionIndex;
 import graph.module.QueryModule;
 
 import java.util.ArrayList;
@@ -71,26 +69,23 @@ public enum CommonQuery {
 
 	private CommonQuery(String query, boolean specialQuery) {
 		queryStr_ = UtilityMethods.shrinkString(query, 1);
-		queryObject_ = convertQueryString(queryStr_);
 		specialQuery_ = specialQuery;
 	}
 
 	/**
-	 * Converts the query string into a partially instantiated QueryObject
+	 * Converts the query string into a partially instantiated QueryObject.
 	 *
-	 * @param query
-	 *            The query to convert
-	 * @return The QueryObject representing the query string, using
-	 *         VariableNodes for the replaceable arguments.
+	 * @param dag
+	 *            The reference to the DAG.
 	 */
-	private QueryObject convertQueryString(String query) {
-		ArrayList<String> split = UtilityMethods.split(query, ' ');
+	private void initialiseQueryObject(DirectedAcyclicGraph dag) {
+		ArrayList<String> split = UtilityMethods.split(queryStr_, ' ');
 		int i = 0;
 		Node[] nodes = new Node[split.size()];
 		for (String s : split)
-			nodes[i++] = CycDAG.selfRef_.findOrCreateNode(s, null, true, false,
-					false, true);
-		return new QueryObject(nodes);
+			nodes[i++] = dag
+					.findOrCreateNode(s, null, true, false, false, true);
+		queryObject_ = new QueryObject(nodes);
 	}
 
 	/**
@@ -251,6 +246,9 @@ public enum CommonQuery {
 	}
 
 	public Collection<Node> runQuery(DirectedAcyclicGraph dag, Node... args) {
+		if (queryObject_ == null)
+			initialiseQueryObject(dag);
+
 		// Create a new QueryObject, replacing the placeholder variable
 		Substitution sub = new Substitution();
 		for (int j = 0; j < args.length; j++)
