@@ -79,6 +79,7 @@ public enum CommonConcepts {
 	RESULT_ISA("resultIsa"),
 	RESULT_ISA_ARG("resultIsaArg"),
 	REWRITE_OF("rewriteOf"),
+	SECOND_ORDER_COLLECTION("SecondOrderCollection"),
 	SIBLING_DISJOINT_COLLECTION_TYPE("SiblingDisjointCollectionType"),
 	SIBLING_DISJOINT_EXCEPTION("siblingDisjointExceptions"),
 	STRICTLY_FUNCTIONAL_SLOT("StrictlyFunctionalSlot"),

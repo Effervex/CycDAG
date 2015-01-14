@@ -18,6 +18,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import graph.core.CommonConcepts;
 import graph.core.CycDAG;
+import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Edge;
 import graph.core.ErrorEdge;
@@ -157,6 +158,21 @@ public class QueryModuleTest {
 		results = sut_.execute(and, new OntologyFunction(isa, x, dog),
 				new OntologyFunction(isa, y, canis));
 		assertEquals(results.size(), 0);
+
+		// Disjointed assertedSentence and and
+		DAGNode person = (DAGNode) dag_.findOrCreateNode("Person", creator,
+				true);
+		DAGNode sam = (DAGNode) dag_.findOrCreateNode("Sam", creator, true);
+		dag_.findOrCreateEdge(new Node[] { isa, sam, person }, creator, true);
+		DAGNode disjointWith = CommonConcepts.DISJOINTWITH.getNode(dag_);
+		dag_.findOrCreateEdge(new Node[] { disjointWith, canis, person },
+				creator, true);
+		DAGNode assertedSentence = CommonConcepts.ASSERTED_SENTENCE
+				.getNode(dag_);
+		results = sut_.execute(and, new OntologyFunction(assertedSentence,
+				new OntologyFunction(isa, sam, VariableNode.DEFAULT)),
+				new OntologyFunction(disjointWith, dog, VariableNode.DEFAULT));
+		assertEquals(results.size(), 1);
 	}
 
 	@Test
@@ -165,7 +181,8 @@ public class QueryModuleTest {
 		DAGNode disjoint = CommonConcepts.DISJOINTWITH.getNode(dag_);
 		DAGNode dog = (DAGNode) dag_.findOrCreateNode("Dog", creator, true);
 		DAGNode cat = (DAGNode) dag_.findOrCreateNode("Cat", creator, true);
-		dag_.findOrCreateEdge(new Node[] { disjoint, cat, dog }, creator, true);
+		assertTrue(dag_.findOrCreateEdge(new Node[] { disjoint, cat, dog },
+				creator, true) instanceof DAGEdge);
 		QueryObject qo = new QueryObject(true, disjoint, cat, dog);
 		assertNotNull(sut_.execute(qo));
 		List<Node[]> justification = qo.getJustification();
@@ -479,7 +496,7 @@ public class QueryModuleTest {
 				disjointCollectionType });
 		assertArrayEquals(justification.get(7), new Node[] { genls,
 				disjointCollectionType, siblingDisjointCollectionType });
-		
+
 		qo = new QueryObject(true, disjoint, boxer, dog);
 		assertNull(sut_.execute(qo));
 	}
@@ -761,8 +778,8 @@ public class QueryModuleTest {
 		dag_.findOrCreateEdge(
 				new Node[] { argIsa, capitalCity, PrimitiveNode.parseNode("2"),
 						capCityCol }, creator, true);
-		qo = new QueryObject(true, argIsa, capitalCity, PrimitiveNode.parseNode("2"),
-				x);
+		qo = new QueryObject(true, argIsa, capitalCity,
+				PrimitiveNode.parseNode("2"), x);
 		results = sut_.execute(qo);
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(new Substitution(x, capCityCol)));

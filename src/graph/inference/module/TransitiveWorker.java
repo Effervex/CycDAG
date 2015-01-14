@@ -38,6 +38,21 @@ public class TransitiveWorker extends QueryWorker {
 		super(queryModule);
 	}
 
+	private boolean canUseTransitiveModule(QueryObject queryObj) {
+		Node[] nodes = queryObj.getNodes();
+		if (transIntModule_ == null || !transIntModule_.isReady()
+				|| !transIntModule_.getTransitiveNode().equals(nodes[0]))
+			return false;
+		// Make sure all nodes are present in the transitive interval module.
+		for (int i = 1; i < nodes.length; i++)
+			if (nodes[i] instanceof DAGNode
+					&& ((DAGNode) nodes[i])
+							.getProperty(TransitiveIntervalSchemaModule.PREDECESSOR_ID) == null)
+				return false;
+		// Otherwise, check it's ready
+		return true;
+	}
+
 	/**
 	 * Runs the transitive interval module to efficiently compute the solution
 	 * to a query.
@@ -165,21 +180,6 @@ public class TransitiveWorker extends QueryWorker {
 				queryObj.cleanTransitiveJustification(queryObj
 						.getJustification());
 		}
-	}
-
-	private boolean canUseTransitiveModule(QueryObject queryObj) {
-		Node[] nodes = queryObj.getNodes();
-		if (transIntModule_ == null || !transIntModule_.isReady()
-				|| !transIntModule_.getTransitiveNode().equals(nodes[0]))
-			return false;
-		// Make sure all nodes are present in the transitive interval module.
-		for (int i = 1; i < nodes.length; i++)
-			if (nodes[i] instanceof DAGNode
-					&& ((DAGNode) nodes[i])
-							.getProperty(TransitiveIntervalSchemaModule.PREDECESSOR_ID) == null)
-				return false;
-		// Otherwise, check it's ready
-		return true;
 	}
 
 	@Override

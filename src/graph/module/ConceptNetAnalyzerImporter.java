@@ -215,8 +215,10 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 			return false;
 
 		// Check they are not Genls to each other
-		if (transitiveModule_.execute(true, nodeA, nodeB) != null
-				|| transitiveModule_.execute(false, nodeA, nodeB) != null)
+		if (queryModule_
+				.prove(CommonConcepts.GENLS.getNode(dag_), nodeA, nodeB)
+				|| queryModule_.prove(CommonConcepts.GENLS.getNode(dag_),
+						nodeB, nodeA))
 			return true;
 
 		// Check they do not have genls conjoint point
@@ -367,17 +369,19 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 	}
 
 	private void processConceptNetData() throws URISyntaxException {
-		File folder = new File("D:/Documents/Eclipse/CycDAG/ConceptNet");
+		File folder = new File(
+				"C:/Users/Sam Sarjant/Documents/workspace/ConceptNet/data/assertions");
 		File[] files = folder.listFiles();
 
-		try (PrintWriter log = new PrintWriter(new BufferedWriter(
-				new FileWriter("importerLog.txt", true)))) {
+		try {
+			PrintWriter log = new PrintWriter(new BufferedWriter(
+					new FileWriter("importerLog.txt", true)));
 			String line;
 
 			// Pre process IsA
 			for (File file : files) {
-				try (BufferedReader br = new BufferedReader(
-						new FileReader(file))) {
+				try {
+					BufferedReader br = new BufferedReader(new FileReader(file));
 					System.out.println("processing:" + file.getName());
 					while ((line = br.readLine()) != null) {
 
@@ -420,6 +424,9 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 							}
 						}
 					}
+					br.close();
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 			ExecutorService executor = Executors.newFixedThreadPool(6);
@@ -432,7 +439,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 			while (!executor.isTerminated()) {
 
 			}
-
+			log.close();
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
@@ -778,7 +785,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 				outStr = relationName + ": " + left.getName() + " unknown to "
 						+ right.getName() + ": " + nodename1 + "," + nodename2;
 			}
-			System.out.println(outStr);
+//			System.out.println(outStr);
 			log.println(outStr);
 		}
 		explored.put(p, true);
@@ -794,8 +801,6 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 	@Override
 	public boolean initialisationComplete(Collection<DAGNode> nodes,
 			Collection<DAGEdge> edges, boolean forceRebuild) {
-		transitiveModule_ = (TransitiveIntervalSchemaModule) dag_
-				.getModule(TransitiveIntervalSchemaModule.class);
 		queryModule_ = (QueryModule) dag_.getModule(QueryModule.class);
 		semanticSimilarityModule_ = (SemanticSimilarityModule) dag_
 				.getModule(SemanticSimilarityModule.class);
@@ -813,10 +818,8 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 
 		recordedAbstractness_ = new ConcurrentHashMap<Node, Float>();
 
-		secondordercyc = (DAGNode) dag_.findOrCreateNode(
-				"SecondOrderCollection", null, true);
-		partiallyTangible = (DAGNode) dag_.findOrCreateNode(
-				"PartiallyTangible", null, true);
+		secondordercyc = CommonConcepts.SECOND_ORDER_COLLECTION.getNode(dag_);
+		partiallyTangible = CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_);
 		genls = CommonConcepts.GENLS.getNode(dag_);
 		isa = CommonConcepts.ISA.getNode(dag_);
 		and = CommonConcepts.AND.getNode(dag_);
@@ -878,11 +881,14 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 		@Override
 		public void run() {
 			String line;
-			try (PrintWriter log = new PrintWriter(new BufferedWriter(
-					new FileWriter(mFile.getName() + "importerLog.txt", true)))) {
-				try (BufferedReader br = new BufferedReader(new FileReader(
-						mFile))) {
-					System.out.println("processing:" + mFile.getName());
+			try {
+				PrintWriter log = new PrintWriter(new BufferedWriter(
+						new FileWriter(mFile.getName() + "importerLog.txt",
+								true)));
+				try {
+					BufferedReader br = new BufferedReader(
+							new FileReader(mFile));
+//					System.out.println("processing:" + mFile.getName());
 					while ((line = br.readLine()) != null) {
 
 						Pattern pattern = Pattern.compile("\\[(.+)\\]");
@@ -951,11 +957,12 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 						}
 
 					}
-
+					br.close();
 				} catch (Exception e) {
 					e.printStackTrace();
 					System.err.print(e.getMessage());
 				}
+				log.close();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
