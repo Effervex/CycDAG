@@ -228,7 +228,7 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 	public Collection<DAGNode> execute(Object... args)
 			throws IllegalArgumentException, ModuleException {
 		if (args.length == 1 && args[0] instanceof QueryObject)
-			return execute(args);
+			return execute(((QueryObject) args[0]).shouldJustify(), args);
 		return execute(new QueryObject((Node[]) args));
 	}
 
@@ -271,8 +271,7 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 								CommonConcepts.DISJOINTWITH.getNode(dag_),
 								disjMap.get(key), key });
 						List<Node[]> revJust = queryModule_.justify(genls,
-								queryObj.getNode(varIndex),
-								key);
+								queryObj.getNode(varIndex), key);
 						Collections.reverse(revJust);
 						justification.addAll(revJust);
 					}

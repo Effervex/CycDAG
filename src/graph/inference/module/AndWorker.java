@@ -47,7 +47,8 @@ public class AndWorker extends QueryWorker {
 		@SuppressWarnings("unchecked")
 		List<Node[]>[] justifications = new List[ordered.size()];
 		for (OntologyFunction func : ordered) {
-			QueryObject funcObject = new QueryObject(func.getNodes());
+			QueryObject funcObject = new QueryObject(queryObj.shouldJustify(),
+					func.getNodes());
 			funcObject.setToComplete(intersect);
 			Collection<Substitution> subs = querier_.execute(funcObject);
 			justifications[listNodes.indexOf(func) - 1] = funcObject

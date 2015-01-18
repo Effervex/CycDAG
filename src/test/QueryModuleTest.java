@@ -53,6 +53,11 @@ public class QueryModuleTest {
 		sut_ = (QueryModule) dag_.getModule(QueryModule.class);
 		assertNotNull(sut_);
 		CommonConcepts.initialise(dag_);
+		// Need some of CC's info (different as an evaluatable predicate)
+		dag_.findOrCreateEdge(new Node[] { CommonConcepts.ISA.getNode(dag_),
+				CommonConcepts.DIFFERENT.getNode(dag_),
+				CommonConcepts.EVALUATABLE_PREDICATE.getNode(dag_) }, null,
+				true);
 	}
 
 	@After
@@ -157,6 +162,14 @@ public class QueryModuleTest {
 		// Different variables
 		results = sut_.execute(and, new OntologyFunction(isa, x, dog),
 				new OntologyFunction(isa, y, canis));
+		assertEquals(results.size(), 1);
+		s = new Substitution(x, fido);
+		s.addSubstitution(y, fido);
+		assertTrue(results.contains(s));
+
+		results = sut_.execute(and, new OntologyFunction(isa, x, dog),
+				new OntologyFunction(isa, y, canis), new OntologyFunction(
+						different, x, y));
 		assertEquals(results.size(), 0);
 
 		// Disjointed assertedSentence and and
@@ -215,7 +228,8 @@ public class QueryModuleTest {
 		DAGNode genls = CommonConcepts.GENLS.getNode(dag_);
 		DAGNode boxer = (DAGNode) dag_.findOrCreateNode("Boxer-Dog", creator,
 				true);
-		dag_.findOrCreateEdge(new Node[] { genls, boxer, dog }, creator, true);
+		assertTrue(dag_.findOrCreateEdge(new Node[] { genls, boxer, dog },
+				creator, true) instanceof DAGEdge);
 		qo = new QueryObject(true, disjoint, boxer, cat);
 		assertNotNull(sut_.execute(qo));
 		justification = qo.getJustification();

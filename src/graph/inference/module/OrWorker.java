@@ -32,7 +32,7 @@ public class OrWorker extends QueryWorker {
 
 		Node[] nodes = queryObj.getNodes();
 		for (int i = 1; i < nodes.length; i++) {
-			QueryObject funcObject = new QueryObject(
+			QueryObject funcObject = new QueryObject(queryObj.shouldJustify(),
 					((OntologyFunction) nodes[i]).getNodes());
 			querier_.execute(funcObject);
 

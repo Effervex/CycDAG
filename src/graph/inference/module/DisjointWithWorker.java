@@ -95,24 +95,30 @@ public class DisjointWithWorker extends QueryWorker {
 		VariableNode queryVar = new VariableNode("?_DISJ_");
 		VariableNode transOne = new VariableNode("?_TRANSONE_");
 		VariableNode transTwo = new VariableNode("?_TRANSTWO_");
-		QueryObject qo = new QueryObject(CommonConcepts.AND.getNode(dag_),
-				new OntologyFunction(CommonConcepts.GENLS.getNode(dag_),
-						queryObj.getNode(1), transOne), // Transitive first arg
+		Node node1 = queryObj.getNode(1);
+		Node node2 = queryObj.getNode(2);
+		QueryObject qo = new QueryObject(queryObj.shouldJustify(),
+				CommonConcepts.AND.getNode(dag_), new OntologyFunction(
+						CommonConcepts.GENLS.getNode(dag_),
+						node1, transOne), // Transitive first arg
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
 						transOne, queryVar), // First
 				new OntologyFunction(CommonConcepts.GENLS.getNode(dag_),
-						queryObj.getNode(2), transTwo), // Transitive second arg
+						node2, transTwo), // Transitive second arg
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
 						transTwo, queryVar), // Second
+				new OntologyFunction(CommonConcepts.DIFFERENT.getNode(dag_),
+						transOne, transTwo), // Different
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
 						queryVar,
 						CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
-								.getNode(dag_)));
+								.getNode(dag_)) // Is a sibling disjoint
+		);
 		Collection<Substitution> siblingDisjoints = querier_.execute(qo);
 
 		if (queryObj.isProof() && !siblingDisjoints.isEmpty()) {
 			// Sibling Disjoint Exception?
-			if (!isException(queryObj.getNode(1), queryObj.getNode(2))) {
+			if (!isException(node1, node2)) {
 				queryObj.addResult(new Substitution());
 				Substitution sub = siblingDisjoints.iterator().next();
 				processSiblingJustification(sub.getSubstitution(transOne),
@@ -143,7 +149,7 @@ public class DisjointWithWorker extends QueryWorker {
 			return;
 		VariableNode varNode = (queryObj.isProof()) ? VariableNode.DEFAULT
 				: queryObj.getVariable();
-		QueryObject genlResults1 = new QueryObject(
+		QueryObject genlResults1 = new QueryObject(queryObj.shouldJustify(),
 				CommonConcepts.GENLS.getNode(dag_), queryObj.getAtomic(),
 				varNode);
 		querier_.applyModule("genls", genlResults1);
@@ -155,8 +161,9 @@ public class DisjointWithWorker extends QueryWorker {
 
 		// For proofs, work out the smaller set of the two.
 		if (queryObj.isProof()) {
-			genlResults2 = new QueryObject(CommonConcepts.GENLS.getNode(dag_),
-					queryObj.getNode(2), varNode);
+			genlResults2 = new QueryObject(queryObj.shouldJustify(),
+					CommonConcepts.GENLS.getNode(dag_), queryObj.getNode(2),
+					varNode);
 			querier_.applyModule("genls", genlResults2);
 
 			genlResults = new ArrayList<>(genlResults1.getCompleted());

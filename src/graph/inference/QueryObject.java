@@ -273,7 +273,10 @@ public class QueryObject {
 		return completed_;
 	}
 
+	@SuppressWarnings("unchecked")
 	public List<Node[]> getJustification() {
+		if (justification_ == null)
+			return Collections.EMPTY_LIST;
 		return justification_;
 	}
 
