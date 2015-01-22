@@ -162,12 +162,12 @@ public class CycDAGTest {
 		// Adding text
 		edge = sut_.findOrCreateEdge(new Node[] { genls, new StringNode("cat"),
 				mammal }, creator, true);
-		assertTrue(edge instanceof SemanticArgErrorEdge);
+		assertTrue(edge instanceof ErrorEdge);
 
 		edge = sut_.findOrCreateEdge(
 				new Node[] { genls, PrimitiveNode.parseNode("567"), mammal },
 				creator, true);
-		assertTrue(edge instanceof SemanticArgErrorEdge);
+		assertTrue(edge instanceof ErrorEdge);
 	}
 
 	@Test

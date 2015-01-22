@@ -37,7 +37,7 @@ public class DisjointErrorEdge extends DAGErrorEdge implements
 					.getModule(NLPToStringModule.class);
 			if (nlpModule != null)
 				return nlpModule.edgeToString(new QueryObject(disjointNodes_),
-						false, false, false);
+						false, false, false, false);
 		}
 		return disjointNodes_[1] + " is disjoint with asserted collection "
 				+ disjointNodes_[2];

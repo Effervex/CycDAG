@@ -77,20 +77,20 @@ public class NLPToStringModuleTest {
 		DAGNode appleTree = (DAGNode) dag_.findOrCreateNode("AppleTree",
 				creator, true, true, true);
 		OntologyFunction apple = dag_.findOrCreateFunctionNode(true, false,
-				null, fruitFn, appleTree);
+				true, null, fruitFn, appleTree);
 		result = sut_.nodeToString(apple, false);
 		assertEquals(result, "Apple Tree (Fruit)");
 
 		DAGNode fermentedFn = (DAGNode) dag_.findOrCreateNode("FermentedFn",
 				creator, true, true, true);
 		OntologyFunction fermentedAppleTree = dag_.findOrCreateFunctionNode(
-				true, false, null, fermentedFn, appleTree);
+				true, false, true, null, fermentedFn, appleTree);
 		result = sut_.nodeToString(fermentedAppleTree, false);
 		assertEquals(result, "Apple Tree (Fermented)");
 
 		// Double wrap
 		OntologyFunction fermentedApple = dag_.findOrCreateFunctionNode(true,
-				false, null, fermentedFn, apple);
+				false, true, null, fermentedFn, apple);
 		result = sut_.nodeToString(fermentedApple, false);
 		assertEquals(result, "Apple Tree (Fruit, Fermented)");
 
@@ -107,7 +107,7 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "fermented fruit of the Apple Tree");
 
 		OntologyFunction samApple = dag_.findOrCreateFunctionNode(true, false,
-				null, fruitFn, samuel);
+				true, null, fruitFn, samuel);
 		result = sut_.nodeToString(samApple, false);
 		assertEquals(result, "fruit of the Samuel L. Jackson");
 
@@ -121,12 +121,12 @@ public class NLPToStringModuleTest {
 		DAGNode url = (DAGNode) dag_.findOrCreateNode("URLFn", creator, true,
 				true, true);
 		OntologyFunction urlFn = dag_.findOrCreateFunctionNode(true, false,
-				null, url, new StringNode(
+				true, null, url, new StringNode(
 						"http://en.wikipedia.org/wiki/Gaetano_Salvemini"));
 		result = sut_.nodeToString(urlFn, false);
 		assertEquals(
 				result,
-				"<a href=\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\">http://en.wikipedia.org/wiki/Gaetano_Salvemini</a>");
+				"<a href=\\\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\\\">http://en.wikipedia.org/wiki/Gaetano_Salvemini</a>");
 	}
 
 	@Test
@@ -142,7 +142,7 @@ public class NLPToStringModuleTest {
 				creator, true);
 		DAGNode actor = (DAGNode) dag_.findOrCreateNode("Actor", creator, true);
 		QueryObject qo = new QueryObject(isa2, samuel, actor);
-		String result = sut_.edgeToString(qo, false, false, false);
+		String result = sut_.edgeToString(qo, false, false, false, false);
 		assertEquals(result, "Samuel L Jackson has 'isa2' relation to Actor");
 		Object edgeNodes = new Node[] { isa2, samuel, actor };
 		assertEquals(result, sut_.execute(edgeNodes));
@@ -152,7 +152,7 @@ public class NLPToStringModuleTest {
 		assertFalse(dag_.findOrCreateEdge(new Node[] { nlpPred, isa2,
 				new StringNode("$1 /1(is)/(are)/ an instance of $2") },
 				creator, true) instanceof ErrorEdge);
-		result = sut_.edgeToString(qo, false, false, false);
+		result = sut_.edgeToString(qo, false, false, false, false);
 		assertEquals(result, "Samuel L Jackson is an instance of Actor");
 
 		// Broader term
@@ -166,7 +166,7 @@ public class NLPToStringModuleTest {
 		assertFalse(dag_.findOrCreateEdge(new Node[] { nlpPred, broader,
 				new StringNode("$2 /2(is)/(are)/ broader than $1") }, creator,
 				true) instanceof ErrorEdge);
-		result = sut_.edgeToString(qo, false, false, false);
+		result = sut_.edgeToString(qo, false, false, false, false);
 		assertEquals(result, "Actor is broader than Samuel L Jackson");
 
 		// Node strings
@@ -176,7 +176,7 @@ public class NLPToStringModuleTest {
 				new StringNode("Samuel L. Jackson") }, creator, true) instanceof ErrorEdge);
 		assertFalse(dag_.findOrCreateEdge(new Node[] { canonical, actor,
 				new StringNode("Actor") }, creator, true) instanceof ErrorEdge);
-		result = sut_.edgeToString(qo, false, false, false);
+		result = sut_.edgeToString(qo, false, false, false, false);
 		assertEquals(result, "Actor is broader than Samuel L. Jackson");
 
 		// Non-binary edges
@@ -191,16 +191,43 @@ public class NLPToStringModuleTest {
 				PrimitiveNode.parseNode("1"), thing }, creator, true) instanceof ErrorEdge);
 		qo = new QueryObject(argIsa2, broader, PrimitiveNode.parseNode("1"),
 				thing);
-		result = sut_.edgeToString(qo, false, false, false);
+		result = sut_.edgeToString(qo, false, false, false, false);
 		assertEquals(result,
 				"broader Term has 'argIsa2' relation to 1 and Thing");
 
 		// Self referential edge
 		qo = new QueryObject(nlpPred, isa2, new StringNode(
 				"$1 /1(is)/(are)/ an instance of $2"));
-		result = sut_.edgeToString(qo, false, false, false);
+		result = sut_.edgeToString(qo, false, false, false, false);
 		assertEquals(result, "\"$1 /1(is)/(are)/ an instance of $2\" is the "
 				+ "NL predicate string for isa 2");
+
+		// Negation
+		DAGNode not = CommonConcepts.NOT.getNode(dag_);
+		qo = new QueryObject(not, new OntologyFunction(broader, samuel, actor));
+		result = sut_.edgeToString(qo, false, false, false, false);
+		assertEquals(result, "Actor is not broader than Samuel L. Jackson");
+		result = sut_.edgeToString(qo, false, false, false, true);
+		assertEquals(result, "Actor is broader than Samuel L. Jackson");
+		qo = new QueryObject(broader, samuel, actor);
+		result = sut_.edgeToString(qo, false, false, false, true);
+		assertEquals(result, "Actor is not broader than Samuel L. Jackson");
+		qo = new QueryObject(argIsa2, broader, PrimitiveNode.parseNode("1"),
+				thing);
+		result = sut_.edgeToString(qo, false, false, false, true);
+		assertEquals(result,
+				"broader Term does not have 'argIsa2' relation to 1 and Thing");
+
+		DAGNode comment = CommonConcepts.COMMENT.getNode(dag_);
+		qo = new QueryObject(comment, broader, new StringNode("Test"));
+		result = sut_.edgeToString(qo, false, false, false, true);
+		assertEquals(result,
+				"broader Term does not have comment \"Test\"");
+		DAGNode arg1Isa = CommonConcepts.ARG1ISA.getNode(dag_);
+		qo = new QueryObject(arg1Isa, broader, comment);
+		result = sut_.edgeToString(qo, false, false, false, true);
+		assertEquals(result,
+				"argument 1 of broader Term is not an instance of comment");
 	}
 
 	@Test
@@ -216,17 +243,17 @@ public class NLPToStringModuleTest {
 				creator, true);
 		DAGNode actor = (DAGNode) dag_.findOrCreateNode("Actor", creator, true);
 		QueryObject qo = new QueryObject(isa2, samuel, actor);
-		String result = sut_.edgeToString(qo, true, false, false);
+		String result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result,
 				"does Samuel L Jackson have 'isa2' relation to Actor?");
 
 		// Substitutions
 		qo = new QueryObject(isa2, samuel, VariableNode.DEFAULT);
-		result = sut_.edgeToString(qo, true, false, false);
+		result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result,
 				"Samuel L Jackson has 'isa2' relation to what things?");
 		qo = new QueryObject(isa2, VariableNode.DEFAULT, actor);
-		result = sut_.edgeToString(qo, true, false, false);
+		result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result, "what things have 'isa2' relation to Actor?");
 
 		// Markup predicate
@@ -235,7 +262,7 @@ public class NLPToStringModuleTest {
 				new StringNode("$1 /1(is)/(are)/ an instance of $2") },
 				creator, true) instanceof ErrorEdge);
 		qo = new QueryObject(isa2, samuel, actor);
-		result = sut_.edgeToString(qo, true, false, false);
+		result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result, "is Samuel L Jackson an instance of Actor?");
 
 		// Broader term
@@ -249,21 +276,21 @@ public class NLPToStringModuleTest {
 				new StringNode("$2 /2(is)/(are)/ broader than $1") }, creator,
 				true) instanceof ErrorEdge);
 		qo = new QueryObject(broader, samuel, actor);
-		result = sut_.edgeToString(qo, true, false, false);
+		result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result, "is Actor broader than Samuel L Jackson?");
 
 		// Substitutions
 		qo = new QueryObject(isa2, samuel, VariableNode.DEFAULT);
-		result = sut_.edgeToString(qo, true, false, false);
+		result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result, "Samuel L Jackson is an instance of what things?");
 		qo = new QueryObject(isa2, new VariableNode("?Y"), actor);
-		result = sut_.edgeToString(qo, true, false, false);
+		result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result, "what things are an instance of Actor?");
 		qo = new QueryObject(broader, samuel, VariableNode.DEFAULT);
-		result = sut_.edgeToString(qo, true, false, false);
+		result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result, "what things are broader than Samuel L Jackson?");
 		qo = new QueryObject(broader, new VariableNode("?Y"), actor);
-		result = sut_.edgeToString(qo, true, false, false);
+		result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result, "Actor is broader than what things?");
 
 		// Conjunctions
@@ -273,7 +300,7 @@ public class NLPToStringModuleTest {
 				VariableNode.DEFAULT, new VariableNode("?Y"));
 		DAGNode and = CommonConcepts.AND.getNode(dag_);
 		qo = new QueryObject(and, firstPart, secondPart);
-		result = sut_.edgeToString(qo, true, false, false);
+		result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result, "what things ?X are an instance of Actor AND "
 				+ "what things ?Y are broader than what things ?X?");
 
@@ -283,10 +310,21 @@ public class NLPToStringModuleTest {
 				new OntologyFunction(isa2, samuel, actor),
 				new OntologyFunction(broader, VariableNode.DEFAULT,
 						new VariableNode("?Y"))));
-		result = sut_.edgeToString(qo, true, false, false);
+		result = sut_.edgeToString(qo, true, false, false, false);
 		assertEquals(result, "what things ?X are an instance of Actor OR "
 				+ "is Samuel L Jackson an instance of Actor AND "
 				+ "what things ?Y are broader than what things ?X?");
+		
+		// Negation
+		qo = new QueryObject(isa2, samuel, actor);
+		result = sut_.edgeToString(qo, true, false, false, true);
+		assertEquals(result, "is Samuel L Jackson not an instance of Actor?");
+		qo = new QueryObject(isa2, new VariableNode("?Y"), actor);
+		result = sut_.edgeToString(qo, true, false, false, true);
+		assertEquals(result, "what things are not an instance of Actor?");
+		qo = new QueryObject(broader, new VariableNode("?Y"), actor);
+		result = sut_.edgeToString(qo, true, false, false, true);
+		assertEquals(result, "Actor is not broader than what things?");
 	}
 
 	@Test
@@ -357,27 +395,38 @@ public class NLPToStringModuleTest {
 				// Edge
 				QueryObject queryObject = new QueryObject(cc.getNode(dag_),
 						strA, strB, strC);
-				System.out.println("Edge: " + queryObject.toString() + "\n\t"
-						+ sut_.edgeToString(queryObject, false, false, false));
-				// Proof
-				System.out.println("Query (proof): " + queryObject.toString()
+				System.out.println("Edge: "
+						+ queryObject.toString()
 						+ "\n\t"
-						+ sut_.edgeToString(queryObject, true, false, false));
+						+ sut_.edgeToString(queryObject, false, false, false,
+								false));
+				// Proof
+				System.out.println("Query (proof): "
+						+ queryObject.toString()
+						+ "\n\t"
+						+ sut_.edgeToString(queryObject, true, false, false,
+								false));
 				// Var A
 				queryObject = new QueryObject(cc.getNode(dag_), var, strB, strC);
-				System.out.println("Query (1): " + queryObject.toString()
+				System.out.println("Query (1): "
+						+ queryObject.toString()
 						+ "\n\t"
-						+ sut_.edgeToString(queryObject, true, false, false));
+						+ sut_.edgeToString(queryObject, true, false, false,
+								false));
 				// Var B
 				queryObject = new QueryObject(cc.getNode(dag_), strA, var, strC);
-				System.out.println("Query (2): " + queryObject.toString()
+				System.out.println("Query (2): "
+						+ queryObject.toString()
 						+ "\n\t"
-						+ sut_.edgeToString(queryObject, true, false, false));
+						+ sut_.edgeToString(queryObject, true, false, false,
+								false));
 				// Var C
 				queryObject = new QueryObject(cc.getNode(dag_), strA, strB, var);
-				System.out.println("Query (3): " + queryObject.toString()
+				System.out.println("Query (3): "
+						+ queryObject.toString()
 						+ "\n\t"
-						+ sut_.edgeToString(queryObject, true, false, false));
+						+ sut_.edgeToString(queryObject, true, false, false,
+								false));
 			} catch (Exception e) {
 				System.out
 						.println("Could not print '" + cc.getNodeName() + "'");
@@ -392,31 +441,31 @@ public class NLPToStringModuleTest {
 				new OntologyFunction(CommonConcepts.GENLS.getNode(dag_), strB,
 						strC));
 		System.out.println("Edge: " + queryObject.toString() + "\n\t"
-				+ sut_.edgeToString(queryObject, false, false, false));
+				+ sut_.edgeToString(queryObject, false, false, false, false));
 		// Proof
 		System.out.println("Query (proof): " + queryObject.toString() + "\n\t"
-				+ sut_.edgeToString(queryObject, true, false, false));
+				+ sut_.edgeToString(queryObject, true, false, false, false));
 		// Var A
 		queryObject = new QueryObject(CommonConcepts.OR.getNode(dag_),
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), var,
 						strB), new OntologyFunction(
 						CommonConcepts.GENLS.getNode(dag_), strB, strC));
 		System.out.println("Query (1): " + queryObject.toString() + "\n\t"
-				+ sut_.edgeToString(queryObject, true, false, false));
+				+ sut_.edgeToString(queryObject, true, false, false, false));
 		// Var B
 		queryObject = new QueryObject(CommonConcepts.AND.getNode(dag_),
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), strA,
 						var), new OntologyFunction(
 						CommonConcepts.GENLS.getNode(dag_), var, strC));
 		System.out.println("Query (2): " + queryObject.toString() + "\n\t"
-				+ sut_.edgeToString(queryObject, true, false, false));
+				+ sut_.edgeToString(queryObject, true, false, false, false));
 		// Var C
 		queryObject = new QueryObject(CommonConcepts.OR.getNode(dag_),
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), strA,
 						strB), new OntologyFunction(
 						CommonConcepts.GENLS.getNode(dag_), strB, var));
 		System.out.println("Query (3): " + queryObject.toString() + "\n\t"
-				+ sut_.edgeToString(queryObject, true, false, false));
+				+ sut_.edgeToString(queryObject, true, false, false, false));
 		// Two vars
 		queryObject = new QueryObject(CommonConcepts.OR.getNode(dag_),
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), strA,
@@ -424,6 +473,6 @@ public class NLPToStringModuleTest {
 						CommonConcepts.GENLS.getNode(dag_), var,
 						new VariableNode("?Y")));
 		System.out.println("Query (4): " + queryObject.toString() + "\n\t"
-				+ sut_.edgeToString(queryObject, true, false, false));
+				+ sut_.edgeToString(queryObject, true, false, false, false));
 	}
 }

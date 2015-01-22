@@ -132,7 +132,7 @@ public class ManualDisjointnessCommand extends Command {
 				+ total
 				+ ") "
 				+ StringUtils.capitalize(nlpModule.edgeToString(qo, true,
-						false, false)) + " " + qo.toString()
+						false, false, false)) + " " + qo.toString()
 				+ "\n(1:disjoint, 0:not disjoint, -1/EMPTY:unknown, Q:quit): ");
 
 		flushOut();

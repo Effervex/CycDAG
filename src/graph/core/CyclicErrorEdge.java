@@ -31,7 +31,7 @@ public class CyclicErrorEdge extends DAGErrorEdge {
 			if (nlpModule != null)
 				return "Asserting '"
 						+ nlpModule.edgeToString(new QueryObject(
-								cyclicAssertion_), false, false, false)
+								cyclicAssertion_), false, false, false, false)
 						+ "' would create a cycle.";
 		}
 		return "Asserting (" + StringUtils.join(cyclicAssertion_, " ")

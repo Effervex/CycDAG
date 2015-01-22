@@ -56,6 +56,7 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 
 	private List<EdgeCol> locateEdgeCollections(String functionPrefix,
 			boolean createNew, Object... args) {
+		// TODO If negated (not), treat as without not
 		List<EdgeCol> edgeCols = new ArrayList<>();
 		Node predicate = null;
 		for (int i = 0; i < args.length; i++) {

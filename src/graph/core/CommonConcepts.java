@@ -294,7 +294,7 @@ public enum CommonConcepts {
 				new Node[] { GENLS.getNode(dag), STRING.getNode(dag),
 						CHARACTER_STRING.getNode(dag) }, _COMMON_CONCEPT, true);
 		Node theString = dag.findOrCreateFunctionNode(true, false,
-				_COMMON_CONCEPT, THE_FN.getNode(dag), STRING.getNode(dag));
+				true, _COMMON_CONCEPT, THE_FN.getNode(dag), STRING.getNode(dag));
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), theString, STRING.getNode(dag) },
 				_COMMON_CONCEPT, true);
@@ -450,7 +450,6 @@ public enum CommonConcepts {
 		nlpPredicates(LATER_PREDICATE, "$1 /1(is)/(are)/ later than $2", dag);
 		nlpPredicates(NLP_PREDICATE_STRING,
 				"$2 /2(is)/(are)/ the NL predicate string for $1", dag);
-		nlpPredicates(NOT, "$1 /1(is)/(are)/ not true", dag);
 		nlpPredicates(PRETTY_STRING, "$1 /1(is)/(are)/ known as $2", dag);
 		nlpPredicates(PRETTY_STRING_CANONICAL,
 				"$1 /1(is)/(are)/ commonly known as $2", dag);

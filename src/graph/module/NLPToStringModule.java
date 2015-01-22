@@ -49,7 +49,7 @@ public class NLPToStringModule extends DAGModule<String> {
 			}
 			QueryObject conjQO = new QueryObject(
 					((OntologyFunction) conjuncted[i]).getNodes());
-			String conjStr = edgeToString(conjQO, isQuery, true, markup);
+			String conjStr = edgeToString(conjQO, isQuery, true, markup, false);
 			buffer.append(conjStr);
 		}
 		return buffer.toString();
@@ -71,9 +71,18 @@ public class NLPToStringModule extends DAGModule<String> {
 	}
 
 	public String edgeToString(QueryObject queryObject, boolean isQuery,
-			boolean includeVariables, boolean markup) {
+			boolean includeVariables, boolean markup, boolean negated) {
 		initQuerier();
 
+		// Dealing with negation
+		if (queryObject.getNode(0).equals(CommonConcepts.NOT.getNode(dag_))) {
+			QueryObject innerQO = new QueryObject(
+					((OntologyFunction) queryObject.getNodes()[1]).getNodes());
+			return edgeToString(innerQO, isQuery, includeVariables, markup,
+					!negated);
+		}
+
+		// Dealing with conjunctions
 		if (queryObject.getNode(0).equals(CommonConcepts.AND.getNode(dag_))
 				|| queryObject.getNode(0).equals(
 						CommonConcepts.OR.getNode(dag_))) {
@@ -90,10 +99,12 @@ public class NLPToStringModule extends DAGModule<String> {
 				replacements[i] = WHAT_THINGS;
 				if (includeVariables)
 					replacements[i] += " " + nodes[i];
-			} else
+			} else {
 				replacements[i] = nodeToString(nodes[i], markup);
+			}
 		}
 
+		// Get the predicate string if it exists.
 		Collection<Substitution> predicateStrings = querier_
 				.execute(new QueryObject(CommonConcepts.NLP_PREDICATE_STRING
 						.getNode(dag_), queryObject.getNode(0),
@@ -104,9 +115,14 @@ public class NLPToStringModule extends DAGModule<String> {
 			if (isQuery && queryObject.isProof())
 				buffer.append("does ");
 			buffer.append(replacements[1]);
-			if (isQuery
-					&& (nodes[1] instanceof VariableNode || queryObject
-							.isProof()))
+			if (negated) {
+				if (!isQuery)
+					buffer.append(" does");
+				buffer.append(" not");
+			}
+			if (negated
+					|| (isQuery && (nodes[1] instanceof VariableNode || queryObject
+							.isProof())))
 				buffer.append(" have ");
 			else
 				buffer.append(" has ");
@@ -128,6 +144,11 @@ public class NLPToStringModule extends DAGModule<String> {
 			String replaced = UtilityMethods.shrinkString(predicateStrings
 					.iterator().next().getSubstitution(VariableNode.DEFAULT)
 					.toString(), 1);
+
+			// Negation
+			if (negated) {
+				replaced = negateString(replaced);
+			}
 
 			// Query checking
 			if (isQuery && queryObject.isProof()) {
@@ -155,6 +176,25 @@ public class NLPToStringModule extends DAGModule<String> {
 		}
 	}
 
+	/**
+	 * Negate a predicate string by replacing a token with a negated token, or
+	 * simply appending 'is not true' to the end of the string.
+	 *
+	 * @param replaced
+	 *            The string to negate.
+	 * @return A negated form of the string.
+	 */
+	private String negateString(String target) {
+		if (target.contains("(is)/(are)/"))
+			return target.replaceAll("\\(is\\)/\\(are\\)/", "$0 not");
+		if (target.contains("(has)/(have)/"))
+			return target.replaceAll("\\(has\\)/\\(have\\)/",
+					"(does not have)/(do not have)/");
+		if (target.contains(" is "))
+			return target.replaceFirst(" is ", "$0not ");
+		return target + " is not true";
+	}
+
 	@Override
 	public String execute(Object... args) throws IllegalArgumentException,
 			ModuleException {
@@ -172,14 +212,15 @@ public class NLPToStringModule extends DAGModule<String> {
 		// Parse and execute the object
 		if (args[i] instanceof Node[]) {
 			return edgeToString(new QueryObject((Node[]) args[i]), false,
-					false, markup);
+					false, markup, false);
 		} else if (args[i] instanceof Node)
 			return nodeToString((Node) args[i], markup);
 		else if (args[i] instanceof Edge)
 			return edgeToString(new QueryObject(((Edge) args[i]).getNodes()),
-					false, false, markup);
+					false, false, markup, false);
 		else if (args[i] instanceof QueryObject)
-			return edgeToString((QueryObject) args[i], true, false, markup);
+			return edgeToString((QueryObject) args[i], true, false, markup,
+					false);
 		else if (args[i] instanceof String)
 			return markupToString((String) args[i], markup);
 		return null;

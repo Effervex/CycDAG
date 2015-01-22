@@ -526,6 +526,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 *            If the node can be created if not found.
 	 * @param ephemeral
 	 *            If the node should be ephemeral.
+	 * @param canReify
+	 *            TODO
 	 * @param creator
 	 *            The creator (can be null).
 	 * @param args
@@ -534,7 +536,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 *         problem.
 	 */
 	public OntologyFunction findOrCreateFunctionNode(boolean createNew,
-			boolean ephemeral, Node creator, Node... args) {
+			boolean ephemeral, boolean canReify, Node creator, Node... args) {
 		if (args != null
 				&& (!createNew || semanticArgCheck(args, null, false, ephemeral) == null)) {
 			FunctionIndex functionIndexer = (FunctionIndex) getModule(FunctionIndex.class);
@@ -544,7 +546,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 						.execute((Object[]) args);
 				if (ontFunc == null) {
 					ontFunc = new OntologyFunction(this, args);
-					if (!ontFunc.isAnonymous() && createNew)
+					if (canReify && createNew && !ontFunc.isAnonymous())
 						reifyFunction(ontFunc, creator, ephemeral);
 				}
 				return ontFunc;
@@ -625,7 +627,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			Node[] subNodes = parseNodes(nodeStr, creator, createNew, true,
 					allowVariables);
 			return findOrCreateFunctionNode(createNew,
-					bFlags.getFlag("ephemeral"), creator, subNodes);
+					bFlags.getFlag("ephemeral"), true, creator, subNodes);
 		} else if (allowVariables && nodeStr.startsWith("?")) {
 			return new VariableNode(nodeStr);
 		}
