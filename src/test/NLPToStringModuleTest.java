@@ -126,7 +126,7 @@ public class NLPToStringModuleTest {
 		result = sut_.nodeToString(urlFn, false);
 		assertEquals(
 				result,
-				"<a href=\\\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\\\">http://en.wikipedia.org/wiki/Gaetano_Salvemini</a>");
+				"<a href=\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\">\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\"</a>");
 	}
 
 	@Test

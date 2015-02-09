@@ -211,7 +211,7 @@ public class NLPToStringModule extends DAGModule<String> {
 		Collection<Substitution> predicateStrings = querier_.executeQuery(
 				false,
 				new QueryObject(CommonConcepts.NLP_PREDICATE_STRING
-						.getNode(dag_), queryObject.getNode(0),
+						.getNode(dag_), nodes[0],
 						VariableNode.DEFAULT));
 		if (predicateStrings.isEmpty()) {
 			// No NLP String, revert to default
@@ -339,9 +339,6 @@ public class NLPToStringModule extends DAGModule<String> {
 	}
 
 	public String nodeToString(Node node, boolean markup) {
-		if (!(node instanceof DAGNode))
-			return node.toString();
-
 		// Hierarchy
 		initQuerier();
 		String result = nodeToStringInternal(node);

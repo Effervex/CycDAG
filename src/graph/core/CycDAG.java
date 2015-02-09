@@ -326,9 +326,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 		QueryObject justifQO = new QueryObject(true, edgeQuery.getNodes());
 		if (querier_.prove(false, justifQO) == QueryResult.FALSE) {
 			List<Node[]> justification = justifQO.getJustification();
+			Node[] contradictionNodes = (justification.isEmpty()) ? new Node[0]
+					: justification.get(justification.size() - 1);
 			NegatedErrorEdge negatedError = new NegatedErrorEdge(negated,
-					justifQO.getNodes(),
-					justification.get(justification.size() - 1));
+					justifQO.getNodes(), contradictionNodes);
 			edgeQuery.addResult(false, null, justification);
 			edgeQuery.setRejectionReason(negatedError);
 			return negatedError;

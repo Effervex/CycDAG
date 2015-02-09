@@ -390,7 +390,7 @@ public enum CommonConcepts {
 				UNREIFIABLE_FUNCTION.getNode(dag) }, _COMMON_CONCEPT, true);
 		dag.findOrCreateEdge(new Node[] { PRETTY_STRING_CANONICAL.getNode(dag),
 				URLFN.getNode(dag),
-				new StringNode("<a href=\\\"______\\\">______</a>") },
+				new StringNode("<a href=______>______</a>") },
 				_COMMON_CONCEPT, true);
 
 		// First Order Collection
