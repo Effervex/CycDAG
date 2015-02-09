@@ -61,8 +61,8 @@ public class SiblingDisjointModule extends DAGModule<Collection<DAGNode>> {
 						CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
 								.getNode(dag_)), new OntologyFunction(
 						CommonConcepts.ISA.getNode(dag_), instColl, sibInst));
-		Collection<Substitution> siblingCollections = querier
-				.execute(siblingDisjCollectionTypes);
+		Collection<Substitution> siblingCollections = querier.executeQuery(
+				false, siblingDisjCollectionTypes);
 		siblingDisjointParents_ = MultiMap.createConcurrentHashSetMultiMap();
 		for (Substitution sub : siblingCollections) {
 			Node sibColl = sub.getSubstitution(sibInst);
@@ -78,5 +78,15 @@ public class SiblingDisjointModule extends DAGModule<Collection<DAGNode>> {
 
 	public boolean isReady() {
 		return siblingDisjointParents_ != null;
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return false;
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
 	}
 }

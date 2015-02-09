@@ -12,6 +12,7 @@ package graph.module;
 
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 
@@ -87,5 +88,15 @@ public class FunctionIndex extends DAGModule<OntologyFunction> {
 		if (funcs != null)
 			return funcs;
 		return CollectionUtils.EMPTY_COLLECTION;
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return false;
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return true;
 	}
 }

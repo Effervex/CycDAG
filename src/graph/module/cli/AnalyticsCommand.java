@@ -7,6 +7,7 @@ import graph.core.Node;
 import graph.core.cli.DAGPortHandler;
 import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.inference.VariableNode;
 import graph.module.FunctionIndex;
 import graph.module.QueryModule;
@@ -213,22 +214,23 @@ public class AnalyticsCommand extends Command {
 
 		// Reifiable?
 		values[indexMap.get(REIFIABLE)] = (querier_.prove(
-				CommonConcepts.ISA.getNode(dag), function,
-				CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag))) ? "F" : "T";
+				false, CommonConcepts.ISA.getNode(dag),
+				function, CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag)) == QueryResult.TRUE) ? "F"
+				: "T";
 
 		// Result constraints?
 		boolean resultConstraint = querier_.prove(
-				CommonConcepts.RESULT_ISA.getNode(dag), function,
-				VariableNode.DEFAULT);
+				false, CommonConcepts.RESULT_ISA.getNode(dag),
+				function, VariableNode.DEFAULT) == QueryResult.TRUE;
 		resultConstraint |= querier_.prove(
-				CommonConcepts.RESULT_GENL.getNode(dag), function,
-				VariableNode.DEFAULT);
+				false, CommonConcepts.RESULT_GENL.getNode(dag),
+				function, VariableNode.DEFAULT) == QueryResult.TRUE;
 		resultConstraint |= querier_.prove(
-				CommonConcepts.RESULT_ISA_ARG.getNode(dag), function,
-				VariableNode.DEFAULT);
+				false, CommonConcepts.RESULT_ISA_ARG.getNode(dag),
+				function, VariableNode.DEFAULT) == QueryResult.TRUE;
 		resultConstraint |= querier_.prove(
-				CommonConcepts.RESULT_GENL_ARG.getNode(dag), function,
-				VariableNode.DEFAULT);
+				false, CommonConcepts.RESULT_GENL_ARG.getNode(dag),
+				function, VariableNode.DEFAULT) == QueryResult.TRUE;
 		values[indexMap.get(RESULT_CONSTRAINTS)] = (resultConstraint) ? "T"
 				: "F";
 

@@ -40,7 +40,6 @@ public enum CommonQuery {
 	DIRECTINSTANCE("(assertedSentence (isa ?X ?0))", true),
 	DIRECTISA("(assertedSentence (isa ?0 ?X))", true),
 	DIRECTSPECS("(assertedSentence (genls ?X ?0))", true),
-	DISJOINT("(disjointWith ?0 ?1)"),
 	GENLSIBLINGS("(assertedSentence (genls ?0 ?X))", true),
 	GENLPREDS("(genlPreds ?0 ?X)"),
 	INSTANCES("(isa ?X ?0)"),
@@ -70,6 +69,11 @@ public enum CommonQuery {
 	private CommonQuery(String query, boolean specialQuery) {
 		queryStr_ = UtilityMethods.shrinkString(query, 1);
 		specialQuery_ = specialQuery;
+	}
+
+	public static void reset() {
+		for (CommonQuery cq : values())
+			cq.queryObject_ = null;
 	}
 
 	/**
@@ -162,8 +166,9 @@ public enum CommonQuery {
 		case MAXCOMMONINSTANCES:
 		case MAXCOMMONSPECS:
 			if (this == MAXINSTANCES
-					&& querier.prove(CommonConcepts.ISA.getNode(dag), args[0],
-							CommonConcepts.FIRST_ORDER_COLLECTION.getNode(dag)))
+					&& querier.prove(false, CommonConcepts.ISA.getNode(dag),
+							args[0],
+							CommonConcepts.FIRST_ORDER_COLLECTION.getNode(dag)) == QueryResult.TRUE)
 				return results;
 			maxSpecFilter(results, dag);
 			break;
@@ -245,6 +250,16 @@ public enum CommonQuery {
 		return results;
 	}
 
+	/**
+	 * Runs this quick query with the given arguments. Returns the set of
+	 * matching results, which is empty if no results found.
+	 *
+	 * @param dag
+	 *            The dag access.
+	 * @param args
+	 *            The arguments of the query.
+	 * @return The set of matching results, or empty if NIL.
+	 */
 	public Collection<Node> runQuery(DirectedAcyclicGraph dag, Node... args) {
 		if (queryObject_ == null)
 			initialiseQueryObject(dag);

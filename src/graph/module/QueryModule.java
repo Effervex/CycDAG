@@ -11,14 +11,19 @@
 package graph.module;
 
 import graph.core.CommonConcepts;
+import graph.core.CycDAG;
+import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Edge;
+import graph.core.EdgeModifier;
+import graph.core.ErrorEdge;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
 import graph.core.StringNode;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
 import graph.inference.VariableNode;
@@ -60,14 +65,14 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				this));
 		inferenceModules_.put("genls", new TransitiveWorker(this));
 		inferenceModules_.put("genlPreds", new TransitiveWorker(this));
-		inferenceModules_.put(EVALUATABLE_WORKER,
-				new EvaluatablePredicateWorker(this));
 		inferenceModules_.put("isa", new IsaWorker(this));
 		inferenceModules_.put("disjointWith", new DisjointWithWorker(this));
 		inferenceModules_.put("and", new AndWorker(this));
 		inferenceModules_.put("or", new OrWorker(this));
 		inferenceModules_.put("resultIsa", new IsaWorker(this));
 		inferenceModules_.put("resultGenl", new IsaWorker(this));
+		for (String eval : EvaluatablePredicateWorker.SUPPORTED_PREDICATES)
+			inferenceModules_.put(eval, new EvaluatablePredicateWorker(this));
 		inferenceModules_.put(DEFAULT_WORKER,
 				new GenlPredTransitiveWorker(this));
 	}
@@ -88,11 +93,35 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		Node[] asNodes = new Node[args.length];
 		System.arraycopy(args, 0, asNodes, 0, args.length);
 
-		return execute(new QueryObject(asNodes));
+		return executeQuery(true, new QueryObject(asNodes));
 	}
 
-	public Collection<Substitution> execute(QueryObject queryObj) {
+	public Collection<Substitution> executeQuery(boolean checkValidity,
+			QueryObject queryObj) {
 		initQueryRedirects();
+
+		// Remove negation when evaluating and flip result if negated
+		boolean negated = queryObj.getNode(0).equals(
+				CommonConcepts.NOT.getNode(dag_));
+		QueryObject origQO = queryObj;
+		if (negated)
+			queryObj = queryObj.modifyNodes(((OntologyFunction) queryObj
+					.getNode(1)).getNodes());
+
+		// Verify arguments before executing module.
+		if (checkValidity) {
+			ErrorEdge ee = ((CycDAG) dag_).verifyEdgeArguments(queryObj,
+					negated, false, null, false);
+			if (queryObj.getResultState() != QueryResult.NIL) {
+				if (negated)
+					queryObj.flipResultState();
+				if (queryObj.getResultState() == QueryResult.FALSE)
+					queryObj.setRejectionReason(ee);
+				if (origQO.shouldJustify())
+					origQO.setJustification(queryObj.getJustification());
+				return queryObj.getResults();
+			}
+		}
 
 		String module = DEFAULT_WORKER;
 		if (inferenceModules_.containsKey(queryObj.getNode(0).toString()))
@@ -100,10 +129,11 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		else {
 			// Try the queries's
 			for (QueryObject qo : queryRedirects_.keySet()) {
-				QueryObject newQO = new QueryObject(new Substitution(
-						VariableNode.DEFAULT, (DAGNode) queryObj.getNode(0)),
-						qo.getNodes());
-				if (prove(newQO)) {
+				Substitution sub = new Substitution(VariableNode.DEFAULT,
+						queryObj.getNode(0));
+				QueryObject newQO = new QueryObject(false,
+						sub.applySubstitution(qo.getNodes()));
+				if (prove(false, newQO) == QueryResult.TRUE) {
 					module = queryRedirects_.get(qo);
 					break;
 				}
@@ -133,9 +163,17 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				}
 			}
 
+			if (negated)
+				queryObj.flipResultState();
+			if (origQO.shouldJustify())
+				origQO.setJustification(queryObj.getJustification());
 			return queryObj.getResults();
 		} else {
 			applyModule(module, queryObj);
+			if (negated)
+				queryObj.flipResultState();
+			if (origQO.shouldJustify())
+				origQO.setJustification(queryObj.getJustification());
 			return queryObj.getResults();
 		}
 	}
@@ -146,30 +184,25 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	private void initQueryRedirects() {
 		if (queryRedirects_ == null) {
 			queryRedirects_ = new HashMap<>();
-			queryRedirects_
-					.put(new QueryObject(CommonConcepts.ISA.getNode(dag_),
-							VariableNode.DEFAULT,
-							CommonConcepts.EVALUATABLE_PREDICATE.getNode(dag_)),
-							EVALUATABLE_WORKER);
 		}
 	}
 
 	public List<Node[]> justify(Node... nodes) {
 		QueryObject qo = new QueryObject(true, nodes);
-		execute(qo);
-		return qo.getJustification();
+		executeQuery(true, qo);
+		if (qo.getResultState() != QueryResult.NIL)
+			return qo.getJustification();
+		return new ArrayList<>();
 	}
 
-	public boolean prove(Node... nodes) {
+	public QueryResult prove(boolean checkValidity, Node... nodes) {
 		QueryObject qo = new QueryObject(false, nodes);
-		return prove(qo);
+		return prove(checkValidity, qo);
 	}
 
-	public boolean prove(QueryObject queryObject) {
-		if (queryObject.isProof())
-			return execute(queryObject) != null;
-		else
-			return !execute(queryObject).isEmpty();
+	public QueryResult prove(boolean checkValidity, QueryObject queryObject) {
+		executeQuery(checkValidity, queryObject);
+		return queryObject.getResultState();
 	}
 
 	/**
@@ -182,8 +215,11 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	 * @return The parsed results.
 	 */
 	public Collection<Node> executeAndParseVar(QueryObject qo, String var) {
-		Collection<Substitution> subs = execute(qo);
-		return parseResultsFromSubstitutions(var, subs);
+		Collection<Substitution> subs = executeQuery(true, qo);
+		if (qo.getResultState() == QueryResult.TRUE)
+			return parseResultsFromSubstitutions(var, subs);
+		else
+			return new ArrayList<>();
 	}
 
 	/**
@@ -268,8 +304,14 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				.getModule(RelatedEdgeModule.class);
 		Collection<Edge> resultEdges = relatedModule.findEdgeByNodes(
 				resultQuery.getNode(dag_), functionNode.getNodes()[0]);
-		for (Edge e : resultEdges)
-			results.add((DAGNode) e.getNodes()[2]);
+		for (Edge e : resultEdges) {
+			if (!EdgeModifier.isNegated(e, dag_))
+				results.add((DAGNode) e.getNodes()[2]);
+			else
+				System.out
+						.println("I should be returning a negative result here.");
+			// TODO Figure out how to return negative result.
+		}
 
 		// resultArgs
 		CommonConcepts resultArgConcept = (resultQuery == CommonConcepts.RESULT_GENL) ? CommonConcepts.RESULT_GENL_ARG
@@ -314,10 +356,13 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				CommonConcepts.STRING.getNode(dag_));
 	}
 
-	public boolean proveIsString(Node testNode, Node constraint) {
-		if (!(testNode instanceof StringNode))
-			return false;
-		return prove(CommonConcepts.GENLS.getNode(dag_), constraint,
-				CommonConcepts.STRING.getNode(dag_));
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return false;
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
 	}
 }

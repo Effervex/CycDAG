@@ -10,6 +10,8 @@
  ******************************************************************************/
 package graph.module;
 
+import graph.core.DAGEdge;
+import graph.core.DAGNode;
 import graph.core.Edge;
 
 import java.text.Normalizer;
@@ -99,4 +101,13 @@ public class NLPToSyntaxModule extends DAGModule<Edge> {
 		return text;
 	}
 
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return false;
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
+	}
 }

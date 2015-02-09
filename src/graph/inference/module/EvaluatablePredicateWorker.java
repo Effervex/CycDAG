@@ -27,6 +27,15 @@ public class EvaluatablePredicateWorker extends QueryWorker {
 	private static final String[] DATE_PARSE_INTERVALS = { "'SecondFn' ss",
 			"'MinuteFn' mm", "'HourFn' HH", "'DayFn' dd", "'MonthFn' MMMM",
 			"'YearFn' yyyy" };
+	public static final String[] SUPPORTED_PREDICATES = {
+			CommonConcepts.DIFFERENT.getNodeName(),
+			CommonConcepts.EQUALS.getNodeName(),
+			CommonConcepts.NUMERICALLY_EQUAL.getNodeName(),
+			CommonConcepts.LATER_PREDICATE.getNodeName(),
+			CommonConcepts.LESS_THAN.getNodeName(),
+			CommonConcepts.LESS_THAN_EQUAL.getNodeName(),
+			CommonConcepts.GREATER_THAN.getNodeName(),
+			CommonConcepts.GREATER_THAN_EQUAL.getNodeName() };
 
 	private static final long serialVersionUID = 1L;
 
@@ -99,19 +108,23 @@ public class EvaluatablePredicateWorker extends QueryWorker {
 		Node[] nodes = queryObj.getNodes();
 		Set<Node> nodeEquals = new HashSet<>();
 		for (int i = 1; i < nodes.length; i++) {
-			if (!nodeEquals.add(nodes[i]))
+			if (!nodeEquals.add(nodes[i])) {
+				queryObj.addResult(false, new Substitution(), nodes);
 				return;
+			}
 		}
-		queryObj.addResult(new Substitution(), nodes);
+		queryObj.addResult(true, new Substitution(), nodes);
 	}
 
 	protected void equalsWorker(QueryObject queryObj) {
 		Node[] nodes = queryObj.getNodes();
 		for (int i = 2; i < nodes.length; i++) {
-			if (!nodes[i].equals(nodes[i - 1]))
+			if (!nodes[i].equals(nodes[i - 1])) {
+				queryObj.addResult(false, new Substitution(), nodes);
 				return;
+			}
 		}
-		queryObj.addResult(new Substitution(), nodes);
+		queryObj.addResult(true, new Substitution(), nodes);
 	}
 
 	protected void laterThanWorker(QueryObject queryObj) {
@@ -126,8 +139,8 @@ public class EvaluatablePredicateWorker extends QueryWorker {
 		Interval dtB = parseDate(dateB, now);
 
 		// If date A is later than date B, return true.
-		if (dtA != null && dtB != null && dtA.isAfter(dtB))
-			queryObj.addResult(new Substitution(), queryObj.getNodes());
+		queryObj.addResult(dtA != null && dtB != null && dtA.isAfter(dtB),
+				new Substitution(), queryObj.getNodes());
 	}
 
 	protected void numericalWorker(CommonConcepts cc, QueryObject queryObj) {
@@ -149,20 +162,18 @@ public class EvaluatablePredicateWorker extends QueryWorker {
 
 		switch (cc) {
 		case LESS_THAN:
-			if (d1 < d2)
-				queryObj.addResult(new Substitution(), queryObj.getNodes());
+			queryObj.addResult(d1 < d2, new Substitution(), queryObj.getNodes());
 			break;
 		case LESS_THAN_EQUAL:
-			if (d1 <= d2)
-				queryObj.addResult(new Substitution(), queryObj.getNodes());
+			queryObj.addResult(d1 <= d2, new Substitution(),
+					queryObj.getNodes());
 			break;
 		case GREATER_THAN:
-			if (d1 > d2)
-				queryObj.addResult(new Substitution(), queryObj.getNodes());
+			queryObj.addResult(d1 > d2, new Substitution(), queryObj.getNodes());
 			break;
 		case GREATER_THAN_EQUAL:
-			if (d1 >= d2)
-				queryObj.addResult(new Substitution(), queryObj.getNodes());
+			queryObj.addResult(d1 >= d2, new Substitution(),
+					queryObj.getNodes());
 			break;
 		default:
 			break;

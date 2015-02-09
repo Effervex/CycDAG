@@ -11,6 +11,7 @@
 package graph.module;
 
 import graph.core.CommonConcepts;
+import graph.core.DAGEdge;
 import graph.core.DAGNode;
 
 import java.text.ParsePosition;
@@ -146,5 +147,15 @@ public class DateParseModule extends DAGModule<Collection<DAGNode>> implements
 			aliased.add(new AliasedObject<Character, DAGNode>(n, ArrayUtils
 					.toObject(alias.toCharArray())));
 		return aliased;
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return false;
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
 	}
 }

@@ -15,8 +15,10 @@ import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Edge;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
+import graph.inference.QueryResult;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -172,8 +174,11 @@ public class TransitiveIntervalSchemaModule extends
 				node, nIndex);
 		Collection<DAGNode> transitiveNodes = new HashSet<>(edges.size());
 		int tIndex = (isUpwards) ? 2 : 1;
-		for (Edge edge : edges)
-			transitiveNodes.add((DAGNode) edge.getNodes()[tIndex]);
+		for (Edge edge : edges) {
+			// TODO How to deal with negated edges?
+			if (!EdgeModifier.isNegated(edge, dag_))
+				transitiveNodes.add((DAGNode) edge.getNodes()[tIndex]);
+		}
 
 		// Function chasing
 		if (transitiveNode_.equals(CommonConcepts.GENLS.getNode(dag_))
@@ -213,31 +218,6 @@ public class TransitiveIntervalSchemaModule extends
 		predecessorMap_ = null;
 		initialisationComplete(dag_.getNodes(), dag_.getEdges(), true);
 		return true;
-	}
-
-	/**
-	 * Topologically sorts a collection of nodes.
-	 * 
-	 * @param nodes
-	 *            The nodes to sort.
-	 * @return The topologically sorted list of nodes.
-	 */
-	public List<DAGNode> topologicalList(Collection<DAGNode> nodes) {
-		cycles_ = new ArrayList<>();
-		LinkedList<DAGNode> sortedNodes = new LinkedList<>();
-		RewriteOfModule rewriteModule = (RewriteOfModule) dag_
-				.getModule(RewriteOfModule.class);
-		for (DAGNode n : nodes) {
-			if (rewriteModule != null)
-				n = rewriteModule.getRewrite(n);
-			// Ignore non-collections
-			if (queryModule_.prove(CommonConcepts.ISA.getNode(dag_), n,
-					CommonConcepts.COLLECTION.getNode(dag_)))
-				topologicalVisit(n, sortedNodes,
-						new HashMap<DAGNode, String>(),
-						new ArrayList<DAGNode>());
-		}
-		return sortedNodes;
 	}
 
 	/**
@@ -515,6 +495,42 @@ public class TransitiveIntervalSchemaModule extends
 	public void setDAG(DirectedAcyclicGraph directedAcyclicGraph) {
 		super.setDAG(directedAcyclicGraph);
 		initMembers();
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		// TODO Should need to handle negated edges.
+		return !EdgeModifier.isSpecial(edge, dag_);
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
+	}
+
+	/**
+	 * Topologically sorts a collection of nodes.
+	 * 
+	 * @param nodes
+	 *            The nodes to sort.
+	 * @return The topologically sorted list of nodes.
+	 */
+	public List<DAGNode> topologicalList(Collection<DAGNode> nodes) {
+		cycles_ = new ArrayList<>();
+		LinkedList<DAGNode> sortedNodes = new LinkedList<>();
+		RewriteOfModule rewriteModule = (RewriteOfModule) dag_
+				.getModule(RewriteOfModule.class);
+		for (DAGNode n : nodes) {
+			if (rewriteModule != null)
+				n = rewriteModule.getRewrite(n);
+			// Ignore non-collections
+			if (queryModule_.prove(false, CommonConcepts.ISA.getNode(dag_), n,
+					CommonConcepts.COLLECTION.getNode(dag_)) == QueryResult.TRUE)
+				topologicalVisit(n, sortedNodes,
+						new HashMap<DAGNode, String>(),
+						new ArrayList<DAGNode>());
+		}
+		return sortedNodes;
 	}
 
 	@Override
@@ -821,7 +837,7 @@ public class TransitiveIntervalSchemaModule extends
 			Collection<int[]> intervals = schemaMap_.get(predID);
 			Collection<DAGNode> transitive = new TreeSet<>(new IDOrder(
 					intervalIDKey_, reversed));
-			
+
 			if (schemaLock_ == null)
 				schemaLock_ = new ReentrantLock();
 			try {

@@ -12,9 +12,11 @@ package graph.inference.module;
 
 import graph.core.CommonConcepts;
 import graph.core.Edge;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.inference.QueryWorker;
 import graph.inference.VariableNode;
 import graph.module.QueryModule;
@@ -58,22 +60,30 @@ public class AssertedSentenceWorker extends QueryWorker {
 		Collection<Edge> edges = relatedModule_.execute(relatedArgs);
 
 		for (Edge edge : edges) {
-			if (queryObj.addResult(edge.getNodes()))
+			if (queryObj.addResult(!EdgeModifier.isNegated(edge, dag_),
+					edge.getNodes()))
 				return;
 		}
 
-		boolean isSymmetric = querier_.execute(
+		boolean isSymmetric = querier_.prove(false,
 				CommonConcepts.ISA.getNode(dag_), queryObj.getNode(0),
-				CommonConcepts.SYMMETRIC_BINARY.getNode(dag_)) != null;
+				CommonConcepts.SYMMETRIC_BINARY.getNode(dag_)) == QueryResult.TRUE;
 		if (isSymmetric) {
 			relatedArgs = queryAsIndexedNodes(queryObj.getNode(0),
 					queryObj.getNode(2), queryObj.getNode(1));
 			edges = relatedModule_.execute(relatedArgs);
 
 			for (Edge edge : edges) {
-				Node[] edgeNodes = edge.getNodes();
-				if (queryObj
-						.addResult(edgeNodes[0], edgeNodes[2], edgeNodes[1]))
+				if (EdgeModifier.isRemoved(edge, dag_))
+					continue;
+				Node[] edgeNodes = EdgeModifier.getUnmodNodes(edge, dag_);
+				boolean negated = EdgeModifier.isNegated(edge, dag_);
+				Node[] negNodes = (negated) ? new Node[] {
+						CommonConcepts.NOT.getNode(dag_),
+						new OntologyFunction(edgeNodes[0], edgeNodes[2],
+								edgeNodes[1]) } : new Node[] { edgeNodes[0],
+						edgeNodes[2], edgeNodes[1] };
+				if (queryObj.addResult(!negated, negNodes))
 					return;
 			}
 		}

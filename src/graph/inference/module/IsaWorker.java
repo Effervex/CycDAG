@@ -14,9 +14,11 @@ import graph.core.CommonConcepts;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Edge;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
 import graph.inference.VariableNode;
@@ -46,8 +48,8 @@ public class IsaWorker extends QueryWorker {
 			transitiveArgs[1] = varNode;
 
 		QueryObject transitiveObj = (queryObj == null) ? new QueryObject(
-				shouldJustify, transitiveArgs) : queryObj.modifyNodes(
-				transitiveArgs);
+				shouldJustify, transitiveArgs) : queryObj
+				.modifyNodes(transitiveArgs);
 		querier_.applyModule(transitivePred.getName(), transitiveObj);
 		return transitiveObj;
 	}
@@ -92,12 +94,15 @@ public class IsaWorker extends QueryWorker {
 							.getNode(dag_), n, funcNode));
 			}
 			for (Edge e : isas) {
-				Node[] edgeNodes = e.getNodes();
+				if (EdgeModifier.isRemoved(e, dag_))
+					continue;
+				Node[] edgeNodes = EdgeModifier.getUnmodNodes(e, dag_);
 				if (queryObj.isCompleted(edgeNodes[varIndex]))
 					continue;
 				if (queryObj.shouldJustify())
 					queryObj.getJustification().clear();
-				if (queryObj.addResult(edgeNodes))
+				if (queryObj.addResult(!EdgeModifier.isNegated(e, dag_),
+						e.getNodes()))
 					return;
 
 				// Find upwards transitive if atomic is first arg.
@@ -110,7 +115,7 @@ public class IsaWorker extends QueryWorker {
 
 					// If the proof is met, exit
 					if (queryObj != null && queryObj.isProof()
-							&& queryObj.getResults() != null) {
+							&& queryObj.getResultState() != QueryResult.NIL) {
 						if (queryObj.shouldJustify())
 							queryObj.getJustification().addAll(
 									transitiveQO.getJustification());
@@ -121,8 +126,8 @@ public class IsaWorker extends QueryWorker {
 		}
 
 		if (atomicIndex != 1 && queryObj.shouldJustify()) {
-			transitiveQO.cleanTransitiveJustification(transitiveQO
-					.getJustification());
+			transitiveQO.cleanTransitiveJustification(
+					transitiveQO.getJustification(), dag_);
 			queryObj.getJustification().addAll(transitiveQO.getJustification());
 		}
 	}

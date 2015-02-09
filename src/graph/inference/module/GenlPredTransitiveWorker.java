@@ -13,6 +13,7 @@ package graph.inference.module;
 import graph.core.CommonConcepts;
 import graph.core.DAGNode;
 import graph.core.Edge;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.inference.QueryObject;
 import graph.inference.QueryWorker;
@@ -50,9 +51,9 @@ public class GenlPredTransitiveWorker extends QueryWorker {
 
 		// Sub preds
 		VariableNode varNode = new VariableNode("?SUB_PREDS");
-		Collection<Substitution> subPreds = querier_.execute(
-				CommonConcepts.GENLPREDS.getNode(dag_), varNode,
-				queryObj.getNode(0));
+		Collection<Substitution> subPreds = querier_.executeQuery(false,
+				new QueryObject(CommonConcepts.GENLPREDS.getNode(dag_),
+						varNode, queryObj.getNode(0)));
 		if (subPreds.isEmpty())
 			subPreds.add(new Substitution(varNode, (DAGNode) queryObj
 					.getNode(0)));
@@ -63,9 +64,9 @@ public class GenlPredTransitiveWorker extends QueryWorker {
 			Collection<Edge> intersect = CollectionUtils.retainAll(
 					nonPredEdges, predEdges);
 			for (Edge interEdge : intersect) {
-				Node[] edgeNodes = Arrays.copyOf(interEdge.getNodes(),
-						interEdge.getNodes().length);
-				if (queryObj.addResult(edgeNodes))
+				if (queryObj.addResult(
+						!EdgeModifier.isNegated(interEdge, dag_),
+						interEdge.getNodes()))
 					return;
 			}
 		}

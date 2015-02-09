@@ -13,6 +13,7 @@ package graph.module;
 import graph.core.CommonConcepts;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
@@ -71,7 +72,7 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 		}
 
 		minParents.remove(node);
-		return minParents;//CommonQuery.minGeneralFilter(minParents, dag_);
+		return minParents;// CommonQuery.minGeneralFilter(minParents, dag_);
 	}
 
 	/**
@@ -247,5 +248,15 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	public void disableCached() {
 		depthCalculated_ = false;
 		depthMap_ = null;
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return !EdgeModifier.isSpecial(edge, dag_);
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
 	}
 }

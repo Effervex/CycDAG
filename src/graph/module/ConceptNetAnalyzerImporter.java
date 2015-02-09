@@ -9,6 +9,7 @@ import graph.core.OntologyFunction;
 import graph.core.StringNode;
 import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.inference.Substitution;
 import graph.inference.VariableNode;
 
@@ -216,16 +217,16 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 
 		// Check they are not Genls to each other
 		if (queryModule_
-				.prove(CommonConcepts.GENLS.getNode(dag_), nodeA, nodeB)
-				|| queryModule_.prove(CommonConcepts.GENLS.getNode(dag_),
-						nodeB, nodeA))
+				.prove(false, CommonConcepts.GENLS.getNode(dag_), nodeA, nodeB) == QueryResult.TRUE
+				|| queryModule_.prove(false,
+						CommonConcepts.GENLS.getNode(dag_), nodeB, nodeA) == QueryResult.TRUE)
 			return true;
 
 		// Check they do not have genls conjoint point
 		VariableNode x = VariableNode.DEFAULT;
 		QueryObject qo = new QueryObject(and, new OntologyFunction(genls, x,
 				nodeA), new OntologyFunction(genls, x, nodeB));
-		Collection<Substitution> results = queryModule_.execute(qo);
+		Collection<Substitution> results = queryModule_.executeQuery(false, qo);
 		if (results.size() != 0) {
 			return true;
 		}
@@ -233,7 +234,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 		x = VariableNode.DEFAULT;
 		qo = new QueryObject(and, new OntologyFunction(isa, x, nodeA),
 				new OntologyFunction(isa, x, nodeB));
-		results = queryModule_.execute(qo);
+		results = queryModule_.executeQuery(false, qo);
 		if (results.size() != 0) {
 			return true;
 		}
@@ -242,13 +243,13 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 	}
 
 	private boolean isAlreadyDisjointed(Node targetNode, Node child) {
-		return queryModule_.prove(CommonConcepts.DISJOINTWITH.getNode(dag_),
-				targetNode, child);
+		return queryModule_.prove(false,
+				CommonConcepts.DISJOINTWITH.getNode(dag_), targetNode, child) == QueryResult.TRUE;
 	}
 
 	// is na a child of nb?
 	private boolean isChild(Node na, Node nb) {
-		return queryModule_.prove(genls, na, nb);
+		return queryModule_.prove(false, genls, na, nb) == QueryResult.TRUE;
 	}
 
 	// Apply common parent filter
@@ -288,7 +289,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 	}
 
 	private boolean isSecondOrderCollection(Node node) {
-		return queryModule_.prove(isa, node, secondordercyc);
+		return queryModule_.prove(false, isa, node, secondordercyc) == QueryResult.TRUE;
 	}
 
 	// private void putUnknownsToDisjoint(String key, Pair<String, String> pair,
@@ -313,7 +314,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 		if (node.equals(partiallyTangible))
 			return false;
 
-		return queryModule_.prove(genls, node, partiallyTangible);
+		return queryModule_.prove(false, genls, node, partiallyTangible) == QueryResult.TRUE;
 	}
 
 	// Nell's structure is not stable that the indexes of column changes
@@ -608,7 +609,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 
 		ArrayList<Node> r = new ArrayList<Node>();
 		for (Node node : candidates) {
-			if (!queryModule_.prove(isa, node, material))
+			if (queryModule_.prove(false, isa, node, material) != QueryResult.TRUE)
 				r.add(node);
 		}
 		return r;
@@ -785,7 +786,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 				outStr = relationName + ": " + left.getName() + " unknown to "
 						+ right.getName() + ": " + nodename1 + "," + nodename2;
 			}
-//			System.out.println(outStr);
+			// System.out.println(outStr);
 			log.println(outStr);
 		}
 		explored.put(p, true);
@@ -888,7 +889,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 				try {
 					BufferedReader br = new BufferedReader(
 							new FileReader(mFile));
-//					System.out.println("processing:" + mFile.getName());
+					// System.out.println("processing:" + mFile.getName());
 					while ((line = br.readLine()) != null) {
 
 						Pattern pattern = Pattern.compile("\\[(.+)\\]");
@@ -967,6 +968,16 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 				e1.printStackTrace();
 			}
 		}
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return false;
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
 	}
 
 }

@@ -14,6 +14,7 @@ import graph.core.CommonConcepts;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Edge;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 
 import java.util.Collection;
@@ -56,7 +57,7 @@ public class StrictlyFunctionalModule extends DAGModule<DAGNode> {
 			// Check if the first argument already has an edge
 			Collection<Edge> existing = relEdgeModule_.findEdgeByNodes(
 					edgeNodes[0], edgeNodes[1]);
-			
+
 			// Remove all existing edges (hopefully only one)
 			for (Edge e : existing) {
 				if (!edge.equals(e))
@@ -81,5 +82,15 @@ public class StrictlyFunctionalModule extends DAGModule<DAGNode> {
 	public String toString() {
 		return "Strictly Functional Module: " + strictlyFunctionalPreds_.size()
 				+ " strictly functional predicates";
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return !EdgeModifier.isSpecial(edge, dag_);
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
 	}
 }

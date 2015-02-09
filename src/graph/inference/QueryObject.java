@@ -10,7 +10,11 @@
  ******************************************************************************/
 package graph.inference;
 
+import graph.core.CycDAG;
 import graph.core.DAGNode;
+import graph.core.DirectedAcyclicGraph;
+import graph.core.EdgeModifier;
+import graph.core.ErrorEdge;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 
@@ -22,6 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import util.ObjectWrapper;
+
 /**
  * The query object is used as the single resource for storing query results and
  * presenting processed information about the query.
@@ -29,19 +35,37 @@ import java.util.Set;
  * @author Sam Sarjant
  */
 public class QueryObject {
+	/** The index of the first atomic argument. */
 	private int atomicIndex_ = -1;
+	/** All atomic arguments in the query. */
 	private ArrayList<DAGNode> atomics_;
+	/** All DAGNodes that have been processed. */
 	private ArrayList<DAGNode> completed_;
+	/** All DAGNodes that have been processed in set form. */
 	private Set<DAGNode> completedSet_;
+	/** The justification for the results. */
 	private List<Node[]> justification_;
+	/** If a justification is required. */
 	private boolean needJustification_;
+	/** The nodes of the query. */
 	private Node[] nodes_;
+	/** Any prior substitutions to apply to the nodes. */
 	private Substitution priorSubstitution_;
+	/** The substitutions for a result. */
 	private ArrayList<Substitution> results_;
+	/** The substitutions for a result in set form. */
 	private Set<Substitution> resultsSet_;
+	/** The substitutions yet to be matched. */
 	private Set<Substitution> toComplete_;
+	/** The index of the first variable argument. */
 	private int variableIndex_ = -1;
+	/** All variable arguments in the query. */
 	private ArrayList<VariableNode> variables_;
+	/** The state of the results - if TRUE, FALSE, or NIL. */
+	private ObjectWrapper<QueryResult> resultState_ = new ObjectWrapper<>(
+			QueryResult.NIL);
+	/** The reason for a query's rejection (if rejected). */
+	private ErrorEdge rejectionReason_;
 
 	/**
 	 * Constructor for a new QueryObject. This QO is initialised with no
@@ -70,38 +94,7 @@ public class QueryObject {
 		completed_ = new ArrayList<>();
 		completedSet_ = new HashSet<>();
 		needJustification_ = needJustification;
-		if (needJustification_)
-			justification_ = new ArrayList<>();
-	}
-
-	/**
-	 * Constructor for a new QueryObject with a prior substitution. No
-	 * justification.
-	 * 
-	 * @param priorSubstitution
-	 *            The prior substitution to apply to the query.
-	 * @param nodes
-	 *            The nodes of the query.
-	 */
-	public QueryObject(Substitution priorSubstitution, Node... nodes) {
-		this(false, priorSubstitution, nodes);
-	}
-
-	/**
-	 * Constructor for a new QueryObject with a prior substitution and optional
-	 * justification.
-	 * 
-	 * @param needJustification
-	 *            If a justification is required.
-	 * @param priorSubstitution
-	 *            The prior substitution to apply to the query.
-	 * @param nodes
-	 *            The nodes of the query.
-	 */
-	public QueryObject(boolean needJustification,
-			Substitution priorSubstitution, Node... nodes) {
-		this(needJustification, nodes);
-		priorSubstitution_ = priorSubstitution;
+		justification_ = new ArrayList<>();
 	}
 
 	private void buildAtomicVariableSets(Node... nodes) {
@@ -159,13 +152,17 @@ public class QueryObject {
 	/**
 	 * Adds a result and creates substitutions where necessary.
 	 * 
+	 * @param isTrueResult
+	 *            If the result being added is a positive example (i.e. true),
+	 *            or a negative example (i.e. proof against).
 	 * @param nodes
 	 *            The nodes being recorded and substituted.
 	 * @return True if the inference can stop (either proof found, or stopping
 	 *         parameter met).
 	 */
-	public boolean addResult(Node... nodes) {
-		if (nodes.length != nodes_.length)
+	public boolean addResult(boolean isTrueResult, Node... nodes) {
+		Node[] nonNegNodes = EdgeModifier.getUnmodNodes(nodes, CycDAG.selfRef_);
+		if (nonNegNodes.length != nodes_.length)
 			return false;
 
 		// Note the justification chain
@@ -178,44 +175,56 @@ public class QueryObject {
 			if (nodes_[i] instanceof VariableNode) {
 				String varStr = nodes_[i].toString();
 				if (s.containsVariable(varStr)
-						&& s.getSubstitution(varStr) != nodes[i])
+						&& s.getSubstitution(varStr) != nonNegNodes[i])
 					return false;
-				s.addSubstitution(varStr, nodes[i]);
-			} else if (isProof() && !nodes[i].equals(nodes_[i]))
+				s.addSubstitution(varStr, nonNegNodes[i]);
+			} else if (isProof() && !nonNegNodes[i].equals(nodes_[i]))
 				return false;
 		}
-		return addResult(s);
+		return addResult(isTrueResult, s);
 	}
 
 	/**
 	 * Adds a result to the query. Returns true if the inference can stop.
 	 * 
+	 * @param isTrueResult
+	 *            If the result being added is a positive example (i.e. true),
+	 *            or a negative example (i.e. proof against).
 	 * @param substitution
 	 *            The result to add.
+	 * @param justificationNodes
+	 *            The justification to note for the result.
 	 * @return True if the inference can stop (either proof found, or stopping
 	 *         parameter met).
 	 */
-	public boolean addResult(Substitution substitution,
+	public boolean addResult(boolean isTrueResult, Substitution substitution,
 			Node... justificationNodes) {
 		if (needJustification_ && justificationNodes != null
 				&& justificationNodes.length > 0)
 			justification_.add(justificationNodes);
 
+		// OR based truth
+		if (isTrueResult)
+			resultState_.object_ = QueryResult.TRUE;
+		else if (resultState_.object_ == QueryResult.NIL)
+			resultState_.object_ = QueryResult.FALSE;
 		if (isProof()) {
-			// Check proof.
-			if (!substitution.isEmpty())
-				substitution = new Substitution();
-			if (priorSubstitution_ != null)
-				substitution = priorSubstitution_;
-			results_.add(substitution);
-			resultsSet_.add(substitution);
+			if (isTrueResult) {
+				// Check proof.
+				if (!substitution.isEmpty())
+					substitution = new Substitution();
+				if (priorSubstitution_ != null)
+					substitution = priorSubstitution_;
+				results_.add(substitution);
+				resultsSet_.add(substitution);
+			}
 			return true;
 		} else {
-			if (priorSubstitution_ != null)
+			if (priorSubstitution_ != null && substitution != null)
 				substitution.getSubstitutionMap().putAll(
 						priorSubstitution_.getSubstitutionMap());
 
-			if (!resultsSet_.contains(substitution)) {
+			if (isTrueResult && !resultsSet_.contains(substitution)) {
 				results_.add(substitution);
 				resultsSet_.add(substitution);
 			}
@@ -228,26 +237,49 @@ public class QueryObject {
 		}
 	}
 
-	public void addResults(Collection<Substitution> results) {
+	/**
+	 * Adds a result to the query with a full justification provided.
+	 *
+	 * @param isTrueResult
+	 *            If the result being added is a positive example (i.e. true),
+	 *            or a negative example (i.e. proof against).
+	 * @param substitution
+	 *            The result to add.
+	 * @param justification
+	 *            The justification list to add to the justification.
+	 */
+	public void addResult(boolean isTrueResult, Substitution substitution,
+			List<Node[]> justification) {
+		addResult(isTrueResult, substitution);
+		if (needJustification_ && justification != null
+				&& justification.size() > 0)
+			justification_.addAll(justification);
+	}
+
+	public void addResults(boolean isTrueResults,
+			Collection<Substitution> results) {
 		if (results == null)
 			return;
 		for (Substitution sub : results)
-			if (addResult(sub))
+			if (addResult(isTrueResults, sub))
 				return;
 	}
 
-	public void cleanTransitiveJustification(List<Node[]> justifications) {
+	public void cleanTransitiveJustification(List<Node[]> justifications,
+			DirectedAcyclicGraph dag) {
 		if (!needJustification_)
 			return;
 		List<Node[]> transitiveJustification = new ArrayList<>();
 		Node transitiveNode = null;
 		for (int i = justifications.size() - 1; i >= 0; i--) {
 			Node[] justNodes = justifications.get(i);
+			// Remove negation
+			Node[] nonNegatedNodes = EdgeModifier.getUnmodNodes(justNodes, dag);
 			if (transitiveNode == null
-					|| justNodes[2].equals(transitiveNode)
-					|| (justNodes[2] instanceof OntologyFunction && ((OntologyFunction) justNodes[2])
+					|| nonNegatedNodes[2].equals(transitiveNode)
+					|| (nonNegatedNodes[2] instanceof OntologyFunction && ((OntologyFunction) nonNegatedNodes[2])
 							.getNodes()[0].equals(transitiveNode))) {
-				transitiveNode = justNodes[1];
+				transitiveNode = nonNegatedNodes[1];
 				transitiveJustification.add(justNodes);
 			}
 
@@ -273,10 +305,7 @@ public class QueryObject {
 		return completed_;
 	}
 
-	@SuppressWarnings("unchecked")
 	public List<Node[]> getJustification() {
-		if (justification_ == null)
-			return Collections.EMPTY_LIST;
 		return justification_;
 	}
 
@@ -297,7 +326,8 @@ public class QueryObject {
 	}
 
 	public Collection<Substitution> getResults() {
-		if (isProof() && results_.isEmpty())
+		if (isProof()
+				&& (results_.isEmpty() || getResultState() != QueryResult.TRUE))
 			return null;
 		else
 			return results_;
@@ -341,6 +371,7 @@ public class QueryObject {
 		newObj.results_ = results_;
 		newObj.resultsSet_ = resultsSet_;
 		newObj.toComplete_ = toComplete_;
+		newObj.resultState_ = resultState_;
 		return newObj;
 	}
 
@@ -366,5 +397,39 @@ public class QueryObject {
 
 	public boolean shouldJustify() {
 		return needJustification_;
+	}
+
+	/**
+	 * Gets the state of the executed query object - TRUE, FALSE, or NIL.
+	 *
+	 * @return The result of the executed query object.
+	 */
+	public QueryResult getResultState() {
+		return resultState_.object_;
+	}
+
+	public void flipResultState() {
+		if (resultState_.object_ == QueryResult.TRUE) {
+			resultState_.object_ = QueryResult.FALSE;
+			results_.clear();
+			resultsSet_.clear();
+		} else if (resultState_.object_ == QueryResult.FALSE) {
+			resultState_.object_ = QueryResult.TRUE;
+			Substitution s = new Substitution();
+			results_.add(s);
+			resultsSet_.add(s);
+		}
+	}
+
+	public ErrorEdge getRejectionReason() {
+		return rejectionReason_;
+	}
+
+	public void setRejectionReason(ErrorEdge errorEdge) {
+		rejectionReason_ = errorEdge;
+	}
+
+	public void setJustification(List<Node[]> justification) {
+		justification_ = justification;
 	}
 }

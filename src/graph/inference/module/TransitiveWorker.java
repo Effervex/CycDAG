@@ -14,6 +14,7 @@ import graph.core.CommonConcepts;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Edge;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
@@ -66,7 +67,8 @@ public class TransitiveWorker extends QueryWorker {
 			Collection<DAGNode> result = transIntModule_.execute(true,
 					queryObj.getNode(1), queryObj.getNode(2));
 			if (result != null) {
-				queryObj.addResult(new Substitution(), queryObj.getNodes());
+				queryObj.addResult(true, new Substitution(),
+						queryObj.getNodes());
 				if (queryObj.shouldJustify()) {
 					List<Node[]> justification = queryObj.getJustification();
 					justification.clear();
@@ -87,7 +89,7 @@ public class TransitiveWorker extends QueryWorker {
 				queryObj.addCompleted(n);
 				Node[] nodes = Arrays.copyOf(queryObj.getNodes(), 3);
 				nodes[queryObj.getVariableIndex()] = n;
-				queryObj.addResult(nodes);
+				queryObj.addResult(true, nodes);
 			}
 		}
 	}
@@ -97,13 +99,14 @@ public class TransitiveWorker extends QueryWorker {
 		int atomicIndex = queryObj.getAtomicIndex();
 		int varIndex = (atomicIndex == 1) ? 2 : 1;
 		DAGNode atomic = queryObj.getAtomic();
+		Node[] queryNodes = queryObj.getNodes();
 		if (atomic == null)
 			return;
 
 		Queue<DAGNode> toCheck = new LinkedList<>();
 		toCheck.add(atomic);
 		Collection<Edge> genlEdges = relatedModule_
-				.findEdgeByNodes((DAGNode) queryObj.getNode(0));
+				.findEdgeByNodes((DAGNode) queryNodes[0]);
 
 		while (!toCheck.isEmpty()) {
 			DAGNode n = querier_.getExpanded(toCheck.poll());
@@ -118,14 +121,14 @@ public class TransitiveWorker extends QueryWorker {
 						(OntologyFunction) n, CommonConcepts.RESULT_GENL);
 				for (DAGNode resultNode : functionEdges) {
 					if (queryObj.isProof()
-							&& resultNode.equals(queryObj.getNode(2))) {
-						queryObj.addResult(new Substitution(),
+							&& resultNode.equals(queryNodes[2])) {
+						queryObj.addResult(true, new Substitution(),
 								CommonConcepts.GENLS.getNode(dag_), n,
 								resultNode);
 						return;
 					}
-					if (queryObj.addResult(CommonConcepts.GENLS.getNode(dag_),
-							n, resultNode))
+					if (queryObj.addResult(true,
+							CommonConcepts.GENLS.getNode(dag_), n, resultNode))
 						return;
 					toCheck.add(resultNode);
 				}
@@ -144,23 +147,28 @@ public class TransitiveWorker extends QueryWorker {
 					selfEdges = CollectionUtils.retainAll(selfEdges, genlEdges);
 				}
 				if (!selfEdges.isEmpty()) {
-					if (queryObj.addResult(queryObj.getNode(0), atomic, n))
+					if (queryObj
+							.addResult(true, queryNodes[0], atomic, n))
 						return;
 				}
 			}
 
 			// Create the subs
 			for (Edge e : nodeEdges) {
-				if (!(e.getNodes()[varIndex] instanceof DAGNode))
+				if (EdgeModifier.isRemoved(e, dag_))
 					continue;
-				DAGNode edgeNode = (DAGNode) e.getNodes()[varIndex];
+				DAGNode edgeNode = (DAGNode) EdgeModifier
+						.getUnmodNodes(e, dag_)[varIndex];
+				if (!(edgeNode instanceof DAGNode))
+					continue;
 
-				if (queryObj.isProof()
-						&& e.getNodes()[varIndex].equals(queryObj.getNode(2))) {
-					queryObj.addResult(new Substitution(), e.getNodes());
+				// If the node matches the query (or variable), add a result
+				boolean negated = EdgeModifier.isNegated(e, dag_);
+				if (queryObj.isProof() && edgeNode.equals(queryNodes[2])) {
+					queryObj.addResult(!negated, new Substitution(),
+							e.getNodes());
 					return;
-				}
-				if (queryObj.addResult(e.getNodes()))
+				} else if (!negated && queryObj.addResult(true, e.getNodes()))
 					return;
 				toCheck.add(edgeNode);
 			}
@@ -172,13 +180,14 @@ public class TransitiveWorker extends QueryWorker {
 			throws IllegalArgumentException {
 		// Use the interval module if available
 		if (canUseTransitiveModule(queryObj)) {
+			// TODO Deal with negation here
 			runIntervalModule(queryObj);
 		} else {
 			transitiveSearch(queryObj);
 
-			if (queryObj.isProof() && queryObj.shouldJustify())
-				queryObj.cleanTransitiveJustification(queryObj
-						.getJustification());
+			if (queryObj.isProof())
+				queryObj.cleanTransitiveJustification(
+						queryObj.getJustification(), dag_);
 		}
 	}
 

@@ -16,10 +16,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import util.AliasedObject;
-
 import graph.core.DAGNode;
 import graph.core.Node;
 import graph.core.cli.DAGPortHandler;
+import graph.inference.QueryResult;
 import graph.inference.Substitution;
 import graph.module.QueryModule;
 
@@ -78,10 +78,9 @@ public class QueryFindCycNodeCommand extends FindCycNodeCommand {
 			else if (n instanceof AliasedObject)
 				node = ((AliasedObject<Character, DAGNode>) n).object_;
 			Substitution substitution = new Substitution("?X", node);
-			boolean satisfies = qm.prove(substitution.applySubstitution(args));
-			if (satisfies) {
+			boolean satisfies = qm.prove(false, substitution.applySubstitution(args)) == QueryResult.TRUE;
+			if (satisfies)
 				filteredNodes.add(n);
-			}
 		}
 		return filteredNodes;
 	}

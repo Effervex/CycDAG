@@ -14,6 +14,7 @@ import java.util.Collection;
 
 import graph.core.CommonConcepts;
 import graph.core.CycDAG;
+import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Node;
 import graph.core.PrimitiveNode;
@@ -65,7 +66,7 @@ public class PredicateResolutionModule extends DAGModule<WeightedSet<DAGNode>> {
 		QueryObject qo = new QueryObject(
 				CommonConcepts.GENLPREDS.getNode(dag_), var, basePred);
 
-		Collection<Substitution> subs = qm.execute(qo);
+		Collection<Substitution> subs = qm.executeQuery(false, qo);
 		for (Substitution sub : subs) {
 			DAGNode pred = (DAGNode) sub.getSubstitution(var);
 			predDist = predicateDistance(pred, args);
@@ -82,7 +83,7 @@ public class PredicateResolutionModule extends DAGModule<WeightedSet<DAGNode>> {
 				.getModule(SemanticSimilarityModule.class);
 		float similarity = 0;
 		for (int i = 0; i < args.length; i++) {
-			if (!cycDAG.singleArgCheck(pred, (i + 1), args[i]))
+			if (!cycDAG.isValidArgument(pred, (i + 1), args[i]))
 				return 0;
 			Collection<Node> argIsa = CommonQuery.MINARGNISA.runQuery(dag_,
 					pred, PrimitiveNode.parseNode((i + 1) + ""));
@@ -101,5 +102,15 @@ public class PredicateResolutionModule extends DAGModule<WeightedSet<DAGNode>> {
 						/ argGenls.size();
 		}
 		return similarity / args.length;
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return false;
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
 	}
 }

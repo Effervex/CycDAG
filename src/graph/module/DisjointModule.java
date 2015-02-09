@@ -4,6 +4,7 @@ import graph.core.CommonConcepts;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
@@ -139,20 +140,22 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 	 */
 	private boolean isLegalDisjointEdge(DAGEdge edge) {
 		Node[] nodes = edge.getNodes();
-		Collection<Substitution> genlQuery = queryModule_.execute(
-				CommonConcepts.AND.getNode(dag_), new OntologyFunction(
-						CommonConcepts.GENLS.getNode(dag_),
-						VariableNode.DEFAULT, nodes[1]), new OntologyFunction(
-						CommonConcepts.GENLS.getNode(dag_),
-						VariableNode.DEFAULT, nodes[2]));
+		Collection<Substitution> genlQuery = queryModule_.executeQuery(
+				false, new QueryObject(CommonConcepts.AND.getNode(dag_),
+										new OntologyFunction(
+												CommonConcepts.GENLS.getNode(dag_),
+												VariableNode.DEFAULT, nodes[1]),
+										new OntologyFunction(
+												CommonConcepts.GENLS.getNode(dag_),
+												VariableNode.DEFAULT, nodes[2])));
 		if (!genlQuery.isEmpty())
 			return false;
-		Collection<Substitution> isaQuery = queryModule_.execute(
-				CommonConcepts.AND.getNode(dag_), new OntologyFunction(
-						CommonConcepts.ISA.getNode(dag_), VariableNode.DEFAULT,
-						nodes[1]),
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
-						VariableNode.DEFAULT, nodes[2]));
+		Collection<Substitution> isaQuery = queryModule_.executeQuery(
+				false, new QueryObject(CommonConcepts.AND.getNode(dag_),
+										new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+												VariableNode.DEFAULT, nodes[1]),
+										new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+												VariableNode.DEFAULT, nodes[2])));
 		if (!isaQuery.isEmpty())
 			return false;
 		return true;
@@ -249,8 +252,9 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 			if (!queryObj.isProof()) {
 				// If variable, add and return results.
 				for (DAGNode n : disjointCollections)
-					queryObj.addResult(new Substitution(queryObj.getVariable(),
-							n), (Node[]) null);
+					queryObj.addResult(true,
+							new Substitution(queryObj.getVariable(), n),
+							(Node[]) null);
 				return disjointCollections;
 			} else {
 				// If proof, check if true and add justification.
@@ -275,7 +279,7 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 						Collections.reverse(revJust);
 						justification.addAll(revJust);
 					}
-					queryObj.addResult(new Substitution(), (Node[]) null);
+					queryObj.addResult(true, new Substitution(), (Node[]) null);
 					return Collections.EMPTY_LIST;
 				}
 			}
@@ -313,5 +317,16 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 	public String toString() {
 		return "DisjointWith Module: " + (disjointMap_.size() / 2)
 				+ " assertions";
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		// TODO This needs to be looked at. Negated edges may be supported
+		return !EdgeModifier.isSpecial(edge, dag_);
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
 	}
 }

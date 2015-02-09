@@ -28,12 +28,12 @@ public class Substitution {
 		substitutionMap_ = new HashMap<>(substitutionMap);
 	}
 
-	public Substitution(String var, DAGNode node) {
+	public Substitution(String var, Node node) {
 		substitutionMap_ = new HashMap<>();
 		substitutionMap_.put(var, node);
 	}
 
-	public Substitution(Object variable, DAGNode otherNode) {
+	public Substitution(Object variable, Node otherNode) {
 		this(variable.toString(), otherNode);
 	}
 

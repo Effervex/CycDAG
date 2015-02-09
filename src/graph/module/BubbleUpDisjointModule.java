@@ -17,6 +17,7 @@ import graph.core.Edge;
 import graph.core.Node;
 import graph.core.StringNode;
 import graph.inference.CommonQuery;
+import graph.inference.QueryResult;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -193,8 +194,8 @@ public class BubbleUpDisjointModule extends DAGModule<Collection<DAGEdge>> {
 		exploredPairs_.add(new Pair<Node, Node>(targetNode, collectionParent));
 		// If the collectionParent is already disjoint with targetNode, skip it.
 		System.out.println("Debug spot query module enter, have explored:"+exploredPairs_.size());
-		if (queryModule_.prove(CommonConcepts.DISJOINTWITH.getNode(dag_),
-				collectionParent, targetNode))
+		if (queryModule_.prove(false,
+				CommonConcepts.DISJOINTWITH.getNode(dag_), collectionParent, targetNode) == QueryResult.TRUE)
 			return;
 		System.out.println("Debug spot query module over common query enter");
 		// Get all highest child nodes of collectionParent
@@ -235,8 +236,8 @@ public class BubbleUpDisjointModule extends DAGModule<Collection<DAGEdge>> {
 					+ child.getName());
 			// if child disjoint with targetNode, count++
 			// System.out.println("Run query at line 540");
-			if (queryModule_.prove(CommonConcepts.DISJOINTWITH.getNode(dag_),
-					targetNode, child)) {
+			if (queryModule_.prove(false,
+					CommonConcepts.DISJOINTWITH.getNode(dag_), targetNode, child) == QueryResult.TRUE) {
 				System.out.println("Debug spot query disjoint to:"
 						+ targetNode.getName());
 				disjointcount++;
@@ -282,4 +283,13 @@ public class BubbleUpDisjointModule extends DAGModule<Collection<DAGEdge>> {
 		}
 	}
 
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return false;
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
+	}
 }

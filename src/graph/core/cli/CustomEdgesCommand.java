@@ -6,6 +6,7 @@ import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Edge;
 import graph.core.Node;
+import graph.inference.QueryResult;
 import graph.module.NLPToStringModule;
 import graph.module.QueryModule;
 import graph.module.RelatedEdgeModule;
@@ -77,10 +78,12 @@ public class CustomEdgesCommand extends CollectionCommand {
 			print("-1|Could not parse node.\n");
 			return;
 		}
-		boolean isPredicate = querier.prove(CommonConcepts.ISA.getNode(dag),
-				conceptNode, CommonConcepts.PREDICATE.getNode(dag));
-		boolean isCollection = querier.prove(CommonConcepts.ISA.getNode(dag),
-				conceptNode, CommonConcepts.COLLECTION.getNode(dag));
+		boolean isPredicate = querier.prove(false,
+				CommonConcepts.ISA.getNode(dag), conceptNode,
+				CommonConcepts.PREDICATE.getNode(dag)) == QueryResult.TRUE;
+		boolean isCollection = querier.prove(false,
+				CommonConcepts.ISA.getNode(dag), conceptNode,
+				CommonConcepts.COLLECTION.getNode(dag)) == QueryResult.TRUE;
 
 		// Run through every edge involving concept, enforcing range constraints
 		// manually.
@@ -88,10 +91,12 @@ public class CustomEdgesCommand extends CollectionCommand {
 		Collection<Edge> edges = relatedEdge.execute(conceptNode, "!1");
 		SortedMap<DAGNode, SortedSet<Edge>> predEdges = new TreeMap<>(
 				dagHandler.getComparator());
-		preLoadPreEdges(conceptNode, type, isPredicate, isCollection, predEdges,
-				dag);
+		preLoadPredEdges(conceptNode, type, isPredicate, isCollection,
+				predEdges, dag);
 		for (Edge e : edges) {
 			DAGNode pred = (DAGNode) e.getNodes()[0];
+			// Dealing with negation
+
 			if (isHierarchical(pred, dag)) {
 				if (!type.startsWith("T"))
 					continue;
@@ -139,7 +144,7 @@ public class CustomEdgesCommand extends CollectionCommand {
 		}
 	}
 
-	private void preLoadPreEdges(Node conceptNode, String type,
+	private void preLoadPredEdges(Node conceptNode, String type,
 			boolean isPredicate, boolean isCollection,
 			SortedMap<DAGNode, SortedSet<Edge>> predEdges,
 			DirectedAcyclicGraph dag) {
@@ -179,8 +184,8 @@ public class CustomEdgesCommand extends CollectionCommand {
 			DirectedAcyclicGraph dag) {
 		return predicate.equals(CommonConcepts.NLP_PREDICATE_STRING
 				.getNode(dag))
-				|| querier.prove(CommonConcepts.GENLPREDS.getNode(dag),
-						predicate, CommonConcepts.TERM_STRING.getNode(dag));
+				|| querier.prove(false, CommonConcepts.GENLPREDS.getNode(dag),
+						predicate, CommonConcepts.TERM_STRING.getNode(dag)) == QueryResult.TRUE;
 	}
 
 	/**

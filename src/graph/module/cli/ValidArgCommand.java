@@ -53,7 +53,7 @@ public class ValidArgCommand extends Command {
 			Integer argNum = Integer.parseInt(split.get(1).replaceAll("'", ""));
 			Node arg = dagHandler.getDAG().findOrCreateNode(split.get(2), null);
 
-			if (dag.singleArgCheck(predicate, argNum, arg))
+			if (dag.isValidArgument(predicate, argNum, arg))
 				print("1\n");
 			else
 				print("0\n");

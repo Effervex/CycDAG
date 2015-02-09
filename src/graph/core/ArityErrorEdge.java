@@ -14,10 +14,10 @@ import graph.module.NLPToStringModule;
 
 public class ArityErrorEdge extends DAGErrorEdge {
 	private static final long serialVersionUID = 1L;
-	private int numArgs_;
+	private String numArgs_;
 	private DAGNode predicate_;
 
-	public ArityErrorEdge(DAGNode predicateNode, int numArgs) {
+	public ArityErrorEdge(DAGNode predicateNode, String numArgs) {
 		predicate_ = predicateNode;
 		numArgs_ = numArgs;
 	}

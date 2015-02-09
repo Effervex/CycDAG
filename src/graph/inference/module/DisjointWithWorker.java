@@ -14,10 +14,12 @@ import graph.core.CommonConcepts;
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Edge;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
 import graph.inference.VariableNode;
@@ -68,7 +70,7 @@ public class DisjointWithWorker extends QueryWorker {
 			}
 		}
 		justifications = justifications.subList(0, i);
-		genlResults.cleanTransitiveJustification(justifications);
+		genlResults.cleanTransitiveJustification(justifications, dag_);
 
 		if (isReversed) {
 			List<Node[]> reversed = new ArrayList<>(
@@ -99,12 +101,13 @@ public class DisjointWithWorker extends QueryWorker {
 		Node node2 = queryObj.getNode(2);
 		QueryObject qo = new QueryObject(queryObj.shouldJustify(),
 				CommonConcepts.AND.getNode(dag_), new OntologyFunction(
-						CommonConcepts.GENLS.getNode(dag_),
-						node1, transOne), // Transitive first arg
+						CommonConcepts.GENLS.getNode(dag_), node1, transOne), // Transitive
+																				// first
+																				// arg
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
 						transOne, queryVar), // First
-				new OntologyFunction(CommonConcepts.GENLS.getNode(dag_),
-						node2, transTwo), // Transitive second arg
+				new OntologyFunction(CommonConcepts.GENLS.getNode(dag_), node2,
+						transTwo), // Transitive second arg
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
 						transTwo, queryVar), // Second
 				new OntologyFunction(CommonConcepts.DIFFERENT.getNode(dag_),
@@ -114,18 +117,28 @@ public class DisjointWithWorker extends QueryWorker {
 						CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
 								.getNode(dag_)) // Is a sibling disjoint
 		);
-		Collection<Substitution> siblingDisjoints = querier_.execute(qo);
+		Collection<Substitution> siblingDisjoints = querier_.executeQuery(
+				false, qo);
 
-		if (queryObj.isProof() && !siblingDisjoints.isEmpty()) {
+		if (queryObj.isProof() && qo.getResultState() == QueryResult.TRUE) {
 			// Sibling Disjoint Exception?
-			if (!isException(node1, node2)) {
-				queryObj.addResult(new Substitution());
-				Substitution sub = siblingDisjoints.iterator().next();
-				processSiblingJustification(sub.getSubstitution(transOne),
+			boolean isException = isException(node1, node2);
+			Substitution sub = siblingDisjoints.iterator().next();
+			List<Node[]> justification = null;
+			if (queryObj.shouldJustify()) {
+				justification = processSiblingJustification(
+						sub.getSubstitution(transOne),
 						sub.getSubstitution(transTwo),
 						sub.getSubstitution(queryVar), queryObj);
-				return;
+
+				// If exception, add in exception to justification
+				if (isException)
+					justification.add(new Node[] {
+							CommonConcepts.SIBLING_DISJOINT_EXCEPTION
+									.getNode(dag_), node1, node2 });
 			}
+			queryObj.addResult(!isException, (isException) ? null
+					: new Substitution(), justification);
 		} else {
 			for (Substitution sub : siblingDisjoints) {
 				VariableNode varNode = queryObj.getVariable();
@@ -133,7 +146,7 @@ public class DisjointWithWorker extends QueryWorker {
 						sub.getSubstitution(queryVar))) {
 					if (!sibling.equals(atomic)
 							&& !isException(atomic, sibling))
-						queryObj.addResult(new Substitution(varNode,
+						queryObj.addResult(true, new Substitution(varNode,
 								(DAGNode) sibling), sub
 								.getSubstitution(queryVar),
 								CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
@@ -190,7 +203,9 @@ public class DisjointWithWorker extends QueryWorker {
 			node1Edges = CollectionUtils.retainAll(node1Edges,
 					disjointWithEdges);
 			for (Edge e : node1Edges) {
-				Node[] edgeNodes = e.getNodes();
+				if (EdgeModifier.isRemoved(e, dag_))
+					continue;
+				Node[] edgeNodes = EdgeModifier.getUnmodNodes(e, dag_);
 				Node thisNode, otherNode = null;
 				if (edgeNodes[1].equals(nodeA)) {
 					thisNode = edgeNodes[1];
@@ -213,7 +228,8 @@ public class DisjointWithWorker extends QueryWorker {
 						queryObj.getJustification().addAll(
 								alterGenlJustification(genlResults1,
 										(DAGNode) thisNode, false));
-					queryObj.addResult(new Substitution(), edgeNodes);
+					queryObj.addResult(!EdgeModifier.isNegated(e, dag_),
+							new Substitution(), e.getNodes());
 					if (queryObj.shouldJustify())
 						queryObj.getJustification().addAll(
 								alterGenlJustification(genlResults2,
@@ -221,8 +237,9 @@ public class DisjointWithWorker extends QueryWorker {
 
 					return;
 				} else if (!queryObj.isProof())
-					queryObj.addResult(new Substitution(varNode,
-							(DAGNode) otherNode), edgeNodes);
+					queryObj.addResult(!EdgeModifier.isNegated(e, dag_),
+							new Substitution(varNode, (DAGNode) otherNode),
+							e.getNodes());
 			}
 		}
 	}
@@ -233,7 +250,7 @@ public class DisjointWithWorker extends QueryWorker {
 				node2);
 		querier_.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(),
 				isException);
-		return isException.getResults() != null;
+		return isException.getResultState() == QueryResult.TRUE;
 	}
 
 	/**
@@ -269,10 +286,11 @@ public class DisjointWithWorker extends QueryWorker {
 	 *            SiblingDisjointCollection.
 	 * @param queryObj
 	 *            The query object to add the justification to.
+	 * 
 	 */
-	private void processSiblingJustification(Node transOne, Node transTwo,
-			Node queryVar, QueryObject queryObj) {
-		List<Node[]> justification = queryObj.getJustification();
+	private List<Node[]> processSiblingJustification(Node transOne,
+			Node transTwo, Node queryVar, QueryObject queryObj) {
+		List<Node[]> justification = new ArrayList<>();
 		QueryObject proof = null;
 
 		// Add transitive query 1, unless it is the same
@@ -280,7 +298,7 @@ public class DisjointWithWorker extends QueryWorker {
 		if (!arg1.equals(transOne)) {
 			proof = new QueryObject(queryObj.shouldJustify(),
 					CommonConcepts.GENLS.getNode(dag_), arg1, transOne);
-			querier_.prove(proof);
+			querier_.prove(false, proof);
 			if (queryObj.shouldJustify()) {
 				justification.addAll(proof.getJustification());
 				justification.add(new Node[0]);
@@ -290,7 +308,7 @@ public class DisjointWithWorker extends QueryWorker {
 		// Add isa sibling query for arg 1
 		proof = new QueryObject(queryObj.shouldJustify(),
 				CommonConcepts.ISA.getNode(dag_), transOne, queryVar);
-		querier_.prove(proof);
+		querier_.prove(false, proof);
 		if (queryObj.shouldJustify()) {
 			justification.addAll(proof.getJustification());
 			justification.add(new Node[0]);
@@ -301,7 +319,7 @@ public class DisjointWithWorker extends QueryWorker {
 		if (!arg2.equals(transTwo)) {
 			proof = new QueryObject(queryObj.shouldJustify(),
 					CommonConcepts.GENLS.getNode(dag_), arg2, transTwo);
-			querier_.prove(proof);
+			querier_.prove(false, proof);
 			if (queryObj.shouldJustify()) {
 				justification.addAll(proof.getJustification());
 				justification.add(new Node[0]);
@@ -311,7 +329,7 @@ public class DisjointWithWorker extends QueryWorker {
 		// Add isa sibling query for arg 2
 		proof = new QueryObject(queryObj.shouldJustify(),
 				CommonConcepts.ISA.getNode(dag_), transTwo, queryVar);
-		querier_.prove(proof);
+		querier_.prove(false, proof);
 		if (queryObj.shouldJustify()) {
 			justification.addAll(proof.getJustification());
 			justification.add(new Node[0]);
@@ -321,10 +339,11 @@ public class DisjointWithWorker extends QueryWorker {
 		proof = new QueryObject(queryObj.shouldJustify(),
 				CommonConcepts.ISA.getNode(dag_), queryVar,
 				CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE.getNode(dag_));
-		querier_.prove(proof);
+		querier_.prove(false, proof);
 		if (queryObj.shouldJustify()) {
 			justification.addAll(proof.getJustification());
 		}
+		return justification;
 	}
 
 	private void siblingDisjointViaModule(DAGNode atomic, QueryObject queryObj) {
@@ -355,13 +374,15 @@ public class DisjointWithWorker extends QueryWorker {
 							.getSiblingDisjointParents((DAGNode) otherParent))) {
 						// A match!
 						if (!isException(atomic, otherNode)) {
-							queryObj.addResult(new Substitution());
+							queryObj.addResult(true, new Substitution());
 							// TODO This should probably be added back in. Can't
 							// recall what the issue was - probably introduced a
 							// bug
 							// processSiblingJustification(,
 							// sub.getSubstitution(transTwo),
 							// sub.getSubstitution(queryVar), queryObj);
+						} else {
+							queryObj.addResult(false, new Substitution());
 						}
 						return;
 					}
@@ -374,6 +395,10 @@ public class DisjointWithWorker extends QueryWorker {
 	@Override
 	public void queryInternal(QueryObject queryObj)
 			throws IllegalArgumentException {
+		// First check if either one is a child of the other
+		if (transitiveChildren(queryObj))
+			return;
+
 		// Use disjoint module if possible
 		if (disjointModule_ != null && notAnonymous(queryObj)) {
 			disjointModule_.execute(queryObj);
@@ -386,11 +411,32 @@ public class DisjointWithWorker extends QueryWorker {
 			findDisjoint(queryObj, disjointWithEdges);
 		}
 
-		if (queryObj.isProof() && queryObj.getResults() != null)
+		if (queryObj.isProof() && queryObj.getResultState() != QueryResult.NIL)
 			return;
 
 		// Find sibling disjoints
 		checkSiblingDisjoint(queryObj);
+	}
+
+	private boolean transitiveChildren(QueryObject queryObj) {
+		// Skip if variables involved.
+		if (queryObj.getVariable() != null)
+			return false;
+		QueryObject genlsA = new QueryObject(queryObj.shouldJustify(),
+				CommonConcepts.GENLS.getNode(dag_), queryObj.getNode(1),
+				queryObj.getNode(2));
+		if (querier_.prove(false, genlsA) == QueryResult.TRUE) {
+			queryObj.addResult(false, null, genlsA.getJustification());
+			return true;
+		}
+		QueryObject genlsB = new QueryObject(queryObj.shouldJustify(),
+				CommonConcepts.GENLS.getNode(dag_), queryObj.getNode(2),
+				queryObj.getNode(1));
+		if (querier_.prove(false, genlsB) == QueryResult.TRUE) {
+			queryObj.addResult(false, null, genlsB.getJustification());
+			return true;
+		}
+		return false;
 	}
 
 	@Override

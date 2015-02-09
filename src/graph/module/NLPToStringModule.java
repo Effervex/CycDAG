@@ -11,8 +11,10 @@
 package graph.module;
 
 import graph.core.CommonConcepts;
+import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Edge;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
@@ -26,13 +28,13 @@ import java.util.regex.Pattern;
 import util.UtilityMethods;
 
 public class NLPToStringModule extends DAGModule<String> {
+	private static final Pattern MARKUP_PATTERN = Pattern
+			.compile("\\[\\[(.+?)(?:\\|.+?)?\\]\\]");
 	private static final long serialVersionUID = -2277403308776894624L;
+	private static final String WHAT_THINGS = "what things";
 	public static final byte EDGE = 1;
 	public static final byte NODE = 0;
 	public static final byte QUERY = 2;
-	private static final String WHAT_THINGS = "what things";
-	private static final Pattern MARKUP_PATTERN = Pattern
-			.compile("\\[\\[(.+?)(?:\\|.+?)?\\]\\]");
 
 	private transient QueryModule querier_;
 
@@ -60,6 +62,85 @@ public class NLPToStringModule extends DAGModule<String> {
 			querier_ = (QueryModule) dag_.getModule(QueryModule.class);
 	}
 
+	/**
+	 * Negate a predicate string by replacing a token with a negated token, or
+	 * simply appending 'is not true' to the end of the string.
+	 *
+	 * @param replaced
+	 *            The string to negate.
+	 * @return A negated form of the string.
+	 */
+	private String negateString(String target) {
+		if (target.contains("(is)/(are)/"))
+			return target.replaceAll("\\(is\\)/\\(are\\)/", "$0 not");
+		if (target.contains("(has)/(have)/"))
+			return target.replaceAll("\\(has\\)/\\(have\\)/",
+					"(does not have)/(do not have)/");
+		if (target.contains(" is "))
+			return target.replaceFirst(" is ", "$0not ");
+		return target + " is not true";
+	}
+
+	private String nodeToStringInternal(Node node) {
+		// If non-DAG node, just return regular name
+		if (!(node instanceof DAGNode))
+			return node.toString();
+		
+		// Use prettyString-Canonical where possible
+		Collection<Node> canonicalStrs = querier_.executeAndParseVar(
+				new QueryObject(CommonConcepts.ASSERTED_SENTENCE.getNode(dag_),
+						new OntologyFunction(
+								CommonConcepts.PRETTY_STRING_CANONICAL
+										.getNode(dag_), node,
+								VariableNode.DEFAULT)), VariableNode.DEFAULT
+						.toString());
+		if (!canonicalStrs.isEmpty())
+			return UtilityMethods.shrinkString(
+					returnSmallestString(canonicalStrs), 1);
+
+		// Use children of prettyString-Canonical
+		canonicalStrs = querier_.executeAndParseVar(new QueryObject(
+				CommonConcepts.PRETTY_STRING_CANONICAL.getNode(dag_), node,
+				VariableNode.DEFAULT), VariableNode.DEFAULT.toString());
+		if (!canonicalStrs.isEmpty())
+			return UtilityMethods.shrinkString(
+					returnSmallestString(canonicalStrs), 1);
+
+		// Use any termStrings
+		Collection<Node> termStrings = querier_.executeAndParseVar(
+				new QueryObject(CommonConcepts.TERM_STRING.getNode(dag_), node,
+						VariableNode.DEFAULT), VariableNode.DEFAULT.toString());
+		if (!termStrings.isEmpty())
+			return UtilityMethods.shrinkString(
+					returnSmallestString(termStrings), 1);
+
+		// Convert name into plain text
+		if (node instanceof OntologyFunction) {
+			Node[] args = ((OntologyFunction) node).getNodes();
+			StringBuilder argString = new StringBuilder();
+			for (int i = 1; i < args.length; i++) {
+				if (argString.length() != 0)
+					argString.append(" & ");
+				argString.append(nodeToStringInternal(args[i]));
+			}
+
+			// Function string
+			String function = nodeToStringInternal(args[0]);
+			if (function.contains("___")) {
+				return function.replaceAll("___+",
+						Matcher.quoteReplacement(argString.toString()));
+			} else {
+				function = function.replaceAll(" Fn$", "");
+				function = argString.toString() + " (" + function + ")";
+				return function.replaceAll("\\) \\(", ", ");
+			}
+		} else {
+			if (node instanceof DAGNode)
+				return conceptToPlainText(node.getName());
+			return node.getName();
+		}
+	}
+
 	private String returnSmallestString(Collection<? extends Object> objs) {
 		String smallest = null;
 		for (Object n : objs) {
@@ -70,28 +151,50 @@ public class NLPToStringModule extends DAGModule<String> {
 		return smallest;
 	}
 
+	@Override
+	public boolean addNode(DAGNode node) {
+		// Add its alias to the NodeAlias map
+		NodeAliasModule nam = (NodeAliasModule) dag_
+				.getModule(NodeAliasModule.class);
+		if (nam != null) {
+			String nodeName = nodeToString(node, false);
+			if (!nodeName.isEmpty())
+				nam.addAlias(node, nodeName);
+			if (!node.getName().startsWith("(")) {
+				String basicName = conceptToPlainText(node.getName());
+				if (!basicName.equals(nodeName)
+						&& !basicName.equals(node.getName())
+						&& !basicName.isEmpty())
+					nam.addAlias(node, basicName);
+			}
+		}
+		return super.addNode(node);
+	}
+
 	public String edgeToString(QueryObject queryObject, boolean isQuery,
 			boolean includeVariables, boolean markup, boolean negated) {
 		initQuerier();
 
-		// Dealing with negation
-		if (queryObject.getNode(0).equals(CommonConcepts.NOT.getNode(dag_))) {
-			QueryObject innerQO = new QueryObject(
-					((OntologyFunction) queryObject.getNodes()[1]).getNodes());
-			return edgeToString(innerQO, isQuery, includeVariables, markup,
-					!negated);
+		// Dealing with special edges
+		Node[] nodes = queryObject.getNodes();
+		boolean removed = false;
+		if (EdgeModifier.isRemoved(nodes[0], dag_)) {
+			nodes = EdgeModifier.getUnmodNodes(nodes, dag_);
+			removed = true;
+		}
+		if (EdgeModifier.isNegated(nodes[0], dag_)) {
+			negated = !negated;
+			nodes = EdgeModifier.getUnmodNodes(nodes, dag_);
 		}
 
 		// Dealing with conjunctions
-		if (queryObject.getNode(0).equals(CommonConcepts.AND.getNode(dag_))
-				|| queryObject.getNode(0).equals(
-						CommonConcepts.OR.getNode(dag_))) {
+		if (nodes[0].equals(CommonConcepts.AND.getNode(dag_))
+				|| nodes[0].equals(CommonConcepts.OR.getNode(dag_))) {
 			String conj = conjunctedEdgeToString(queryObject, isQuery, markup);
 			return conj;
 		}
 
 		// Form the replacement strings
-		Node[] nodes = queryObject.getNodes();
 		String[] replacements = new String[nodes.length];
 		replacements[0] = "'" + nodes[0].getName() + "'";
 		for (int i = 1; i < replacements.length; i++) {
@@ -105,13 +208,16 @@ public class NLPToStringModule extends DAGModule<String> {
 		}
 
 		// Get the predicate string if it exists.
-		Collection<Substitution> predicateStrings = querier_
-				.execute(new QueryObject(CommonConcepts.NLP_PREDICATE_STRING
+		Collection<Substitution> predicateStrings = querier_.executeQuery(
+				false,
+				new QueryObject(CommonConcepts.NLP_PREDICATE_STRING
 						.getNode(dag_), queryObject.getNode(0),
 						VariableNode.DEFAULT));
 		if (predicateStrings.isEmpty()) {
 			// No NLP String, revert to default
 			StringBuilder buffer = new StringBuilder();
+			if (removed)
+				buffer.append("Removed: ");
 			if (isQuery && queryObject.isProof())
 				buffer.append("does ");
 			buffer.append(replacements[1]);
@@ -176,25 +282,6 @@ public class NLPToStringModule extends DAGModule<String> {
 		}
 	}
 
-	/**
-	 * Negate a predicate string by replacing a token with a negated token, or
-	 * simply appending 'is not true' to the end of the string.
-	 *
-	 * @param replaced
-	 *            The string to negate.
-	 * @return A negated form of the string.
-	 */
-	private String negateString(String target) {
-		if (target.contains("(is)/(are)/"))
-			return target.replaceAll("\\(is\\)/\\(are\\)/", "$0 not");
-		if (target.contains("(has)/(have)/"))
-			return target.replaceAll("\\(has\\)/\\(have\\)/",
-					"(does not have)/(do not have)/");
-		if (target.contains(" is "))
-			return target.replaceFirst(" is ", "$0not ");
-		return target + " is not true";
-	}
-
 	@Override
 	public String execute(Object... args) throws IllegalArgumentException,
 			ModuleException {
@@ -226,46 +313,6 @@ public class NLPToStringModule extends DAGModule<String> {
 		return null;
 	}
 
-	@Override
-	public boolean addNode(DAGNode node) {
-		// Add its alias to the NodeAlias map
-		NodeAliasModule nam = (NodeAliasModule) dag_
-				.getModule(NodeAliasModule.class);
-		if (nam != null) {
-			String nodeName = nodeToString(node, false);
-			if (!nodeName.isEmpty())
-				nam.addAlias(node, nodeName);
-			if (!node.getName().startsWith("(")) {
-				String basicName = conceptToPlainText(node.getName());
-				if (!basicName.equals(nodeName)
-						&& !basicName.equals(node.getName())
-						&& !basicName.isEmpty())
-					nam.addAlias(node, basicName);
-			}
-		}
-		return super.addNode(node);
-	}
-
-	@Override
-	public boolean removeNode(DAGNode node) {
-		// Remove the node alias
-		NodeAliasModule nam = (NodeAliasModule) dag_
-				.getModule(NodeAliasModule.class);
-		if (nam != null) {
-			String nodeName = nodeToString(node, false);
-			if (!nodeName.isEmpty())
-				nam.removeAlias(node, nodeName);
-			if (!node.getName().startsWith("(")) {
-				String basicName = conceptToPlainText(node.getName());
-				if (!basicName.equals(nodeName)
-						&& !basicName.equals(node.getName())
-						&& !basicName.isEmpty())
-					nam.removeAlias(node, basicName);
-			}
-		}
-		return super.addNode(node);
-	}
-
 	public String markupToString(String string, boolean markup) {
 		// Find all instances of [[text]] and swap it for dag-to-text, OR append
 		// it with dag-to-text if markup is active.
@@ -291,62 +338,6 @@ public class NLPToStringModule extends DAGModule<String> {
 		return buffer.toString();
 	}
 
-	private String nodeToStringInternal(Node node) {
-		// Use prettyString-Canonical where possible
-		Collection<Node> canonicalStrs = querier_.executeAndParseVar(
-				new QueryObject(CommonConcepts.ASSERTED_SENTENCE.getNode(dag_),
-						new OntologyFunction(
-								CommonConcepts.PRETTY_STRING_CANONICAL
-										.getNode(dag_), node,
-								VariableNode.DEFAULT)), VariableNode.DEFAULT
-						.toString());
-		if (!canonicalStrs.isEmpty())
-			return UtilityMethods.shrinkString(
-					returnSmallestString(canonicalStrs), 1);
-
-		// Use children of prettyString-Canonical
-		canonicalStrs = querier_.executeAndParseVar(new QueryObject(
-				CommonConcepts.PRETTY_STRING_CANONICAL.getNode(dag_), node,
-				VariableNode.DEFAULT), VariableNode.DEFAULT.toString());
-		if (!canonicalStrs.isEmpty())
-			return UtilityMethods.shrinkString(
-					returnSmallestString(canonicalStrs), 1);
-
-		// Use any termStrings
-		Collection<Node> termStrings = querier_.executeAndParseVar(
-				new QueryObject(CommonConcepts.TERM_STRING.getNode(dag_), node,
-						VariableNode.DEFAULT), VariableNode.DEFAULT.toString());
-		if (!termStrings.isEmpty())
-			return UtilityMethods.shrinkString(
-					returnSmallestString(termStrings), 1);
-
-		// Convert name into plain text
-		if (node instanceof OntologyFunction) {
-			Node[] args = ((OntologyFunction) node).getNodes();
-			StringBuilder argString = new StringBuilder();
-			for (int i = 1; i < args.length; i++) {
-				if (argString.length() != 0)
-					argString.append(" & ");
-				argString.append(nodeToStringInternal(args[i]));
-			}
-
-			// Function string
-			String function = nodeToStringInternal(args[0]);
-			if (function.contains("___")) {
-				return function.replaceAll("___+",
-						Matcher.quoteReplacement(argString.toString()));
-			} else {
-				function = function.replaceAll(" Fn$", "");
-				function = argString.toString() + " (" + function + ")";
-				return function.replaceAll("\\) \\(", ", ");
-			}
-		} else {
-			if (node instanceof DAGNode)
-				return conceptToPlainText(node.getName());
-			return node.getName();
-		}
-	}
-
 	public String nodeToString(Node node, boolean markup) {
 		if (!(node instanceof DAGNode))
 			return node.toString();
@@ -357,6 +348,36 @@ public class NLPToStringModule extends DAGModule<String> {
 		if (markup && !(result.startsWith("<") && result.endsWith(">")))
 			return "[[" + node.toString() + "|" + result + "]]";
 		return result;
+	}
+
+	@Override
+	public boolean removeNode(DAGNode node) {
+		// Remove the node alias
+		NodeAliasModule nam = (NodeAliasModule) dag_
+				.getModule(NodeAliasModule.class);
+		if (nam != null) {
+			String nodeName = nodeToString(node, false);
+			if (!nodeName.isEmpty())
+				nam.removeAlias(node, nodeName);
+			if (!node.getName().startsWith("(")) {
+				String basicName = conceptToPlainText(node.getName());
+				if (!basicName.equals(nodeName)
+						&& !basicName.equals(node.getName())
+						&& !basicName.isEmpty())
+					nam.removeAlias(node, basicName);
+			}
+		}
+		return super.addNode(node);
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return false;
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return true;
 	}
 
 	// TODO Refactor this method

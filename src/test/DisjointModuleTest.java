@@ -8,6 +8,7 @@ import graph.core.DAGNode;
 import graph.core.Edge;
 import graph.core.Node;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.module.DisjointModule;
 import graph.module.QueryModule;
 
@@ -53,12 +54,12 @@ public class DisjointModuleTest {
 		dag_.findOrCreateEdge(new Node[] { isa, cat, collection }, null, true,
 				false);
 
-		assertFalse(querier_.prove(disjoint, dog, cat));
+		assertEquals(querier_.prove(false, disjoint, dog, cat), QueryResult.NIL);
 		Edge disjDogCat = dag_.findOrCreateEdge(
 				new Node[] { disjoint, dog, cat }, null, true, false);
 		assertTrue(disjDogCat instanceof DAGEdge);
 		QueryObject qo = new QueryObject(true, disjoint, dog, cat);
-		assertTrue(querier_.prove(qo));
+		assertEquals(querier_.prove(true, qo), QueryResult.TRUE);
 		List<Node[]> justification = qo.getJustification();
 		assertEquals(justification.size(), 1);
 
@@ -69,8 +70,13 @@ public class DisjointModuleTest {
 
 		dag_.findOrCreateEdge(new Node[] { genls, boxer, dog }, null, true,
 				false);
+		qo = new QueryObject(true, disjoint, boxer, dog);
+		assertEquals(querier_.prove(true, qo), QueryResult.FALSE);
+		justification = qo.getJustification();
+		assertEquals(justification.size(), 1);
+
 		qo = new QueryObject(true, disjoint, boxer, cat);
-		assertTrue(querier_.prove(qo));
+		assertEquals(querier_.prove(true, qo), QueryResult.TRUE);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 2);
 
@@ -81,13 +87,13 @@ public class DisjointModuleTest {
 		dag_.findOrCreateEdge(new Node[] { genls, housecat, cat }, null, true,
 				false);
 		qo = new QueryObject(true, disjoint, boxer, housecat);
-		assertTrue(querier_.prove(qo));
+		assertEquals(querier_.prove(true, qo), QueryResult.TRUE);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 3);
 
 		assertTrue(dag_.removeEdge(disjDogCat));
-		assertFalse(querier_.prove(disjoint, dog, cat));
-		assertFalse(querier_.prove(disjoint, boxer, cat));
-		assertFalse(querier_.prove(disjoint, boxer, housecat));
+		assertEquals(querier_.prove(false, disjoint, dog, cat), QueryResult.NIL);
+		assertEquals(querier_.prove(false, disjoint, boxer, cat), QueryResult.NIL);
+		assertEquals(querier_.prove(false, disjoint, boxer, housecat), QueryResult.NIL);
 	}
 }

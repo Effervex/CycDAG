@@ -14,6 +14,7 @@ import graph.core.CycDAG;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.DAGObject;
+import graph.core.EdgeModifier;
 
 import java.util.Collection;
 import java.util.Set;
@@ -115,5 +116,15 @@ public class MicrotheoryModule extends DAGModule<Collection<DAGEdge>> {
 	@Override
 	public String toString() {
 		return "Num MTs: " + microtheoryMap_.size();
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return !EdgeModifier.isRemoved(edge, dag_);
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
 	}
 }

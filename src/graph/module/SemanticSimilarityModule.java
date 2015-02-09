@@ -10,6 +10,9 @@
  ******************************************************************************/
 package graph.module;
 
+import graph.core.DAGEdge;
+import graph.core.DAGNode;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.inference.CommonQuery;
 
@@ -65,4 +68,13 @@ public class SemanticSimilarityModule extends DAGModule<Float> {
 		return parents;
 	}
 
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return false;
+	}
+
+	@Override
+	public boolean supportsNode(DAGNode node) {
+		return false;
+	}
 }

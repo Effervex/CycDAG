@@ -13,10 +13,9 @@ package graph.module.cli;
 import graph.core.Node;
 import graph.core.cli.DAGPortHandler;
 import graph.inference.QueryObject;
-import graph.inference.Substitution;
+import graph.inference.QueryResult;
 import graph.module.QueryModule;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,7 +34,7 @@ public class JustifyCommand extends Command {
 		return "{0} (X Y ...) [binding] : Poses a query to the DAG "
 				+ "in the form of a bracketed edge expression "
 				+ "consisting of nodes (ID or named).\n"
-				+ "If true, a justification of why it is true "
+				+ "If true or false, a justification of why it is true/false "
 				+ "based on known edges is returned, "
 				+ "or NIL if it is false.";
 	}
@@ -81,13 +80,19 @@ public class JustifyCommand extends Command {
 			return;
 		}
 		QueryObject qo = new QueryObject(true, args);
-		Collection<Substitution> substitutions = queryModule.execute(qo);
-		if (substitutions == null || substitutions.isEmpty()) {
+		queryModule.executeQuery(true, qo);
+		if (qo.getResultState() == QueryResult.NIL) {
 			print("0|NIL\n");
 			return;
 		} else {
 			List<Node[]> justification = qo.getJustification();
 			print(justification.size() + "|");
+			if (qo.getResultState() == QueryResult.TRUE)
+				print("T|");
+			else
+				print("F|");
+
+			// Printing the edges.
 			for (Node[] edge : justification) {
 				boolean first = true;
 				if (edge.length != 0) {

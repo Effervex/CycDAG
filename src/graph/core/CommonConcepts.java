@@ -74,6 +74,8 @@ public enum CommonConcepts {
 	PRETTY_STRING_CANONICAL("prettyString-Canonical"),
 	QUOTED_ISA("quotedIsa"),
 	REIFIABLE_FUNCTION("ReifiableFunction"),
+	RELATION("Relation"),
+	REMOVED("removed"),
 	RESULT_GENL("resultGenl"),
 	RESULT_GENL_ARG("resultGenlArg"),
 	RESULT_ISA("resultIsa"),
@@ -82,6 +84,7 @@ public enum CommonConcepts {
 	SECOND_ORDER_COLLECTION("SecondOrderCollection"),
 	SIBLING_DISJOINT_COLLECTION_TYPE("SiblingDisjointCollectionType"),
 	SIBLING_DISJOINT_EXCEPTION("siblingDisjointExceptions"),
+	SPECIAL_RELATION("SpecialRelation"),
 	STRICTLY_FUNCTIONAL_SLOT("StrictlyFunctionalSlot"),
 	STRING("CharacterString"),
 	SYMMETRIC_BINARY("SymmetricBinaryPredicate"),
@@ -90,6 +93,7 @@ public enum CommonConcepts {
 	THE_YEAR("TheYear-Indexical"),
 	THING("Thing"),
 	TRUE("True"),
+	UNARY_RELATION("UnaryRelation"),
 	UNREIFIABLE_FUNCTION("UnreifiableFunction"),
 	URLFN("URLFn"),
 	YEARFN("YearFn"),
@@ -171,6 +175,19 @@ public enum CommonConcepts {
 				new Node[] { GENLS.getNode(dag), BINARY_PREDICATE.getNode(dag),
 						PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
 
+		// disjointWith
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), DISJOINTWITH.getNode(dag),
+						SYMMETRIC_BINARY.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ARGISA.getNode(dag), DISJOINTWITH.getNode(dag),
+						PrimitiveNode.parseNode("1"), COLLECTION.getNode(dag) },
+				_COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ARGISA.getNode(dag), DISJOINTWITH.getNode(dag),
+						PrimitiveNode.parseNode("2"), COLLECTION.getNode(dag) },
+				_COMMON_CONCEPT, true);
+
 		// Individual
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), INDIVIDUAL.getNode(dag),
@@ -192,8 +209,45 @@ public enum CommonConcepts {
 
 		// Predicate
 		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), RELATION.getNode(dag),
+						COLLECTION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { GENLS.getNode(dag), UNARY_RELATION.getNode(dag),
+						RELATION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), UNARY_RELATION.getNode(dag),
+						COLLECTION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), PREDICATE.getNode(dag),
 						COLLECTION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { GENLS.getNode(dag), PREDICATE.getNode(dag),
+						RELATION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), SPECIAL_RELATION.getNode(dag),
+						COLLECTION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { GENLS.getNode(dag), SPECIAL_RELATION.getNode(dag),
+						UNARY_RELATION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] {
+						COMMENT.getNode(dag),
+						SPECIAL_RELATION.getNode(dag),
+						new StringNode(
+								"The Special Relation collection is a collection of "
+										+ "all relations that are treated in a special manner "
+										+ "by CycDAG. When an assertion is wrapped by a special "
+										+ "relation, CycDAG treats the assertions in a special "
+										+ "manner, indexing them as they would normally be "
+										+ "indexed without the special relation wrapper. The "
+										+ "two primary members are [[not]] and [[removed]].") },
+				_COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), BINARY_PREDICATE.getNode(dag),
+						COLLECTION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { GENLS.getNode(dag), BINARY_PREDICATE.getNode(dag),
+						PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
 
 		// Function
 		dag.findOrCreateEdge(
@@ -205,6 +259,9 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(
 				new Node[] { RESULT_ISA_ARG.getNode(dag), THE_FN.getNode(dag),
 						PrimitiveNode.parseNode("1") }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { GENLS.getNode(dag), FUNCTION.getNode(dag),
+						RELATION.getNode(dag) }, _COMMON_CONCEPT, true);
 
 		// resultIsa/genls (+arg)
 		dag.findOrCreateEdge(
@@ -293,8 +350,8 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(
 				new Node[] { GENLS.getNode(dag), STRING.getNode(dag),
 						CHARACTER_STRING.getNode(dag) }, _COMMON_CONCEPT, true);
-		Node theString = dag.findOrCreateFunctionNode(true, false,
-				true, _COMMON_CONCEPT, THE_FN.getNode(dag), STRING.getNode(dag));
+		Node theString = dag.findOrCreateFunctionNode(true, false, true,
+				_COMMON_CONCEPT, THE_FN.getNode(dag), STRING.getNode(dag));
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), theString, STRING.getNode(dag) },
 				_COMMON_CONCEPT, true);
@@ -408,6 +465,58 @@ public enum CommonConcepts {
 						UNREIFIABLE_FUNCTION.getNode(dag) }, _COMMON_CONCEPT,
 				true);
 
+		// Evaluatable Predicates
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), DIFFERENT.getNode(dag),
+						EVALUATABLE_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
+		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag),
+				EQUALS.getNode(dag), EVALUATABLE_PREDICATE.getNode(dag) },
+				_COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), GREATER_THAN.getNode(dag),
+						EVALUATABLE_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), GREATER_THAN_EQUAL.getNode(dag),
+						EVALUATABLE_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), LESS_THAN.getNode(dag),
+						EVALUATABLE_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), LESS_THAN_EQUAL.getNode(dag),
+						EVALUATABLE_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), LATER_PREDICATE.getNode(dag),
+						EVALUATABLE_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), NUMERICALLY_EQUAL.getNode(dag),
+						EVALUATABLE_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
+
+		// Special predicates
+		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), NOT.getNode(dag),
+				SPECIAL_RELATION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), REMOVED.getNode(dag),
+						SPECIAL_RELATION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] {
+						COMMENT.getNode(dag),
+						REMOVED.getNode(dag),
+						new StringNode(
+								"The removed relation is a special relation for "
+										+ "functionally removing assertions from the DAG "
+										+ "without removing them completely. When an "
+										+ "assertion is wrapped with a removed relation, "
+										+ "it is treated as non-existent for most purposes, "
+										+ "except indexing operations.") },
+				_COMMON_CONCEPT, true);
+
 		// $1 /1(is)/(are)/ <text string> $2
 		nlpPredicates(ARGGENL,
 				"/2(argument $2)/(what arguments)/ of $1 is a type of $3", dag);
@@ -476,7 +585,9 @@ public enum CommonConcepts {
 	}
 
 	public static void initialise(CycDAG dag) {
-		for (CommonConcepts cc : CommonConcepts.values())
+		for (CommonConcepts cc : CommonConcepts.values()) {
+			cc.clearNode();
 			cc.getNode(dag);
+		}
 	}
 }

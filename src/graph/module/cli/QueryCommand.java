@@ -14,6 +14,7 @@ import graph.core.Node;
 import graph.core.cli.CollectionCommand;
 import graph.core.cli.DAGPortHandler;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.inference.Substitution;
 import graph.module.QueryModule;
 
@@ -61,13 +62,18 @@ public class QueryCommand extends CollectionCommand {
 		}
 
 		QueryObject qo = new QueryObject(args);
-		Collection<Substitution> substitutions = queryModule.execute(qo);
+		Collection<Substitution> substitutions = queryModule.executeQuery(true,
+				qo);
 
 		// Sort
-		substitutions = dagHandler.postProcess(substitutions, rangeStart_, rangeEnd_, true);
+		substitutions = dagHandler.postProcess(substitutions, rangeStart_,
+				rangeEnd_, true);
 
-		if (substitutions == null || substitutions.isEmpty()) {
+		if (qo.getResultState() == QueryResult.NIL) {
 			print("0|NIL\n");
+			return;
+		} else if (qo.getResultState() == QueryResult.FALSE) {
+			print("0|F\n");
 			return;
 		} else {
 			if (qo.isProof()) {

@@ -17,6 +17,7 @@ import graph.core.DirectedAcyclicGraph;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.CommonQuery;
+import graph.inference.QueryObject;
 import graph.inference.Substitution;
 import graph.inference.VariableNode;
 
@@ -92,14 +93,14 @@ public class SubCycDAGExtractorModule extends SubDAGExtractorModule {
 			Collection<DAGNode> existingNodes) {
 		VariableNode y = new VariableNode("?Y");
 		VariableNode x = new VariableNode("?X");
-		Collection<Substitution> subs = querier_.execute(
-				CommonConcepts.ARGISA.getNode(dag_), node, x, y);
-		subs.addAll(querier_.execute(CommonConcepts.ARGGENL.getNode(dag_),
-				node, x, y));
-		subs.addAll(querier_.execute(CommonConcepts.RESULT_ISA.getNode(dag_),
-				node, y));
-		subs.addAll(querier_.execute(CommonConcepts.RESULT_GENL.getNode(dag_),
-				node, y));
+		Collection<Substitution> subs = querier_.executeQuery(false, new QueryObject(
+						CommonConcepts.ARGISA.getNode(dag_), node, x, y));
+		subs.addAll(querier_.executeQuery(false, new QueryObject(
+						CommonConcepts.ARGGENL.getNode(dag_), node, x, y)));
+		subs.addAll(querier_.executeQuery(false, new QueryObject(
+						CommonConcepts.RESULT_ISA.getNode(dag_), node, y)));
+		subs.addAll(querier_.executeQuery(false, new QueryObject(
+						CommonConcepts.RESULT_GENL.getNode(dag_), node, y)));
 		for (Substitution sub : subs) {
 			Node constraint = sub.getSubstitution(y);
 			if (constraint instanceof DAGNode)

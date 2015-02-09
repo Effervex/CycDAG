@@ -13,7 +13,9 @@ package graph.inference.module;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.inference.QueryWorker;
+import graph.inference.Substitution;
 import graph.module.QueryModule;
 
 public class OrWorker extends QueryWorker {
@@ -31,16 +33,22 @@ public class OrWorker extends QueryWorker {
 					"Predicate must be or for this module!");
 
 		Node[] nodes = queryObj.getNodes();
+		boolean allFalse = true;
 		for (int i = 1; i < nodes.length; i++) {
 			QueryObject funcObject = new QueryObject(queryObj.shouldJustify(),
 					((OntologyFunction) nodes[i]).getNodes());
-			querier_.execute(funcObject);
+			querier_.executeQuery(true, funcObject);
 
 			// Intersect results
-			queryObj.addResults(funcObject.getResults());
-			if (queryObj.shouldJustify())
-				queryObj.getJustification().addAll(
-						funcObject.getJustification());
+			if (queryObj.getResultState() != QueryResult.FALSE) {
+				allFalse = false;
+				queryObj.addResults(true, funcObject.getResults());
+				if (queryObj.shouldJustify())
+					queryObj.getJustification().addAll(
+							funcObject.getJustification());
+			}
 		}
+		if (allFalse)
+			queryObj.addResult(false, new Substitution());
 	}
 }

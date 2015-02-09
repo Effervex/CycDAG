@@ -10,6 +10,7 @@
  ******************************************************************************/
 package graph.core;
 
+import graph.inference.QueryResult;
 import graph.module.QueryModule;
 
 import java.util.Arrays;
@@ -55,6 +56,12 @@ public class OntologyFunction extends DAGNode implements Edge {
 					put(CREATOR, creator.getIdentifier(true));
 			}
 		}
+
+		// Also reify the inner nodes if necessary
+		for (Node n : nodes_) {
+			if (n instanceof OntologyFunction)
+				((OntologyFunction) n).reify(creator, cycDAG);
+		}
 	}
 
 	private boolean checkIfAnonymous(DirectedAcyclicGraph dag) {
@@ -62,12 +69,14 @@ public class OntologyFunction extends DAGNode implements Edge {
 		QueryModule queryModule = (QueryModule) dag
 				.getModule(QueryModule.class);
 		// If nodes[0] is unreifiable OR is not a function
-		if (queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
-				CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag)))
+		if (queryModule.prove(false, CommonConcepts.ISA.getNode(dag),
+				nodes_[0], CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag)) == QueryResult.TRUE)
 			return true;
-		// TODO If not a function
-		// if (!queryModule.prove(CommonConcepts.ISA.getNode(dag), nodes_[0],
-		// CommonConcepts.FUNCTION.getNode(dag)))
+		// If not a function
+		// TODO Keep an eye on this
+		// if (queryModule.prove(false, CommonConcepts.ISA.getNode(dag),
+		// nodes_[0], CommonConcepts.FUNCTION.getNode(dag)) ==
+		// QueryResult.FALSE)
 		// return true;
 		return false;
 	}

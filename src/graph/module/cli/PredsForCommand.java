@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.HashSet;
 
 import graph.core.Edge;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.cli.CollectionCommand;
 import graph.core.cli.DAGPortHandler;
@@ -54,11 +55,13 @@ public class PredsForCommand extends CollectionCommand {
 
 		Collection<Node> preds = new HashSet<>();
 		Collection<Edge> edges = relatedEdge.execute(conceptNode, "!1");
-		for (Edge e : edges)
-			preds.add(e.getNodes()[0]);
-		
+		for (Edge e : edges) {
+			if (!EdgeModifier.isNegated(e, dagHandler.getDAG()))
+				preds.add(e.getNodes()[0]);
+		}
+
 		preds = dagHandler.postProcess(preds, rangeStart_, rangeEnd_, true);
-		
+
 		print(preds.size() + "|");
 		for (Node pred : preds)
 			print(dagHandler.textIDObject(pred) + "|");

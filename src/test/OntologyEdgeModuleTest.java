@@ -10,8 +10,7 @@
  ******************************************************************************/
 package test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import graph.core.CommonConcepts;
 import graph.core.CycDAG;
 import graph.core.DAGEdge;
@@ -147,33 +146,33 @@ public class OntologyEdgeModuleTest {
 		assertTrue(results.contains(isaEdge));
 	}
 
-//	@Test
-//	public void testNegatedEdges() {
-//		Node creator = new StringNode("TestCreator");
-//		DAGNode genls = (DAGNode) dag_.findOrCreateNode("genls", creator, true,
-//				false, true);
-//		DAGNode not = (DAGNode) dag_.findOrCreateNode("not", creator, true,
-//				false, true);
-//		DAGNode dog = (DAGNode) dag_.findOrCreateNode("Dog", creator, true,
-//				false, true);
-//		DAGNode cat = (DAGNode) dag_.findOrCreateNode("Cat", creator, true,
-//				false, true);
-//		DAGNode mammal = (DAGNode) dag_.findOrCreateNode("Mammal", creator,
-//				true, false, true);
-//		DAGEdge e1 = (DAGEdge) dag_.findOrCreateEdge(new Node[] { genls, dog,
-//				mammal }, creator, true);
-//		DAGEdge e2 = (DAGEdge) dag_.findOrCreateEdge(new Node[] { not,
-//				new OntologyFunction(genls, dog, cat) }, creator, true);
-//		// Basic search
-//		Collection<Edge> results = sut_.execute(dog);
-//		assertEquals(results.toString(), results.size(), 2);
-//		assertTrue(results.contains(e1));
-//		assertTrue(results.contains(e2));
-//		
-//		// Targeted search
-//		results = sut_.execute(dog, 2);
-//		assertEquals(results.toString(), results.size(), 2);
-//		assertTrue(results.contains(e1));
-//		assertTrue(results.contains(e2));
-//	}
+	@Test
+	public void testNegatedEdges() {
+		Node creator = new StringNode("TestCreator");
+		DAGNode genls = (DAGNode) dag_.findOrCreateNode("genls", creator, true,
+				false, true);
+		DAGNode not = (DAGNode) dag_.findOrCreateNode("not", creator, true,
+				false, true);
+		DAGNode dog = (DAGNode) dag_.findOrCreateNode("Dog", creator, true,
+				false, true);
+		DAGNode cat = (DAGNode) dag_.findOrCreateNode("Cat", creator, true,
+				false, true);
+		DAGNode mammal = (DAGNode) dag_.findOrCreateNode("Mammal", creator,
+				true, false, true);
+		DAGEdge e1 = (DAGEdge) dag_.findOrCreateEdge(new Node[] { genls, dog,
+				mammal }, creator, true);
+		DAGEdge e2 = (DAGEdge) dag_.findOrCreateEdge(new Node[] { not,
+				new OntologyFunction(genls, dog, cat) }, creator, true);
+		// Basic search
+		Collection<Edge> results = sut_.execute(dog);
+		assertEquals(results.toString(), results.size(), 2);
+		assertTrue(results.contains(e1));
+		assertTrue(results.contains(e2));
+
+		// Targeted search
+		results = sut_.execute(dog, 2);
+		assertEquals(results.toString(), results.size(), 1);
+		assertTrue(results.contains(e1));
+		assertFalse(results.contains(e2));
+	}
 }

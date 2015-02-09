@@ -10,8 +10,10 @@
  ******************************************************************************/
 package graph.module;
 
+import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Edge;
+import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 
@@ -56,7 +58,6 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 
 	private List<EdgeCol> locateEdgeCollections(String functionPrefix,
 			boolean createNew, Object... args) {
-		// TODO If negated (not), treat as without not
 		List<EdgeCol> edgeCols = new ArrayList<>();
 		Node predicate = null;
 		for (int i = 0; i < args.length; i++) {
@@ -107,18 +108,20 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 				edgeCols.add(new EdgeCol(additive, edgeCol));
 			}
 		}
+
 		return edgeCols;
 	}
 
 	private ArrayList<Object> recurseIndexed(Node[] nodes, String prefix) {
 		ArrayList<Object> args = new ArrayList<>(nodes.length * 2);
 		for (int i = 0; i < nodes.length; i++) {
+			String index = prefix + (i + 1);
 			if (nodes[i] instanceof Edge) {
-				args.addAll(recurseIndexed(((Edge) nodes[i]).getNodes(), prefix
-						+ (i + 1) + FUNC_SPLIT));
+				args.addAll(recurseIndexed(((Edge) nodes[i]).getNodes(), index
+						+ FUNC_SPLIT));
 			} else {
 				args.add(nodes[i]);
-				args.add((prefix + (i + 1)).intern());
+				args.add(index);
 			}
 		}
 		return args;
@@ -151,6 +154,34 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 	}
 
 	@Override
+	public boolean addEdge(DAGEdge edge) {
+		Collection<EdgeCol> edgeCollections = locateEdgeCollections("", true,
+				asIndexed(edge.getNodes()));
+		// Add negated as well
+		if (EdgeModifier.isSpecial(edge, dag_))
+			edgeCollections.addAll(locateEdgeCollections("", true,
+					asIndexed(EdgeModifier.getUnmodNodes(edge, dag_))));
+		for (EdgeCol edgeCol : edgeCollections)
+			edgeCol.add(edge);
+		return true;
+	}
+
+	@Override
+	public boolean removeEdge(DAGEdge edge) {
+		boolean result = false;
+		Collection<EdgeCol> indexedEdges = locateEdgeCollections("", false,
+				asIndexed(edge.getNodes()));
+		// Remove negated as well
+		if (EdgeModifier.isSpecial(edge, dag_))
+			indexedEdges.addAll(locateEdgeCollections("", false,
+					asIndexed(EdgeModifier.getUnmodNodes(edge, dag_))));
+
+		for (EdgeCol col : indexedEdges)
+			result |= col.remove(edge);
+		return result;
+	}
+
+	@Override
 	protected Object defaultKey() {
 		return null;
 	}
@@ -163,9 +194,17 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 
 	@Override
 	protected boolean matchingNonDAG(Pair<Node, Object> nonDAG, Node[] edgeNodes) {
-		String[] split = ((String) nonDAG.objB_).split(FUNC_SPLIT);
+		String position = (String) nonDAG.objB_;
+		boolean allBut = false;
+		if (position.startsWith("!")) {
+			allBut = true;
+			position = position.substring(1);
+		}
+		String[] split = (position).split(FUNC_SPLIT);
 		int i = 0;
 		for (i = 0; i < split.length - 1; i++) {
+			if (split[i].startsWith("!"))
+				return true;
 			int index = Integer.parseInt(split[i]) - 1;
 			if (index >= edgeNodes.length)
 				return false;
@@ -217,5 +256,10 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 			}
 		}
 		return edges;
+	}
+
+	@Override
+	public boolean supportsEdge(DAGEdge edge) {
+		return true;
 	}
 }

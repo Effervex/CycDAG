@@ -14,6 +14,7 @@ import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
 import graph.module.QueryModule;
@@ -50,9 +51,16 @@ public class AndWorker extends QueryWorker {
 			QueryObject funcObject = new QueryObject(queryObj.shouldJustify(),
 					func.getNodes());
 			funcObject.setToComplete(intersect);
-			Collection<Substitution> subs = querier_.execute(funcObject);
+			Collection<Substitution> subs = querier_.executeQuery(true, funcObject);
 			justifications[listNodes.indexOf(func) - 1] = funcObject
 					.getJustification();
+			
+			// If the query is false, stop now
+			if (funcObject.getResultState() == QueryResult.FALSE) {
+				queryObj.addResults(false, subs);
+				queryObj.setRejectionReason(funcObject.getRejectionReason());
+				return;
+			}
 
 			// Intersect results
 			intersect = intersectResults(intersect, subs, LIMIT);
@@ -71,9 +79,9 @@ public class AndWorker extends QueryWorker {
 		}
 
 		if (queryObj.isProof()) {
-			queryObj.addResult(new Substitution());
+			queryObj.addResult(true, new Substitution());
 		} else
-			queryObj.addResults(intersect);
+			queryObj.addResults(true, intersect);
 	}
 
 	private List<OntologyFunction> orderNodes(Node[] nodes) {
