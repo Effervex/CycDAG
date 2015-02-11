@@ -230,7 +230,7 @@ public enum CommonQuery {
 	 *            The DAG access.
 	 * @return The filtered input (same collection).
 	 */
-	public static Collection<Node> minGeneralFilter(Collection<Node> results,
+	public static Collection<? extends Node> minGeneralFilter(Collection<? extends Node> results,
 			DirectedAcyclicGraph dag) {
 		if (results.size() <= 1)
 			return results;

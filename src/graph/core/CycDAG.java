@@ -460,6 +460,26 @@ public class CycDAG extends DirectedAcyclicGraph {
 			out.write("\n");
 		}
 	}
+	
+	@Override
+	public void export(File file, DAGExportFormat format) throws IOException {
+		super.export(file, format);
+		if (format == DAGExportFormat.CUSTOM)
+			exportRereadable(file);
+	}
+
+	protected void exportRereadable(File file) throws IOException {
+		BufferedWriter out = new BufferedWriter(new FileWriter(file));
+		
+		for (DAGEdge e : edges_) {
+			String mt = e.getProperty(MICROTHEORY);
+			if (mt == null)
+				mt = "";
+			out.write(e.getIdentifier(true) + "\t" + mt + "\n");
+		}
+		
+		out.close();
+	}
 
 	@Override
 	protected SortedSet<DAGEdge> orderedReassertables() {

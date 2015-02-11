@@ -259,8 +259,8 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 		ConcurrentLinkedQueue<Node> lowest = new ConcurrentLinkedQueue<Node>();
 		for (Node entry : originallist) {
 
-			if (isSignificant(intermap.get(entry), this._STATMIN)) {
 				boolean toAdd = true;
+				if (isSignificant(intermap.get(entry), this._STATMIN)) {
 				for (Node node : lowest) {
 					// For each node already in the list,
 					if (isChild(entry, node)) {

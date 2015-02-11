@@ -1,12 +1,18 @@
 package graph.module.cli;
 
+import graph.core.CommonConcepts;
 import graph.core.CycDAG;
 import graph.core.DAGEdge;
+import graph.core.Edge;
+import graph.core.ErrorEdge;
+import graph.core.Node;
 import graph.core.cli.DAGPortHandler;
 import graph.module.TransitiveIntervalSchemaModule;
 
 import java.io.BufferedReader;
 import java.util.Collection;
+
+import org.apache.commons.lang3.StringUtils;
 
 import util.Pair;
 import core.Command;
@@ -48,17 +54,40 @@ public class PruneCyclesCommand extends Command {
 		BufferedReader in = getPortHandler().getReader();
 		for (Pair<DAGEdge, DAGEdge> cycleEdges : cycles) {
 			try {
-				print("Remove which edge ('0' to ignore)?\n1: "
-						+ cycleEdges.objA_.toString(false) + "\n2: "
-						+ cycleEdges.objB_.toString() + "\nEnter number: ");
+				Node[] rewriteA = new Node[] {
+						CommonConcepts.REWRITE_OF.getNode(dag),
+						cycleEdges.objA_.getNodes()[1],
+						cycleEdges.objA_.getNodes()[2] };
+				Node[] rewriteB = new Node[] {
+						CommonConcepts.REWRITE_OF.getNode(dag),
+						cycleEdges.objA_.getNodes()[2],
+						cycleEdges.objA_.getNodes()[1] };
+				print("Ignore (0)\n" + "Remove edge (1): "
+						+ cycleEdges.objA_.toString(false) + "\n"
+						+ "Remove edge (2): " + cycleEdges.objB_.toString()
+						+ "\n" + "Add rewrite ("
+						+ StringUtils.join(rewriteA, ' ') + ") (3)\n"
+						+ "Add rewrite (" + StringUtils.join(rewriteB, ' ')
+						+ ") (4)\n" + "Enter number: ");
 				flushOut();
 				String index = in.readLine().trim();
 				int decision = Integer.parseInt(index);
 				DAGEdge edge = null;
-				if (decision == 1)
+				if (decision == 0)
+					continue;
+				else if (decision == 1)
 					edge = cycleEdges.objA_;
 				else if (decision == 2)
 					edge = cycleEdges.objB_;
+				else if (decision == 3) {
+					Edge result = dag.findOrCreateEdge(rewriteA, null, null, true, false, false);
+					if (result instanceof ErrorEdge)
+						print ("Error adding rewriteEdge: " + result.toString(false));
+				} else if (decision == 4) {
+					Edge result = dag.findOrCreateEdge(rewriteB, null, null, true, false, false);
+					if (result instanceof ErrorEdge)
+						print ("Error adding rewriteEdge: " + result.toString(false));
+				}
 
 				// Removing the edge
 				if (edge != null) {
