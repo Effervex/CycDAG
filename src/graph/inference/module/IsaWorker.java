@@ -50,7 +50,7 @@ public class IsaWorker extends QueryWorker {
 		QueryObject transitiveObj = (queryObj == null) ? new QueryObject(
 				shouldJustify, transitiveArgs) : queryObj
 				.modifyNodes(transitiveArgs);
-		querier_.applyModule(transitivePred.getName(), transitiveObj);
+		querier_.executeQuery(false, transitiveObj);
 		return transitiveObj;
 	}
 

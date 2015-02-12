@@ -590,10 +590,10 @@ public class QueryModuleTest {
 		DAGNode sibDisjExcep = CommonConcepts.SIBLING_DISJOINT_EXCEPTION
 				.getNode(dag_);
 		DAGNode symmetric = CommonConcepts.SYMMETRIC_BINARY.getNode(dag_);
-		dag_.findOrCreateEdge(new Node[] { sibDisjExcep, cat, dog }, creator,
-				true);
-		dag_.findOrCreateEdge(new Node[] { isa, sibDisjExcep, symmetric },
-				creator, true);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { sibDisjExcep, cat, dog }, creator,
+				true) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { isa, sibDisjExcep, symmetric },
+				creator, true) instanceof ErrorEdge);
 		qo = new QueryObject(true, disjoint, cat, dog);
 		assertNull(sut_.executeQuery(true, qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);

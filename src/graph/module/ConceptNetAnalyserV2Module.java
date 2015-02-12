@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.LineNumberReader;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,6 +53,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	public static final int CONJOINT = 1;
 	public static final int DISJOINT = 0;
 	public static final int UNKNOWN = 2;
+	private static final String PARSED = "parsed";
 
 	private final double _RELIABILITYTHRESHOLD = 0.95;
 	private transient int _resolvedCount = 0;
@@ -68,12 +70,10 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 
 	/** The QueryModule access. */
 	private transient QueryModule queryModule_;
-
-	/** The reliability of relations. */
-	private transient Map<String, RelationData> relationCounts_;
+	private boolean assertDisj_ = false;
 
 	/** The strings in ConceptNet5 that resolve to one or more nodes. */
-	private transient MultiMap<String, DAGNode> resolvedConcepts_;
+	// private transient MultiMap<String, DAGNode> resolvedConcepts_;
 
 	/**
 	 * Calculates the common parents of two nodes.
@@ -100,16 +100,18 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	 * @param objB
 	 *            The right side of the disjoint edge.
 	 * @param assertDisj
+	 * @return
 	 * @throws IOException
 	 *             Should something go awry...
 	 */
-	private void createDisjointEdge(DAGNode objA, DAGNode objB,
-			BufferedWriter out, boolean assertDisj) throws IOException {
+	private String createDisjointEdge(DAGNode objA, DAGNode objB,
+			boolean assertDisj) throws IOException {
 		Node[] edgeNodes = { CommonConcepts.DISJOINTWITH.getNode(dag_), objA,
 				objB };
-		out.write("(" + StringUtils.join(edgeNodes, ' ') + ")\n");
+		String edge = "(" + StringUtils.join(edgeNodes, ' ') + ")";
 		if (assertDisj)
 			dag_.findOrCreateEdge(edgeNodes, CREATOR, true, false);
+		return edge;
 	}
 
 	/**
@@ -124,17 +126,17 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	 */
 	@SuppressWarnings("unchecked")
 	private Collection<DAGNode> disambiguate(String conceptName, boolean useIsas) {
-		if (resolvedConcepts_ == null)
-			resolvedConcepts_ = MultiMap.createConcurrentHashSetMultiMap();
-		if (resolvedConcepts_.containsKey(conceptName))
-			return resolvedConcepts_.get(conceptName);
+		// if (resolvedConcepts_ == null)
+		// resolvedConcepts_ = MultiMap.createConcurrentHashSetMultiMap();
+		// if (resolvedConcepts_.containsKey(conceptName))
+		// return resolvedConcepts_.get(conceptName);
 
 		// Disambiguate
 		Collection<DAGNode> nodes = aliasModule_.findNodes(conceptName, false,
 				true);
 		if (!nodes.isEmpty()) {
 			// Return all disambiguations
-			resolvedConcepts_.putCollection(conceptName, nodes);
+			// resolvedConcepts_.putCollection(conceptName, nodes);
 			return nodes;
 		} else if (useIsas) {
 			// Return isa edges if applicable.
@@ -146,18 +148,6 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		return CollectionUtils.EMPTY_COLLECTION;
 	}
 
-	/**
-	 * Initialises the relation data structure.
-	 *
-	 * @param relation
-	 *            The relation to initialise
-	 */
-	private synchronized void initRelationData(String relation) {
-		if (!relationCounts_.containsKey(relation)) {
-			relationCounts_.put(relation, new RelationData(relation));
-		}
-	}
-
 	private boolean isReliable(int[] counts, float threshold) {
 		return counts[DISJOINT] / (1f + counts[DISJOINT] + counts[CONJOINT]) >= threshold;
 	}
@@ -167,7 +157,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	}
 
 	protected boolean shouldCreateDisjoint(Pair<DAGNode, DAGNode> unknown,
-			RelationData rData) {
+			RelationData rData, String[] outputString) {
 		Collection<DAGNode> unknownParents = rData.unknownParents_.get(unknown);
 		// Remove non-significant parents
 		for (Iterator<DAGNode> iter = unknownParents.iterator(); iter.hasNext();) {
@@ -175,14 +165,28 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			if (!isSignificant(rData.intraNodeCounts_.get(parent), _STATMIN))
 				iter.remove();
 		}
+
+		// If common is empty, return false
+		if (unknownParents.isEmpty())
+			return false;
+
 		// Filter to min collection
 		Collection<? extends Node> minParents = CommonQuery.minGeneralFilter(
 				unknownParents, dag_);
 		// Check reliability of each parent
+		outputString[RelationColumn.COMMON_PARENTS.ordinal()] = minParents
+				.toString();
+		float[] reliArray = new float[minParents.size()];
+		int i = 0;
 		for (Node minPar : minParents) {
-			if (!isReliable(rData.intraNodeCounts_.get(minPar), 0.9f))
+			int[] counts = rData.intraNodeCounts_.get(minPar);
+			reliArray[i++] = counts[DISJOINT]
+					/ (1f * counts[DISJOINT] + counts[CONJOINT]);
+			if (!isReliable(counts, 0.9f))
 				return false;
 		}
+		outputString[RelationColumn.PARENT_RELI.ordinal()] = Arrays
+				.toString(reliArray);
 		return true;
 	}
 
@@ -198,11 +202,12 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				+ "disjoint/conjoint/unknown pairs from ConceptNet5.");
 		ExecutorService executor = Executors.newFixedThreadPool(Runtime
 				.getRuntime().availableProcessors());
-		File[] cnFiles = dataFolder.listFiles();
-		for (File file : cnFiles) {
+		File[] relationFiles = dataFolder.listFiles();
+		for (File file : relationFiles) {
+			if (file.getName().endsWith("IsA.csv"))
+				continue;
 			Runnable worker = new ProcessRelationFile(file);
 			executor.execute(worker);
-
 		}
 		executor.shutdown();
 		while (!executor.isTerminated()) {
@@ -221,25 +226,42 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	 * @param assertDisj
 	 *            If the assertions should occur immediately.
 	 */
-	public void createDisjointness(boolean assertDisj) {
-		System.out.println("Disjointness Discovery: Creating disjoint edges "
-				+ "from ConceptNet5.");
+	public synchronized void createDisjointness(RelationData rData) {
+		System.out
+				.println("Disjointness Discovery: Creating disjoint edges for "
+						+ rData.relation_);
+		System.out.println(rData);
 		int numCreated = 0;
 		try {
-			DISJOINT_OUT.createNewFile();
+			boolean exists = DISJOINT_OUT.exists();
+			if (!exists)
+				DISJOINT_OUT.createNewFile();
 			BufferedWriter out = new BufferedWriter(
 					new FileWriter(DISJOINT_OUT));
-			for (RelationData rData : relationCounts_.values()) {
-				if (isSignificant(rData.counts_, _STATMIN)
-						&& isReliable(rData.counts_, .95f)) {
-					// Run through the unknown pairs
-					for (Pair<DAGNode, DAGNode> unknown : rData.unknownParents_
-							.keySet()) {
-						if (shouldCreateDisjoint(unknown, rData)) {
-							numCreated++;
-							createDisjointEdge(unknown.objA_, unknown.objB_,
-									out, assertDisj);
-						}
+			if (!exists)
+				out.write(StringUtils.join(RelationColumn.values(), '\t') + '\n');
+			if (isSignificant(rData.counts_, _STATMIN)
+					&& isReliable(rData.counts_, .95f)) {
+				// Run through the unknown pairs
+				for (Pair<DAGNode, DAGNode> unknown : rData.unknownParents_
+						.keySet()) {
+					String[] outputData = rData.data_.get(unknown);
+					if (shouldCreateDisjoint(unknown, rData, outputData)) {
+						numCreated++;
+						outputData[RelationColumn.RELATION.ordinal()] = rData.relation_;
+						outputData[RelationColumn.REL_DISJ.ordinal()] = rData.counts_[DISJOINT]
+								+ "";
+						outputData[RelationColumn.REL_CONJ.ordinal()] = rData.counts_[CONJOINT]
+								+ "";
+						outputData[RelationColumn.REL_UNKN.ordinal()] = rData.counts_[UNKNOWN]
+								+ "";
+						outputData[RelationColumn.REL_SIG.ordinal()] = (rData.counts_[DISJOINT] + rData.counts_[CONJOINT])
+								+ "";
+						outputData[RelationColumn.REL_RELIA.ordinal()] = (rData.counts_[DISJOINT] / (1f * rData.counts_[DISJOINT] + rData.counts_[CONJOINT]))
+								+ "";
+						outputData[RelationColumn.DISJOINT_EDGE.ordinal()] = createDisjointEdge(
+								unknown.objA_, unknown.objB_, assertDisj_ );
+						out.append(StringUtils.join(rData.data_, '\t') + '\n');
 					}
 				}
 			}
@@ -257,17 +279,27 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		queryModule_ = (QueryModule) dag_.getModule(QueryModule.class);
 		aliasModule_ = (NodeAliasModule) dag_.getModule(NodeAliasModule.class);
 		explored_ = MultiMap.createConcurrentHashSetMultiMap();
-		relationCounts_ = new HashMap<>();
 		ptChildren_ = CommonQuery.SPECS.runQuery(dag_,
 				CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
 
 		if (args.length == 0)
 			return false;
-		File dataFolder = new File(args[0].toString());
-		boolean assertDisj = (boolean) args[1];
+		File dataFolder = new File(args[0].toString() + File.separator
+				+ PARSED);
+		if (!dataFolder.exists() || dataFolder.listFiles().length == 0)
+			try {
+				preParseConceptNetFiles(new File(args[0].toString()));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		assertDisj_ = (boolean) args[1];
 		readIsaData(dataFolder);
 		countDisjointness(dataFolder);
-		createDisjointness(assertDisj);
+
+		// Clean up
+		explored_.clear();
+		ptChildren_.clear();
+		// resolvedConcepts_.clear();
 
 		return true;
 	}
@@ -275,57 +307,46 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	/**
 	 * Reads the native isa data from the relations.
 	 *
-	 * @param dataFolder
+	 * @param parsedFolder
 	 *            The location of the data files.
 	 */
-	public void readIsaData(File dataFolder) {
+	public void readIsaData(File parsedFolder) {
 		// Already know isas.
 		if (isaEdges_ != null)
 			return;
 
-		// Read in and store IsA relations
+		// Read in and store IsA relations (from parsed)
 		System.out.println("Disjointness Discovery: Reading in IsA data "
 				+ "from ConceptNet5");
-		File[] cnFiles = dataFolder.listFiles();
-		for (File file : cnFiles) {
-			try {
-				BufferedReader in = new BufferedReader(new FileReader(file));
-				String line = null;
+		File isaFile = new File(parsedFolder, "IsA.csv");
+		try {
+			BufferedReader in = new BufferedReader(new FileReader(isaFile));
+			String line = null;
 
-				while ((line = in.readLine()) != null) {
-					// Find IsA relations only
-					Matcher m = RELATION_PATTERN.matcher(line);
-					if (m.matches()) {
-						String relation = m.group(1);
-						if (!relation.equals("IsA"))
-							continue;
+			while ((line = in.readLine()) != null) {
+				// Find IsA relations only
+				String[] split = line.split("\t");
+				String first = split[1];
+				String second = split[2];
 
-						String first = m.group(2);
-						String second = m.group(3);
+				Collection<DAGNode> firstNodes = disambiguate(first, false);
+				Collection<DAGNode> secondNodes = disambiguate(second, false);
 
-						Collection<DAGNode> firstNodes = disambiguate(first,
-								false);
-						Collection<DAGNode> secondNodes = disambiguate(second,
-								false);
-
-						// Proceed if second arg known
-						if (!secondNodes.isEmpty()) {
-							if (firstNodes.isEmpty()) {
-								// If first is ambiguous, note the Isa Edge
-								if (isaEdges_ == null)
-									isaEdges_ = MultiMap
-											.createSortedSetMultiMap();
-								isaEdges_.putCollection(first, secondNodes);
-							} else {
-								_resolvedCount++;
-							}
-						}
+				// Proceed if second arg known
+				if (!secondNodes.isEmpty()) {
+					if (firstNodes.isEmpty()) {
+						// If first is ambiguous, note the Isa Edge
+						if (isaEdges_ == null)
+							isaEdges_ = MultiMap.createSortedSetMultiMap();
+						isaEdges_.putCollection(first, secondNodes);
+					} else {
+						_resolvedCount++;
 					}
 				}
-				in.close();
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
+			in.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		System.out.println("Disjointness Discovery: "
 				+ "Reading IsA data complete!");
@@ -341,14 +362,91 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		return false;
 	}
 
+	public static void preParseConceptNetFiles(File folder) throws IOException {
+		if (!folder.exists()) {
+			System.err.println(folder + " does not exist!");
+			return;
+		}
+		Map<String, BufferedWriter> relationFiles = new HashMap<>();
+
+		// Run through each file and output the relations in the appropriate
+		// relation file
+		File parsedFolder = new File(folder, PARSED);
+		parsedFolder.mkdir();
+
+		// Run through the files, outputting each relation to its individual
+		// file
+		for (File f : folder.listFiles()) {
+			if (f.isDirectory())
+				continue;
+			BufferedReader in = new BufferedReader(new FileReader(f));
+			String line = null;
+			int count = 0;
+			while ((line = in.readLine()) != null) {
+				count++;
+				Matcher m = RELATION_PATTERN.matcher(line);
+				if (m.matches()) {
+					String relation = m.group(1);
+					String first = m.group(2);
+					String second = m.group(3);
+
+					// Get the writer
+					BufferedWriter out = relationFiles.get(relation);
+					if (out == null) {
+						File outFile = new File(parsedFolder, relation + ".csv");
+						outFile.createNewFile();
+						out = new BufferedWriter(new FileWriter(outFile));
+						relationFiles.put(relation, out);
+					}
+					out.write(relation + "\t" + first + "\t" + second + "\n");
+				}
+
+				if (count % 100000 == 0) {
+					System.out.println(count + " processed in " + f);
+				}
+			}
+			in.close();
+		}
+
+		for (BufferedWriter writer : relationFiles.values())
+			writer.close();
+	}
+
+	public static void main(String[] args) {
+		try {
+			preParseConceptNetFiles(new File(args[0]));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Each process handles a separate relation file
+	 *
+	 * @author Sam Sarjant
+	 */
 	private class ProcessRelationFile implements Runnable {
 		private File file_;
 		private int finalPairsCount_ = 0;
 		private int notFoundCount_ = 0;
 		private int resolvedCount_ = 0;
+		private RelationData relData_;
+		private int numLines_;
 
 		public ProcessRelationFile(File file) {
 			file_ = file;
+			try {
+				LineNumberReader lnr = new LineNumberReader(
+						new FileReader(file));
+				lnr.skip(Long.MAX_VALUE);
+				numLines_ = lnr.getLineNumber();
+				// Finally, the LineNumberReader object should be closed to
+				// prevent resource leak
+				lnr.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			relData_ = new RelationData(file.getName().split("\\.")[0]);
 		}
 
 		/**
@@ -407,10 +505,15 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		 *
 		 * @param relation
 		 *            The relation for the pair.
+		 * @param first
+		 *            The first string argument.
+		 * @param second
+		 *            The second string argument.
 		 * @param pair
 		 *            The ordered args of the relation.
 		 */
-		private void processPair(String relation, Pair<DAGNode, DAGNode> pair) {
+		private void processPair(String relation, String first, String second,
+				Pair<DAGNode, DAGNode> pair) {
 			synchronized (this) {
 				if (explored_.containsKey(relation)
 						&& explored_.get(relation).contains(pair))
@@ -431,59 +534,53 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				flag = UNKNOWN;
 
 			// Add count to relation
-			RelationData relData = relationCounts_.get(relation);
-			relData.incrementRelation(flag);
+			relData_.incrementRelation(flag);
 
 			// Calculate common parents
 			Collection<DAGNode> common = calculateCommon(pair.objA_, pair.objB_);
 			for (DAGNode parent : common)
-				relData.addIntraParent(parent, flag);
+				relData_.addIntraParent(parent, flag);
 
 			// Note unknown pairs for later disjoint edge creation
 			if (flag == UNKNOWN)
-				relData.addUnknownData(pair, common);
+				relData_.addUnknownData(pair, first, second, common);
 		}
 
 		protected void processLine(String line) {
-			// Find IsA relations only
-			Matcher m = RELATION_PATTERN.matcher(line);
-			if (m.matches()) {
-				String relation = m.group(1);
-				if (relation.equals("IsA"))
-					return;
+			String[] split = line.split("\t");
+			String relation = split[0];
+			String first = split[1];
+			String second = split[2];
 
-				String first = m.group(2);
-				String second = m.group(3);
+			// Disambiguate nodes
+			Collection<DAGNode> firstNodes = disambiguate(first, true);
+			if (firstNodes.isEmpty()) {
+				notFoundCount_++;
+				return;
+			}
+			Collection<DAGNode> secondNodes = disambiguate(second, true);
+			if (secondNodes.isEmpty()) {
+				notFoundCount_++;
+				return;
+			}
+			resolvedCount_++;
 
-				// Disambiguate nodes
-				Collection<DAGNode> firstNodes = disambiguate(first, true);
-				if (firstNodes.isEmpty()) {
-					notFoundCount_++;
-					return;
-				}
-				Collection<DAGNode> secondNodes = disambiguate(second, true);
-				if (secondNodes.isEmpty()) {
-					notFoundCount_++;
-					return;
-				}
-				resolvedCount_++;
+			// Find left and right disjoint candidates
+			Collection<DAGNode> firstDisjoint = asCollections(firstNodes);
+			Collection<DAGNode> secondDisjoint = asCollections(secondNodes);
 
-				// Find left and right disjoint candidates
-				Collection<DAGNode> firstDisjoint = asCollections(firstNodes);
-				Collection<DAGNode> secondDisjoint = asCollections(secondNodes);
-
-				// For every disjoint pair
-				initRelationData(relation);
-				for (DAGNode firstNode : firstDisjoint) {
-					for (DAGNode secondNode : secondDisjoint) {
-						Pair<DAGNode, DAGNode> pair = (firstNode.hashCode() < secondNode
-								.hashCode()) ? new Pair<DAGNode, DAGNode>(
-								firstNode, secondNode)
-								: new Pair<DAGNode, DAGNode>(secondNode,
-										firstNode);
-						finalPairsCount_++;
-						processPair(relation, pair);
+			// For every disjoint pair
+			for (DAGNode firstNode : firstDisjoint) {
+				for (DAGNode secondNode : secondDisjoint) {
+					Pair<DAGNode, DAGNode> pair = null;
+					if ((firstNode.hashCode() < secondNode.hashCode())) {
+						pair = new Pair<DAGNode, DAGNode>(firstNode, secondNode);
+						processPair(relation, first, second, pair);
+					} else {
+						pair = new Pair<DAGNode, DAGNode>(secondNode, firstNode);
+						processPair(relation, second, first, pair);
 					}
+					finalPairsCount_++;
 				}
 			}
 		}
@@ -495,15 +592,40 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				BufferedReader in = new BufferedReader(new FileReader(file_));
 				String line = null;
 
+				int count = 0;
 				while ((line = in.readLine()) != null) {
 					processLine(line);
+					count++;
+					if (count % 10000 == 0) {
+						float percent = 100f * count / numLines_;
+						System.out.println(count + " processed in " + file_
+								+ " (" + percent + "%)");
+						System.out.println(relData_);
+					}
 				}
 				System.out.println("Completed processing file '" + file_ + "'");
 				in.close();
+				
+				// Infer disjointness
+				createDisjointness(relData_);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	private enum RelationColumn {
+		DISJOINT_EDGE,
+		RELATION,
+		ARG1TEXT,
+		ARG2TEXT,
+		REL_DISJ,
+		REL_CONJ,
+		REL_UNKN,
+		REL_SIG,
+		REL_RELIA,
+		COMMON_PARENTS,
+		PARENT_RELI;
 	}
 
 	private class RelationData {
@@ -512,11 +634,13 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		public Map<DAGNode, int[]> intraNodeCounts_;
 		public String relation_;
 		public MultiMap<Pair<DAGNode, DAGNode>, DAGNode> unknownParents_;
+		public Map<Pair<DAGNode, DAGNode>, String[]> data_;
 
 		public RelationData(String relation) {
 			relation_ = relation;
 			intraNodeCounts_ = new ConcurrentHashMap<>();
 			unknownParents_ = MultiMap.createConcurrentHashSetMultiMap();
+			data_ = new HashMap<>();
 		}
 
 		public void addIntraParent(DAGNode parent, int flag) {
@@ -528,9 +652,16 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			counts[flag]++;
 		}
 
-		public void addUnknownData(Pair<DAGNode, DAGNode> pair,
-				Collection<DAGNode> common) {
+		public void addUnknownData(Pair<DAGNode, DAGNode> pair, String arg1,
+				String arg2, Collection<DAGNode> common) {
 			unknownParents_.putCollection(pair, common);
+			String[] strData = data_.get(pair);
+			if (strData == null) {
+				strData = new String[RelationColumn.values().length];
+				data_.put(pair, strData);
+			}
+			strData[RelationColumn.ARG1TEXT.ordinal()] = arg1;
+			strData[RelationColumn.ARG2TEXT.ordinal()] = arg2;
 		}
 
 		public void incrementRelation(int flag) {

@@ -93,7 +93,7 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 			CommonConcepts relationship, QueryModule querier) {
 		VariableNode x = new VariableNode("?X");
 		QueryObject qo = new QueryObject(relationship.getNode(dag_), node, x);
-		querier.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(), qo);
+		querier.executeQuery(true, qo);
 		Collection<Node> results = QueryModule.parseResultsFromSubstitutions(x,
 				qo.getResults());
 		if (results != null)

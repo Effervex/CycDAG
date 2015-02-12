@@ -202,6 +202,6 @@ public class EvaluatablePredicateWorker extends QueryWorker {
 				.getNode(dag_)))
 			numericalWorker(CommonConcepts.GREATER_THAN_EQUAL, queryObj);
 		else
-			querier_.applyModule(QueryModule.DEFAULT_WORKER, queryObj);
+			return;
 	}
 }

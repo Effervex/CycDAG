@@ -165,7 +165,7 @@ public class DisjointWithWorker extends QueryWorker {
 		QueryObject genlResults1 = new QueryObject(queryObj.shouldJustify(),
 				CommonConcepts.GENLS.getNode(dag_), queryObj.getAtomic(),
 				varNode);
-		querier_.applyModule("genls", genlResults1);
+		querier_.executeQuery(true, genlResults1);
 		QueryObject genlResults2 = null;
 
 		Collection<DAGNode> genlResults = genlResults1.getCompleted();
@@ -177,7 +177,7 @@ public class DisjointWithWorker extends QueryWorker {
 			genlResults2 = new QueryObject(queryObj.shouldJustify(),
 					CommonConcepts.GENLS.getNode(dag_), queryObj.getNode(2),
 					varNode);
-			querier_.applyModule("genls", genlResults2);
+			querier_.executeQuery(true, genlResults2);
 
 			genlResults = new ArrayList<>(genlResults1.getCompleted());
 			genlResults.removeAll(genlResults2.getCompleted());
@@ -248,8 +248,7 @@ public class DisjointWithWorker extends QueryWorker {
 		QueryObject isException = new QueryObject(
 				CommonConcepts.SIBLING_DISJOINT_EXCEPTION.getNode(dag_), node,
 				node2);
-		querier_.applyModule(CommonConcepts.ASSERTED_SENTENCE.getNodeName(),
-				isException);
+		querier_.executeQuery(false, isException);
 		return isException.getResultState() == QueryResult.TRUE;
 	}
 

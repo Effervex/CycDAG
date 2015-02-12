@@ -72,11 +72,11 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	private transient QueryModule querier_;
 
+	private RewriteOfModule rewriteModule_;
+
 	public boolean loadAssertions_ = true;
 
 	public boolean retainingRemovals_ = false;
-
-	private RewriteOfModule rewriteModule_;
 
 	public CycDAG() {
 		this(new File("cyc"), null, null);
@@ -84,17 +84,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	public CycDAG(File rootDir, File nodeFile, File edgeFile) {
 		super(rootDir, nodeFile, edgeFile);
-		querier_ = (QueryModule) getModule(QueryModule.class);
-		rewriteModule_ = (RewriteOfModule) getModule(RewriteOfModule.class);
-	}
-
-	@Override
-	protected void readConfigLine(String variable, String value) {
-		super.readConfigLine(variable, value);
-		if (variable.equalsIgnoreCase("retainingRemovals"))
-			retainingRemovals_ = value.equalsIgnoreCase("TRUE");
-		else if (variable.equalsIgnoreCase("loadAssertions"))
-			loadAssertions_ = value.equalsIgnoreCase("TRUE");
 	}
 
 	private DAGErrorEdge checkArity(DAGNode predNode, QueryObject edgeQuery) {
@@ -116,6 +105,15 @@ public class CycDAG extends DirectedAcyclicGraph {
 			}
 		}
 		return null;
+	}
+	
+	@Override
+	protected synchronized void addModule(DAGModule<?> module) {
+		super.addModule(module);
+		if (module instanceof QueryModule)
+			querier_ = (QueryModule) getModule(QueryModule.class);
+		else if (module instanceof RewriteOfModule)
+			rewriteModule_ = (RewriteOfModule) getModule(RewriteOfModule.class);
 	}
 
 	/**
@@ -323,36 +321,21 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 */
 	private NegatedErrorEdge isNegated(QueryObject edgeQuery, boolean negated) {
 		// Searching directly for negation
-		QueryObject justifQO = new QueryObject(true, edgeQuery.getNodes());
-		if (querier_.prove(false, justifQO) == QueryResult.FALSE) {
-			List<Node[]> justification = justifQO.getJustification();
+		if (querier_.prove(false, edgeQuery) == QueryResult.FALSE) {
+			List<Node[]> justification = edgeQuery.getJustification();
+			if (!edgeQuery.shouldJustify()) {
+				QueryObject justifQO = new QueryObject(true,
+						edgeQuery.getNodes());
+				justification = justifQO.getJustification();
+				edgeQuery.addResult(false, null, justification);
+			}
+
 			Node[] contradictionNodes = (justification.isEmpty()) ? new Node[0]
 					: justification.get(justification.size() - 1);
 			NegatedErrorEdge negatedError = new NegatedErrorEdge(negated,
-					justifQO.getNodes(), contradictionNodes);
-			edgeQuery.addResult(false, null, justification);
+					edgeQuery.getNodes(), contradictionNodes);
 			edgeQuery.setRejectionReason(negatedError);
 			return negatedError;
-		}
-
-		// Check symmetric preds
-		boolean isSymmetric = querier_.prove(false,
-				CommonConcepts.ISA.getNode(this), edgeQuery.getNode(0),
-				CommonConcepts.SYMMETRIC_BINARY.getNode(this)) == QueryResult.TRUE;
-		if (isSymmetric) {
-			QueryObject symmetricQuery = new QueryObject(true,
-					edgeQuery.getNode(0), edgeQuery.getNode(2),
-					edgeQuery.getNode(1));
-			if (querier_.prove(false, symmetricQuery) == QueryResult.FALSE) {
-				List<Node[]> justification = symmetricQuery.getJustification();
-				NegatedErrorEdge negatedError = new NegatedErrorEdge(!negated,
-						symmetricQuery.getNodes(),
-						justification.get(justification.size() - 1));
-				edgeQuery.addResult(false, null,
-						symmetricQuery.getJustification());
-				edgeQuery.setRejectionReason(negatedError);
-				return negatedError;
-			}
 		}
 		return null;
 	}
@@ -430,6 +413,50 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return edge;
 	}
 
+	/**
+	 * Reifies the function such that it has an ID. This method is used whenever
+	 * a new function is directly added as a node, or is used in an edge.
+	 *
+	 * @param ontFunc
+	 *            The function to reify.
+	 * @param ephemeral
+	 *            If the function is ephemeral.
+	 */
+	private boolean reifyFunction(OntologyFunction ontFunc, Node creator,
+			boolean ephemeral) {
+		ontFunc.reify(creator, this);
+		boolean result = nodes_.add(ontFunc);
+		if (result) {
+			if (ephemeral)
+				addProperty(ontFunc, EPHEMERAL_MARK, "T");
+			// Trigger modules
+			for (DAGModule<?> module : getModules()) {
+				if (module.supportsNode(ontFunc))
+					module.addNode(ontFunc);
+			}
+
+			// Reify internal args too
+			for (Node n : ontFunc.getNodes()) {
+				if (n instanceof OntologyFunction)
+					reifyFunction((OntologyFunction) n, creator, ephemeral);
+			}
+		}
+		return result;
+	}
+
+	protected void exportRereadable(File file) throws IOException {
+		BufferedWriter out = new BufferedWriter(new FileWriter(file));
+
+		for (DAGEdge e : edges_) {
+			String mt = e.getProperty(MICROTHEORY);
+			if (mt == null)
+				mt = "";
+			out.write(e.getIdentifier(true) + "\t" + mt + "\n");
+		}
+
+		out.close();
+	}
+
 	@Override
 	protected void exportToCSV(BufferedWriter out, DAGExportFormat format)
 			throws IOException {
@@ -459,26 +486,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 			}
 			out.write("\n");
 		}
-	}
-	
-	@Override
-	public void export(File file, DAGExportFormat format) throws IOException {
-		super.export(file, format);
-		if (format == DAGExportFormat.CUSTOM)
-			exportRereadable(file);
-	}
-
-	protected void exportRereadable(File file) throws IOException {
-		BufferedWriter out = new BufferedWriter(new FileWriter(file));
-		
-		for (DAGEdge e : edges_) {
-			String mt = e.getProperty(MICROTHEORY);
-			if (mt == null)
-				mt = "";
-			out.write(e.getIdentifier(true) + "\t" + mt + "\n");
-		}
-		
-		out.close();
 	}
 
 	@Override
@@ -522,6 +529,15 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	@Override
+	protected void readConfigLine(String variable, String value) {
+		super.readConfigLine(variable, value);
+		if (variable.equalsIgnoreCase("retainingRemovals"))
+			retainingRemovals_ = value.equalsIgnoreCase("TRUE");
+		else if (variable.equalsIgnoreCase("loadAssertions"))
+			loadAssertions_ = value.equalsIgnoreCase("TRUE");
+	}
+
+	@Override
 	public void clear() {
 		super.clear();
 		for (CommonConcepts cc : CommonConcepts.values())
@@ -529,34 +545,16 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	@Override
+	public void export(File file, DAGExportFormat format) throws IOException {
+		super.export(file, format);
+		if (format == DAGExportFormat.CUSTOM)
+			exportRereadable(file);
+	}
+
+	@Override
 	public Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
 			boolean... flags) {
 		return findOrCreateEdge(edgeNodes, creator, null, flags);
-	}
-
-	/**
-	 * Convenience method for identifying the boolean args.
-	 * 
-	 * @param edgeNodes
-	 *            The nodes of the edge.
-	 * @param creator
-	 *            The creator of the edge (can be null).
-	 * @param microtheory
-	 *            The optional microtheory to create the edge under.
-	 * @param createNew
-	 *            If the edge can be created if not found (default false).
-	 * @param ephemeral
-	 *            If the edge should be created as ephemeral (default false).
-	 * @param forceConstraints
-	 *            If unmet constraints should be forcefully created (if
-	 *            possible, default false).
-	 * @return The created edge or an ErrorEdge if there was an error.
-	 */
-	public Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
-			String microtheory, boolean createNew, boolean ephemeral,
-			boolean forceConstraints) {
-		return findOrCreateEdge(edgeNodes, creator, microtheory, new boolean[] {
-				createNew, ephemeral, forceConstraints });
 	}
 
 	/**
@@ -646,50 +644,28 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	/**
-	 * A series of tests to run an edge through to verify if it is valid. Used
-	 * both when creating new edges and when querying the validity of a query
-	 * edge.
-	 *
+	 * Convenience method for identifying the boolean args.
+	 * 
 	 * @param edgeNodes
 	 *            The nodes of the edge.
-	 * @param negated
-	 *            Is the tested edge negated?
-	 * @param forceConstraints
-	 *            If creating, can edges be created to meet constraints?
+	 * @param creator
+	 *            The creator of the edge (can be null).
 	 * @param microtheory
-	 *            The microtheory to create new forced edges under.
+	 *            The optional microtheory to create the edge under.
+	 * @param createNew
+	 *            If the edge can be created if not found (default false).
 	 * @param ephemeral
-	 *            Are edges created ephemerally?
-	 * @return An error edge or null if no problems.
+	 *            If the edge should be created as ephemeral (default false).
+	 * @param forceConstraints
+	 *            If unmet constraints should be forcefully created (if
+	 *            possible, default false).
+	 * @return The created edge or an ErrorEdge if there was an error.
 	 */
-	public ErrorEdge verifyEdgeArguments(QueryObject edgeQuery,
-			boolean negated, boolean forceConstraints, String microtheory,
-			boolean ephemeral) {
-		if (noChecks_ || edgeQuery.getVariable() != null
-				|| EdgeModifier.isRemoved(edgeQuery.getNode(0), this))
-			return null;
-
-		// Check if the edge is semantically valid
-		DAGErrorEdge semError = isSemanticallyValid(edgeQuery, microtheory,
-				forceConstraints, ephemeral, negated);
-		if (semError != null)
-			return semError;
-
-		// Check disjointness
-		DisjointErrorEdge disjointEdge = isDisjoint(edgeQuery, negated);
-		if (disjointEdge != null)
-			return disjointEdge;
-
-		// Check symmetry
-		CyclicErrorEdge cyclicEdge = isCyclic(edgeQuery, negated);
-		if (cyclicEdge != null)
-			return cyclicEdge;
-
-		// Check if the negation exists.
-		NegatedErrorEdge negatedEdge = isNegated(edgeQuery, negated);
-		if (negatedEdge != null)
-			return negatedEdge;
-		return null;
+	public Edge findOrCreateEdge(Node[] edgeNodes, Node creator,
+			String microtheory, boolean createNew, boolean ephemeral,
+			boolean forceConstraints) {
+		return findOrCreateEdge(edgeNodes, creator, microtheory, new boolean[] {
+				createNew, ephemeral, forceConstraints });
 	}
 
 	/**
@@ -728,35 +704,28 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return null;
 	}
 
-	/**
-	 * Reifies the function such that it has an ID. This method is used whenever
-	 * a new function is directly added as a node, or is used in an edge.
-	 *
-	 * @param ontFunc
-	 *            The function to reify.
-	 * @param ephemeral
-	 *            If the function is ephemeral.
-	 */
-	private boolean reifyFunction(OntologyFunction ontFunc, Node creator,
-			boolean ephemeral) {
-		ontFunc.reify(creator, this);
-		boolean result = nodes_.add(ontFunc);
-		if (result) {
-			if (ephemeral)
-				addProperty(ontFunc, EPHEMERAL_MARK, "T");
-			// Trigger modules
-			for (DAGModule<?> module : getModules()) {
-				if (module.supportsNode(ontFunc))
-					module.addNode(ontFunc);
-			}
-
-			// Reify internal args too
-			for (Node n : ontFunc.getNodes()) {
-				if (n instanceof OntologyFunction)
-					reifyFunction((OntologyFunction) n, creator, ephemeral);
-			}
+	@Override
+	public synchronized Node findOrCreateNode(String nodeStr, Node creator,
+			boolean... flags) {
+		BooleanFlags bFlags = nodeFlags_.loadFlags(flags);
+		boolean createNew = bFlags.getFlag("createNew");
+		boolean allowVariables = bFlags.getFlag("allowVariables");
+		Node node = super.findOrCreateNode(nodeStr, creator, flags);
+		if (node != null) {
+			if (rewriteModule_ != null && node instanceof DAGNode)
+				return rewriteModule_.getRewrite((DAGNode) node);
+			return node;
 		}
-		return result;
+
+		if (nodeStr.startsWith("(")) {
+			Node[] subNodes = parseNodes(nodeStr, creator, createNew, true,
+					allowVariables);
+			return findOrCreateFunctionNode(createNew,
+					bFlags.getFlag("ephemeral"), true, creator, subNodes);
+		} else if (allowVariables && nodeStr.startsWith("?")) {
+			return new VariableNode(nodeStr);
+		}
+		return null;
 	}
 
 	/**
@@ -781,30 +750,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 			boolean allowVariables) {
 		return findOrCreateNode(nodeStr, creator, new boolean[] { createNew,
 				ephemeral, dagNodeOnly, allowVariables });
-	}
-
-	@Override
-	public synchronized Node findOrCreateNode(String nodeStr, Node creator,
-			boolean... flags) {
-		BooleanFlags bFlags = nodeFlags_.loadFlags(flags);
-		boolean createNew = bFlags.getFlag("createNew");
-		boolean allowVariables = bFlags.getFlag("allowVariables");
-		Node node = super.findOrCreateNode(nodeStr, creator, flags);
-		if (node != null) {
-			if (rewriteModule_ != null && node instanceof DAGNode)
-				return rewriteModule_.getRewrite((DAGNode) node);
-			return node;
-		}
-
-		if (nodeStr.startsWith("(")) {
-			Node[] subNodes = parseNodes(nodeStr, creator, createNew, true,
-					allowVariables);
-			return findOrCreateFunctionNode(createNew,
-					bFlags.getFlag("ephemeral"), true, creator, subNodes);
-		} else if (allowVariables && nodeStr.startsWith("?")) {
-			return new VariableNode(nodeStr);
-		}
-		return null;
 	}
 
 	public Edge getRandomEdge(boolean allowFunction) {
@@ -862,6 +807,63 @@ public class CycDAG extends DirectedAcyclicGraph {
 			}
 			saveState();
 		}
+	}
+
+	/**
+	 * Checks the arguments of an edge based on the argNIsa/argNGenls defined by
+	 * the edge predicate.
+	 * 
+	 * @param edgeNodes
+	 *            The nodes for the edge.
+	 * @param microtheory
+	 *            The microtheory the edge is being asserted under.
+	 * @param forwardChainCreate
+	 *            If instantiation of collection types should be forced to meet
+	 *            arg constraints (unless disjoint).
+	 * @param ephemeral
+	 *            If any forward chained edges are ephemeral.
+	 * @return True if the edge is semantically well-formed.
+	 */
+	public DAGErrorEdge isSemanticallyValid(QueryObject edgeQuery,
+			String microtheory, boolean forwardChainCreate, boolean ephemeral,
+			boolean negated) {
+		if (noChecks_)
+			return null;
+		Node[] edgeNodes = edgeQuery.getNodes();
+		DAGNode predNode = (DAGNode) edgeNodes[0];
+		// Check arity
+		DAGErrorEdge error = checkArity(predNode, edgeQuery);
+		if (error != null)
+			return error;
+
+		// Forward chain force-create edges
+		Collection<Edge> forwardEdges = (forwardChainCreate && !negated) ? new ArrayList<Edge>()
+				: null;
+
+		// Check each arg
+		for (int i = 1; i < edgeNodes.length; i++) {
+			if (edgeNodes[i] instanceof VariableNode)
+				continue;
+			if (!singleArgCheck(predNode, i, edgeNodes[i], microtheory,
+					forwardEdges, ephemeral, edgeQuery)) {
+				if (forwardChainCreate) {
+					// Unassert the edges
+					for (Edge e : forwardEdges)
+						removeEdge(e);
+				}
+				SemanticArgErrorEdge semanticArgError = new SemanticArgErrorEdge(
+						predNode, i, edgeNodes[i]);
+				edgeQuery.setRejectionReason(semanticArgError);
+				return semanticArgError;
+			}
+		}
+
+		return null;
+	}
+
+	public boolean isValidArgument(DAGNode predNode, int i, Node arg) {
+		return singleArgCheck(predNode, i, arg, null, null, false,
+				new QueryObject());
 	}
 
 	@Override
@@ -977,59 +979,25 @@ public class CycDAG extends DirectedAcyclicGraph {
 		noChecks_ = false;
 	}
 
-	/**
-	 * Checks the arguments of an edge based on the argNIsa/argNGenls defined by
-	 * the edge predicate.
-	 * 
-	 * @param edgeNodes
-	 *            The nodes for the edge.
-	 * @param microtheory
-	 *            The microtheory the edge is being asserted under.
-	 * @param forwardChainCreate
-	 *            If instantiation of collection types should be forced to meet
-	 *            arg constraints (unless disjoint).
-	 * @param ephemeral
-	 *            If any forward chained edges are ephemeral.
-	 * @return True if the edge is semantically well-formed.
-	 */
-	public DAGErrorEdge isSemanticallyValid(QueryObject edgeQuery,
-			String microtheory, boolean forwardChainCreate, boolean ephemeral,
-			boolean negated) {
-		if (noChecks_)
-			return null;
-		Node[] edgeNodes = edgeQuery.getNodes();
-		DAGNode predNode = (DAGNode) edgeNodes[0];
-		// Check arity
-		DAGErrorEdge error = checkArity(predNode, edgeQuery);
-		if (error != null)
-			return error;
-
-		// Forward chain force-create edges
-		Collection<Edge> forwardEdges = (forwardChainCreate && !negated) ? new ArrayList<Edge>()
-				: null;
-
-		// Check each arg
-		for (int i = 1; i < edgeNodes.length; i++) {
-			if (!singleArgCheck(predNode, i, edgeNodes[i], microtheory,
-					forwardEdges, ephemeral, edgeQuery)) {
-				if (forwardChainCreate) {
-					// Unassert the edges
-					for (Edge e : forwardEdges)
-						removeEdge(e);
-				}
-				SemanticArgErrorEdge semanticArgError = new SemanticArgErrorEdge(
-						predNode, i, edgeNodes[i]);
-				edgeQuery.setRejectionReason(semanticArgError);
-				return semanticArgError;
+	@Override
+	public synchronized boolean removeEdge(Edge edge) {
+		boolean result = super.removeEdge(edge);
+		// Cannot remove twice.
+		if (retainingRemovals_ && result && !EdgeModifier.isRemoved(edge, this)) {
+			// Add a new 'removed' edge
+			Edge removedEdge = findOrCreateEdge(new Node[] {
+					CommonConcepts.REMOVED.getNode(this),
+					new OntologyFunction(edge.getNodes()) }, null, null, true);
+			if (removedEdge instanceof ErrorEdge) {
+				// Something went wrong...
+				System.err.println("Could not 'remove' edge: "
+						+ edge.toString(false));
+			} else {
+				// Add all the properties
+				copyProperties((DAGEdge) edge, (DAGEdge) removedEdge);
 			}
 		}
-
-		return null;
-	}
-
-	public boolean isValidArgument(DAGNode predNode, int i, Node arg) {
-		return singleArgCheck(predNode, i, arg, null, null, false,
-				new QueryObject());
+		return result;
 	}
 
 	/**
@@ -1072,25 +1040,55 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return true;
 	}
 
-	@Override
-	public synchronized boolean removeEdge(Edge edge) {
-		boolean result = super.removeEdge(edge);
-		// Cannot remove twice.
-		if (retainingRemovals_ && result && !EdgeModifier.isRemoved(edge, this)) {
-			// Add a new 'removed' edge
-			Edge removedEdge = findOrCreateEdge(new Node[] {
-					CommonConcepts.REMOVED.getNode(this),
-					new OntologyFunction(edge.getNodes()) }, null, null, true);
-			if (removedEdge instanceof ErrorEdge) {
-				// Something went wrong...
-				System.err.println("Could not 'remove' edge: "
-						+ edge.toString(false));
-			} else {
-				// Add all the properties
-				copyProperties((DAGEdge) edge, (DAGEdge) removedEdge);
-			}
-		}
-		return result;
+	/**
+	 * A series of tests to run an edge through to verify if it is valid. Used
+	 * both when creating new edges and when querying the validity of a query
+	 * edge.
+	 *
+	 * @param edgeNodes
+	 *            The nodes of the edge.
+	 * @param negated
+	 *            Is the tested edge negated?
+	 * @param forceConstraints
+	 *            If creating, can edges be created to meet constraints?
+	 * @param microtheory
+	 *            The microtheory to create new forced edges under.
+	 * @param ephemeral
+	 *            Are edges created ephemerally?
+	 * @return An error edge or null if no problems.
+	 */
+	public ErrorEdge verifyEdgeArguments(QueryObject edgeQuery,
+			boolean negated, boolean forceConstraints, String microtheory,
+			boolean ephemeral) {
+		if (noChecks_ || EdgeModifier.isRemoved(edgeQuery.getNode(0), this))
+			return null;
+
+		// Check if the edge is semantically valid
+		DAGErrorEdge semError = isSemanticallyValid(edgeQuery, microtheory,
+				forceConstraints, ephemeral, negated);
+		if (semError != null)
+			return semError;
+		
+		// Skip variables from here out.
+		if (edgeQuery.getVariable() != null)
+			return null;
+
+		// Check disjointness
+		DisjointErrorEdge disjointEdge = isDisjoint(edgeQuery, negated);
+		if (disjointEdge != null)
+			return disjointEdge;
+
+		// Check symmetry
+		CyclicErrorEdge cyclicEdge = isCyclic(edgeQuery, negated);
+		if (cyclicEdge != null)
+			return cyclicEdge;
+
+		// Check if the negation exists.
+		// TODO Ensure queries are only run once.
+		NegatedErrorEdge negatedEdge = isNegated(edgeQuery, negated);
+		if (negatedEdge != null)
+			return negatedEdge;
+		return null;
 	}
 
 	static {

@@ -77,7 +77,7 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				new GenlPredTransitiveWorker(this));
 	}
 
-	public void applyModule(String moduleName, QueryObject queryObj)
+	private void applyModule(String moduleName, QueryObject queryObj)
 			throws IllegalArgumentException {
 		initInferenceModules();
 		inferenceModules_.get(moduleName).queryInternal(queryObj);
@@ -112,7 +112,7 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		if (checkValidity) {
 			ErrorEdge ee = ((CycDAG) dag_).verifyEdgeArguments(queryObj,
 					negated, false, null, false);
-			if (queryObj.getResultState() != QueryResult.NIL) {
+			if (queryObj.isProof() || ee != null) {
 				if (negated)
 					queryObj.flipResultState();
 				if (queryObj.getResultState() == QueryResult.FALSE)
