@@ -64,16 +64,13 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	/** The pairs already processed. */
 	private transient MultiMap<String, Pair<DAGNode, DAGNode>> explored_;
 	/** The unresolved nodes that have isa parents */
-	private MultiMap<String, DAGNode> isaEdges_;
+	private transient MultiMap<String, DAGNode> isaEdges_;
 	/** The children of partially tangible. */
 	private transient Collection<Node> ptChildren_;
 
 	/** The QueryModule access. */
 	private transient QueryModule queryModule_;
 	private boolean assertDisj_ = false;
-
-	/** The strings in ConceptNet5 that resolve to one or more nodes. */
-	// private transient MultiMap<String, DAGNode> resolvedConcepts_;
 
 	/**
 	 * Calculates the common parents of two nodes.
@@ -99,8 +96,8 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	 *            The left side of the disjoint edge.
 	 * @param objB
 	 *            The right side of the disjoint edge.
-	 * @param assertDisj
-	 * @return
+	 * @param assertDisj If the edges should be asserted to the DAG.
+	 * @return The assertion edge.
 	 * @throws IOException
 	 *             Should something go awry...
 	 */
@@ -126,17 +123,11 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	 */
 	@SuppressWarnings("unchecked")
 	private Collection<DAGNode> disambiguate(String conceptName, boolean useIsas) {
-		// if (resolvedConcepts_ == null)
-		// resolvedConcepts_ = MultiMap.createConcurrentHashSetMultiMap();
-		// if (resolvedConcepts_.containsKey(conceptName))
-		// return resolvedConcepts_.get(conceptName);
-
 		// Disambiguate
 		Collection<DAGNode> nodes = aliasModule_.findNodes(conceptName, false,
 				true);
 		if (!nodes.isEmpty()) {
 			// Return all disambiguations
-			// resolvedConcepts_.putCollection(conceptName, nodes);
 			return nodes;
 		} else if (useIsas) {
 			// Return isa edges if applicable.
