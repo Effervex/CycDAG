@@ -1087,7 +1087,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 			return cyclicEdge;
 
 		// Check if the negation exists.
-		// TODO Ensure queries are only run once.
 		NegatedErrorEdge negatedEdge = isNegated(edgeQuery, negated);
 		if (negatedEdge != null)
 			return negatedEdge;

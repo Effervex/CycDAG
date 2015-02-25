@@ -28,7 +28,7 @@ import java.util.Map;
 
 public class AndWorker extends QueryWorker {
 	private static final long serialVersionUID = 3867218930317989260L;
-	private static final int LIMIT = 100000;
+	private static final int LIMIT = 1000000;
 
 	public AndWorker(QueryModule queryModule) {
 		super(queryModule);
@@ -119,7 +119,6 @@ public class AndWorker extends QueryWorker {
 			}
 
 			// Integrate the smallest substitution set of the low
-			// TODO No limit.
 			Collection<Substitution> results = smallestQO.getResults();
 			// If the query is false, stop now
 			if (smallestQO.getResultState() == QueryResult.FALSE) {
