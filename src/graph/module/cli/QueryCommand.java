@@ -10,6 +10,7 @@
  ******************************************************************************/
 package graph.module.cli;
 
+import graph.core.ErrorEdge;
 import graph.core.Node;
 import graph.core.cli.CollectionCommand;
 import graph.core.cli.DAGPortHandler;
@@ -73,7 +74,11 @@ public class QueryCommand extends CollectionCommand {
 			print("0|NIL\n");
 			return;
 		} else if (qo.getResultState() == QueryResult.FALSE) {
-			print("0|F\n");
+			ErrorEdge rejectionReason = qo.getRejectionReason();
+			if (rejectionReason != null)
+				print("0|F|" + rejectionReason.toString(false) + "\n");
+			else
+				print("0|F\n");
 			return;
 		} else {
 			if (qo.isProof()) {

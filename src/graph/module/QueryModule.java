@@ -26,7 +26,6 @@ import graph.inference.QueryObject;
 import graph.inference.QueryResult;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
-import graph.inference.VariableNode;
 import graph.inference.module.AndWorker;
 import graph.inference.module.AssertedSentenceWorker;
 import graph.inference.module.DisjointWithWorker;
@@ -50,7 +49,6 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	public static final String EVALUATABLE_WORKER = "_EVALUATABLE_";
 
 	private transient Map<String, QueryWorker> inferenceModules_;
-	private transient Map<QueryObject, String> queryRedirects_;
 
 	// private BackwardChainer backwardChainer_;
 
@@ -96,10 +94,12 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		return executeQuery(true, new QueryObject(asNodes));
 	}
 
+	public Collection<Substitution> executeQuery(QueryObject queryObj) {
+		return executeQuery(false, queryObj);
+	}
+
 	public Collection<Substitution> executeQuery(boolean checkValidity,
 			QueryObject queryObj) {
-		initQueryRedirects();
-
 		// Remove negation when evaluating and flip result if negated
 		boolean negated = queryObj.getNode(0).equals(
 				CommonConcepts.NOT.getNode(dag_));
@@ -119,6 +119,7 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 					queryObj.setRejectionReason(ee);
 				if (origQO.shouldJustify())
 					origQO.setJustification(queryObj.getJustification());
+				queryObj.setRun(true);
 				return queryObj.getResults();
 			}
 		}
@@ -126,23 +127,10 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		String module = DEFAULT_WORKER;
 		if (inferenceModules_.containsKey(queryObj.getNode(0).toString()))
 			module = queryObj.getNode(0).getName();
-		else {
-			// Try the queries's
-			for (QueryObject qo : queryRedirects_.keySet()) {
-				Substitution sub = new Substitution(VariableNode.DEFAULT,
-						queryObj.getNode(0));
-				QueryObject newQO = new QueryObject(false,
-						sub.applySubstitution(qo.getNodes()));
-				if (prove(false, newQO) == QueryResult.TRUE) {
-					module = queryRedirects_.get(qo);
-					break;
-				}
-			}
-		}
 
 		// Dealing with multiple variables
 		Collection<Substitution> priorSubs = queryObj.getPriorSubstitutions();
-		if (queryObj.getNumVariables() > 1 && priorSubs != null
+		if (queryObj.getNumVariables() >= 1 && priorSubs != null
 				&& !priorSubs.isEmpty()) {
 			// Iterate through prior variable matches (in toComplete) to
 			// minimise query to 1 or fewer variables.
@@ -167,6 +155,7 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				queryObj.flipResultState();
 			if (origQO.shouldJustify())
 				origQO.setJustification(queryObj.getJustification());
+			queryObj.setRun(true);
 			return queryObj.getResults();
 		} else {
 			applyModule(module, queryObj);
@@ -174,25 +163,9 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				queryObj.flipResultState();
 			if (origQO.shouldJustify())
 				origQO.setJustification(queryObj.getJustification());
+			queryObj.setRun(true);
 			return queryObj.getResults();
 		}
-	}
-
-	/**
-	 * A workaround method for constructors creating a cycle with CommonConcepts
-	 */
-	private void initQueryRedirects() {
-		if (queryRedirects_ == null) {
-			queryRedirects_ = new HashMap<>();
-		}
-	}
-
-	public List<Node[]> justify(Node... nodes) {
-		QueryObject qo = new QueryObject(true, nodes);
-		executeQuery(true, qo);
-		if (qo.getResultState() != QueryResult.NIL)
-			return qo.getJustification();
-		return new ArrayList<>();
 	}
 
 	public QueryResult prove(boolean checkValidity, Node... nodes) {
@@ -214,8 +187,8 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	 *            The variable substitutions to extract.
 	 * @return The parsed results.
 	 */
-	public Collection<Node> executeAndParseVar(QueryObject qo, String var) {
-		Collection<Substitution> subs = executeQuery(true, qo);
+	protected Collection<Node> executeAndParseVar(QueryObject qo, String var) {
+		Collection<Substitution> subs = executeQuery(false, qo);
 		if (qo.getResultState() == QueryResult.TRUE)
 			return parseResultsFromSubstitutions(var, subs);
 		else

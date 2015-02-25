@@ -8,6 +8,7 @@ import graph.core.cli.DAGPortHandler;
 import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
 import graph.inference.QueryResult;
+import graph.inference.Substitution;
 import graph.inference.VariableNode;
 import graph.module.FunctionIndex;
 import graph.module.QueryModule;
@@ -121,35 +122,35 @@ public class AnalyticsCommand extends Command {
 
 			switch (type) {
 			case COLLECTIONS:
-				Collection<Node> collections = querier_.executeAndParseVar(
+				Collection<Substitution> collections = querier_.executeQuery(
+						false,
 						new QueryObject(CommonConcepts.ISA.getNode(dag),
 								VariableNode.DEFAULT, CommonConcepts.COLLECTION
-										.getNode(dag)), VariableNode.DEFAULT
-								.getName());
+										.getNode(dag)));
 				processNodes(collections, COLLECTION_FIELDS, type, dag, out);
 				break;
 			case PREDICATES:
-				Collection<Node> predicates = querier_.executeAndParseVar(
+				Collection<Substitution> predicates = querier_.executeQuery(
+						false,
 						new QueryObject(CommonConcepts.ISA.getNode(dag),
 								VariableNode.DEFAULT, CommonConcepts.PREDICATE
-										.getNode(dag)), VariableNode.DEFAULT
-								.getName());
+										.getNode(dag)));
 				processNodes(predicates, RELATION_FIELDS, type, dag, out);
 				break;
 			case FUNCTIONS:
-				Collection<Node> functions = querier_.executeAndParseVar(
+				Collection<Substitution> functions = querier_.executeQuery(
+						false,
 						new QueryObject(CommonConcepts.ISA.getNode(dag),
 								VariableNode.DEFAULT, CommonConcepts.FUNCTION
-										.getNode(dag)), VariableNode.DEFAULT
-								.getName());
+										.getNode(dag)));
 				processNodes(functions, FUNCTION_FIELDS, type, dag, out);
 				break;
 			case INDIVIDUALS:
-				Collection<Node> individuals = querier_.executeAndParseVar(
+				Collection<Substitution> individuals = querier_.executeQuery(
+						false,
 						new QueryObject(CommonConcepts.ISA.getNode(dag),
 								VariableNode.DEFAULT, CommonConcepts.INDIVIDUAL
-										.getNode(dag)), VariableNode.DEFAULT
-								.getName());
+										.getNode(dag)));
 				processNodes(individuals, INDIVIDUAL_FIELDS, type, dag, out);
 				break;
 			}
@@ -160,8 +161,8 @@ public class AnalyticsCommand extends Command {
 		}
 	}
 
-	private void processNodes(Collection<Node> nodeCollection, String[] fields,
-			AnalyticTypes type, CycDAG dag, BufferedWriter out)
+	private void processNodes(Collection<Substitution> nodeCollection,
+			String[] fields, AnalyticTypes type, CycDAG dag, BufferedWriter out)
 			throws IOException {
 		// Write header
 		Map<String, Integer> indexMap = new HashMap<>();
@@ -171,7 +172,8 @@ public class AnalyticsCommand extends Command {
 		int total = nodeCollection.size();
 		double frac = 0.1;
 		int count = 0;
-		for (Node node : nodeCollection) {
+		for (Substitution sub : nodeCollection) {
+			Node node = sub.getSubstitution(VariableNode.DEFAULT);
 			String[] values = new String[fields.length];
 
 			if (type == AnalyticTypes.COLLECTIONS)
@@ -206,31 +208,31 @@ public class AnalyticsCommand extends Command {
 				+ "";
 
 		// Arity
-		Collection<Node> arity = querier_.executeAndParseVar(new QueryObject(
-				CommonConcepts.ARITY.getNode(dag), function,
-				VariableNode.DEFAULT), VariableNode.DEFAULT.getName());
+		Collection<Substitution> arity = querier_.executeQuery(false,
+				new QueryObject(CommonConcepts.ARITY.getNode(dag), function,
+						VariableNode.DEFAULT));
 		values[indexMap.get(ARITY)] = (arity.isEmpty()) ? "" : arity.iterator()
 				.next() + "";
 
 		// Reifiable?
-		values[indexMap.get(REIFIABLE)] = (querier_.prove(
-				false, CommonConcepts.ISA.getNode(dag),
-				function, CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag)) == QueryResult.TRUE) ? "F"
+		values[indexMap.get(REIFIABLE)] = (querier_.prove(false,
+				CommonConcepts.ISA.getNode(dag), function,
+				CommonConcepts.UNREIFIABLE_FUNCTION.getNode(dag)) == QueryResult.TRUE) ? "F"
 				: "T";
 
 		// Result constraints?
-		boolean resultConstraint = querier_.prove(
-				false, CommonConcepts.RESULT_ISA.getNode(dag),
-				function, VariableNode.DEFAULT) == QueryResult.TRUE;
-		resultConstraint |= querier_.prove(
-				false, CommonConcepts.RESULT_GENL.getNode(dag),
-				function, VariableNode.DEFAULT) == QueryResult.TRUE;
-		resultConstraint |= querier_.prove(
-				false, CommonConcepts.RESULT_ISA_ARG.getNode(dag),
-				function, VariableNode.DEFAULT) == QueryResult.TRUE;
-		resultConstraint |= querier_.prove(
-				false, CommonConcepts.RESULT_GENL_ARG.getNode(dag),
-				function, VariableNode.DEFAULT) == QueryResult.TRUE;
+		boolean resultConstraint = querier_.prove(false,
+				CommonConcepts.RESULT_ISA.getNode(dag), function,
+				VariableNode.DEFAULT) == QueryResult.TRUE;
+		resultConstraint |= querier_.prove(false,
+				CommonConcepts.RESULT_GENL.getNode(dag), function,
+				VariableNode.DEFAULT) == QueryResult.TRUE;
+		resultConstraint |= querier_.prove(false,
+				CommonConcepts.RESULT_ISA_ARG.getNode(dag), function,
+				VariableNode.DEFAULT) == QueryResult.TRUE;
+		resultConstraint |= querier_.prove(false,
+				CommonConcepts.RESULT_GENL_ARG.getNode(dag), function,
+				VariableNode.DEFAULT) == QueryResult.TRUE;
 		values[indexMap.get(RESULT_CONSTRAINTS)] = (resultConstraint) ? "T"
 				: "F";
 
@@ -272,9 +274,9 @@ public class AnalyticsCommand extends Command {
 		values[indexMap.get(SUBTYPES)] = subTypes.size() + "";
 
 		// Arity
-		Collection<Node> arity = querier_.executeAndParseVar(new QueryObject(
-				CommonConcepts.ARITY.getNode(dag), predicate,
-				VariableNode.DEFAULT), VariableNode.DEFAULT.getName());
+		Collection<Substitution> arity = querier_.executeQuery(false,
+				new QueryObject(CommonConcepts.ARITY.getNode(dag), predicate,
+						VariableNode.DEFAULT));
 		values[indexMap.get(ARITY)] = (arity.isEmpty()) ? "" : arity.iterator()
 				.next() + "";
 

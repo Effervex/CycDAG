@@ -91,11 +91,10 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	@SuppressWarnings("unchecked")
 	private Collection<Node> checkParentRelationship(DAGNode node,
 			CommonConcepts relationship, QueryModule querier) {
-		VariableNode x = new VariableNode("?X");
-		QueryObject qo = new QueryObject(relationship.getNode(dag_), node, x);
-		querier.executeQuery(true, qo);
-		Collection<Node> results = QueryModule.parseResultsFromSubstitutions(x,
-				qo.getResults());
+		QueryObject qo = new QueryObject(relationship.getNode(dag_), node,
+				VariableNode.DEFAULT);
+		Collection<Node> results = querier.executeAndParseVar(qo,
+				VariableNode.DEFAULT.toString());
 		if (results != null)
 			return results;
 		return CollectionUtils.EMPTY_COLLECTION;

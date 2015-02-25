@@ -106,7 +106,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		}
 		return null;
 	}
-	
+
 	@Override
 	protected synchronized void addModule(DAGModule<?> module) {
 		super.addModule(module);
@@ -243,6 +243,11 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 		// Self-referential
 		if (edgeNodes[1].equals(edgeNodes[2]))
+			return null;
+
+		// Must be monotonic & non-symmetric
+		if (querier_.prove(false, CommonConcepts.ISA.getNode(this),
+				edgeNodes[0], CommonConcepts.MONOTONIC_PREDICATE.getNode(this)) != QueryResult.TRUE)
 			return null;
 
 		// If the edge is not symmetric, but is defined symmetrically
@@ -591,8 +596,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 					.getNode(this));
 			QueryObject qo = null;
 			if (negated) {
-				System.out
-						.println("Leave this in until fully tested - NEGATED EDGES");
 				qo = new QueryObject(
 						((OntologyFunction) edgeNodes[1]).getNodes());
 				negated = true;
@@ -1068,7 +1071,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 				forceConstraints, ephemeral, negated);
 		if (semError != null)
 			return semError;
-		
+
 		// Skip variables from here out.
 		if (edgeQuery.getVariable() != null)
 			return null;

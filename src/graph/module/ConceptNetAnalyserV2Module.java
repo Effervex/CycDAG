@@ -44,8 +44,8 @@ import util.collection.MultiMap;
  * @author Sam Sarjant
  */
 public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
-	private static final float RELATION_RELIABLITY_THRESHOLD = .95f;
-	private static final float INTRA_RELATION_RELIABILITY_THRESHOLD = 0.9f;
+	private static final float RELATION_RELIABLITY_THRESHOLD = .85f;
+	private static final float INTRA_RELATION_RELIABILITY_THRESHOLD = 0.85f;
 	private static final Node CREATOR = new StringNode("DisjointDiscovery");
 	private static final File DISJOINT_OUT = new File("createdDisjoints.txt");
 	private static final Pattern RELATION_PATTERN = Pattern
@@ -96,7 +96,8 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	 *            The left side of the disjoint edge.
 	 * @param objB
 	 *            The right side of the disjoint edge.
-	 * @param assertDisj If the edges should be asserted to the DAG.
+	 * @param assertDisj
+	 *            If the edges should be asserted to the DAG.
 	 * @return The assertion edge.
 	 * @throws IOException
 	 *             Should something go awry...
@@ -126,6 +127,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		// Disambiguate
 		Collection<DAGNode> nodes = aliasModule_.findNodes(conceptName, false,
 				true);
+
 		if (!nodes.isEmpty()) {
 			// Return all disambiguations
 			return nodes;
@@ -267,15 +269,6 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		}
 		System.out.println("Disjointness Discovery: " + numCreated
 				+ " disjoint edges created!");
-	}
-
-	@Override
-	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges, boolean forceRebuild) {
-		super.initialisationComplete(nodes, edges, forceRebuild);
-		execute("C:/Users/Sam Sarjant/Documents/workspace/ConceptNet/data/assertions",
-				false);
-		return true;
 	}
 
 	@Override
@@ -611,7 +604,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		}
 	}
 
-	private enum RelationColumn {
+	public enum RelationColumn {
 		DISJOINT_EDGE,
 		RELATION,
 		ARG1TEXT,

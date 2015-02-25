@@ -34,7 +34,7 @@ public class CyclicErrorEdge extends DAGErrorEdge {
 								cyclicAssertion_), false, false, false, false)
 						+ "' would create a cycle.";
 		}
-		return "Asserting (" + StringUtils.join(cyclicAssertion_, " ")
+		return "(" + StringUtils.join(cyclicAssertion_, " ")
 				+ ") would create a cycle.";
 	}
 

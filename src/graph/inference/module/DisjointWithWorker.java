@@ -25,7 +25,6 @@ import graph.inference.Substitution;
 import graph.inference.VariableNode;
 import graph.module.DisjointModule;
 import graph.module.QueryModule;
-import graph.module.SiblingDisjointModule;
 import graph.module.TransitiveIntervalSchemaModule;
 
 import java.util.ArrayList;
@@ -39,7 +38,6 @@ import org.apache.commons.collections4.CollectionUtils;
 public class DisjointWithWorker extends QueryWorker {
 	private static final long serialVersionUID = -2014914913163958118L;
 	private transient DisjointModule disjointModule_;
-	private transient SiblingDisjointModule sibModule_;
 
 	public DisjointWithWorker(QueryModule queryModule) {
 		super(queryModule);
@@ -88,30 +86,17 @@ public class DisjointWithWorker extends QueryWorker {
 		if (atomic == null)
 			return;
 
-		// Use sibling module if available
-		if (sibModule_ != null && sibModule_.isReady()) {
-			siblingDisjointViaModule(atomic, queryObj);
-			return;
-		}
-
 		VariableNode queryVar = new VariableNode("?_DISJ_");
 		VariableNode transOne = new VariableNode("?_TRANSONE_");
 		VariableNode transTwo = new VariableNode("?_TRANSTWO_");
 		Node node1 = queryObj.getNode(1);
 		Node node2 = queryObj.getNode(2);
 		QueryObject qo = new QueryObject(queryObj.shouldJustify(),
-				CommonConcepts.AND.getNode(dag_), new OntologyFunction(
-						CommonConcepts.GENLS.getNode(dag_), node1, transOne), // Transitive
-																				// first
-																				// arg
+				CommonConcepts.AND.getNode(dag_), 
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
-						transOne, queryVar), // First
-				new OntologyFunction(CommonConcepts.GENLS.getNode(dag_), node2,
-						transTwo), // Transitive second arg
+						node1, queryVar), // First
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
-						transTwo, queryVar), // Second
-				new OntologyFunction(CommonConcepts.DIFFERENT.getNode(dag_),
-						transOne, transTwo), // Different
+						node2, queryVar), // Second
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
 						queryVar,
 						CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
@@ -165,7 +150,7 @@ public class DisjointWithWorker extends QueryWorker {
 		QueryObject genlResults1 = new QueryObject(queryObj.shouldJustify(),
 				CommonConcepts.GENLS.getNode(dag_), queryObj.getAtomic(),
 				varNode);
-		querier_.executeQuery(true, genlResults1);
+		querier_.executeQuery(false, genlResults1);
 		QueryObject genlResults2 = null;
 
 		Collection<DAGNode> genlResults = genlResults1.getCompleted();
@@ -177,7 +162,7 @@ public class DisjointWithWorker extends QueryWorker {
 			genlResults2 = new QueryObject(queryObj.shouldJustify(),
 					CommonConcepts.GENLS.getNode(dag_), queryObj.getNode(2),
 					varNode);
-			querier_.executeQuery(true, genlResults2);
+			querier_.executeQuery(false, genlResults2);
 
 			genlResults = new ArrayList<>(genlResults1.getCompleted());
 			genlResults.removeAll(genlResults2.getCompleted());
@@ -294,19 +279,10 @@ public class DisjointWithWorker extends QueryWorker {
 
 		// Add transitive query 1, unless it is the same
 		Node arg1 = queryObj.getNode(1);
-		if (!arg1.equals(transOne)) {
-			proof = new QueryObject(queryObj.shouldJustify(),
-					CommonConcepts.GENLS.getNode(dag_), arg1, transOne);
-			querier_.prove(false, proof);
-			if (queryObj.shouldJustify()) {
-				justification.addAll(proof.getJustification());
-				justification.add(new Node[0]);
-			}
-		}
 
 		// Add isa sibling query for arg 1
 		proof = new QueryObject(queryObj.shouldJustify(),
-				CommonConcepts.ISA.getNode(dag_), transOne, queryVar);
+				CommonConcepts.ISA.getNode(dag_), arg1, queryVar);
 		querier_.prove(false, proof);
 		if (queryObj.shouldJustify()) {
 			justification.addAll(proof.getJustification());
@@ -315,19 +291,10 @@ public class DisjointWithWorker extends QueryWorker {
 
 		// Add transitive query 2, unless it is the same
 		Node arg2 = queryObj.getNode(2);
-		if (!arg2.equals(transTwo)) {
-			proof = new QueryObject(queryObj.shouldJustify(),
-					CommonConcepts.GENLS.getNode(dag_), arg2, transTwo);
-			querier_.prove(false, proof);
-			if (queryObj.shouldJustify()) {
-				justification.addAll(proof.getJustification());
-				justification.add(new Node[0]);
-			}
-		}
 
 		// Add isa sibling query for arg 2
 		proof = new QueryObject(queryObj.shouldJustify(),
-				CommonConcepts.ISA.getNode(dag_), transTwo, queryVar);
+				CommonConcepts.ISA.getNode(dag_), arg2, queryVar);
 		querier_.prove(false, proof);
 		if (queryObj.shouldJustify()) {
 			justification.addAll(proof.getJustification());
@@ -343,52 +310,6 @@ public class DisjointWithWorker extends QueryWorker {
 			justification.addAll(proof.getJustification());
 		}
 		return justification;
-	}
-
-	private void siblingDisjointViaModule(DAGNode atomic, QueryObject queryObj) {
-		if (queryObj.isProof()) {
-			DAGNode otherNode = (DAGNode) queryObj.getNode(2);
-
-			// Find the unique parents for each set
-			Collection<Node> atomicParents = CommonQuery.ALLGENLS.runQuery(
-					dag_, atomic);
-			Collection<Node> otherParents = CommonQuery.ALLGENLS.runQuery(dag_,
-					otherNode);
-			Collection<Node> commonParents = CollectionUtils.retainAll(
-					atomicParents, otherParents);
-			atomicParents.removeAll(commonParents);
-			otherParents.removeAll(commonParents);
-
-			// Find the sibling disjoint collections for atomics
-			Collection<DAGNode> atomicSibCols = new HashSet<>();
-			for (Node atomicParent : atomicParents)
-				if (atomicParent instanceof DAGNode)
-					atomicSibCols.addAll(sibModule_
-							.getSiblingDisjointParents((DAGNode) atomicParent));
-
-			// Search for match in others
-			for (Node otherParent : otherParents) {
-				if (otherParent instanceof DAGNode)
-					if (CollectionUtils.containsAny(atomicSibCols, sibModule_
-							.getSiblingDisjointParents((DAGNode) otherParent))) {
-						// A match!
-						if (!isException(atomic, otherNode)) {
-							queryObj.addResult(true, new Substitution());
-							// TODO This should probably be added back in. Can't
-							// recall what the issue was - probably introduced a
-							// bug
-							// processSiblingJustification(,
-							// sub.getSubstitution(transTwo),
-							// sub.getSubstitution(queryVar), queryObj);
-						} else {
-							queryObj.addResult(false, new Substitution());
-						}
-						return;
-					}
-			}
-		} else {
-			// TODO This should be filled in.
-		}
 	}
 
 	@Override
@@ -441,8 +362,6 @@ public class DisjointWithWorker extends QueryWorker {
 	@Override
 	public void setDAG(DirectedAcyclicGraph dag) {
 		super.setDAG(dag);
-		sibModule_ = (SiblingDisjointModule) dag_
-				.getModule(SiblingDisjointModule.class);
 		disjointModule_ = (DisjointModule) dag_.getModule(DisjointModule.class);
 		if (disjointModule_ == null)
 			System.out.println("Warning: Disjointness calculations "

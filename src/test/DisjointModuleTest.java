@@ -54,6 +54,7 @@ public class DisjointModuleTest {
 		dag_.findOrCreateEdge(new Node[] { isa, cat, collection }, null, true,
 				false);
 
+		// Basic disjointness
 		assertEquals(querier_.prove(false, disjoint, dog, cat), QueryResult.NIL);
 		Edge disjDogCat = dag_.findOrCreateEdge(
 				new Node[] { disjoint, dog, cat }, null, true, false);
@@ -68,6 +69,7 @@ public class DisjointModuleTest {
 		dag_.findOrCreateEdge(new Node[] { isa, boxer, collection }, null,
 				true, false);
 
+		// Transitive disjointness
 		dag_.findOrCreateEdge(new Node[] { genls, boxer, dog }, null, true,
 				false);
 		qo = new QueryObject(true, disjoint, boxer, dog);
@@ -80,6 +82,7 @@ public class DisjointModuleTest {
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 2);
 
+		// Double transitive
 		DAGNode housecat = (DAGNode) dag_.findOrCreateNode("HouseCat", null,
 				true, false, true);
 		dag_.findOrCreateEdge(new Node[] { isa, housecat, collection }, null,
@@ -91,9 +94,12 @@ public class DisjointModuleTest {
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 3);
 
+		// Removable
 		assertTrue(dag_.removeEdge(disjDogCat));
 		assertEquals(querier_.prove(false, disjoint, dog, cat), QueryResult.NIL);
 		assertEquals(querier_.prove(false, disjoint, boxer, cat), QueryResult.NIL);
 		assertEquals(querier_.prove(false, disjoint, boxer, housecat), QueryResult.NIL);
+		
+		// Negated disjointness
 	}
 }

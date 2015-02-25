@@ -101,12 +101,13 @@ public class IsaWorker extends QueryWorker {
 					continue;
 				if (queryObj.shouldJustify())
 					queryObj.getJustification().clear();
-				if (queryObj.addResult(!EdgeModifier.isNegated(e, dag_),
-						e.getNodes()))
+				boolean isTrueResult = !EdgeModifier.isNegated(e, dag_);
+				if (queryObj.addResult(isTrueResult, e.getNodes()))
 					return;
 
 				// Find upwards transitive if atomic is first arg.
-				if (atomicIndex == 1 && edgeNodes[varIndex] instanceof DAGNode) {
+				if (atomicIndex == 1 && edgeNodes[varIndex] instanceof DAGNode
+						&& isTrueResult) {
 					transitiveQO = composeTransitive(
 							CommonConcepts.GENLS.getNode(dag_), atomicIndex,
 							(DAGNode) edgeNodes[varIndex],

@@ -66,6 +66,7 @@ public class QueryObject {
 			QueryResult.NIL);
 	/** The reason for a query's rejection (if rejected). */
 	private ErrorEdge rejectionReason_;
+	private boolean hasRun_ = false;
 
 	/**
 	 * Constructor for a new QueryObject. This QO is initialised with no
@@ -347,6 +348,10 @@ public class QueryObject {
 		return variableIndex_;
 	}
 
+	public Collection<VariableNode> getVariables() {
+		return variables_;
+	}
+
 	public boolean isCompleted(Node n) {
 		return completedSet_.contains(n);
 	}
@@ -386,8 +391,15 @@ public class QueryObject {
 	}
 
 	public void setToComplete(Collection<Substitution> intersect) {
-		if (intersect != null)
+		if (intersect != null) {
 			toComplete_ = new HashSet<>(intersect);
+//			results_.clear();
+//			completed_.clear();
+//			completedSet_.clear();
+//			resultsSet_.clear();
+//			resultState_.object_ = QueryResult.NIL;
+//			justification_.clear();
+		}
 	}
 
 	@Override
@@ -431,5 +443,13 @@ public class QueryObject {
 
 	public void setJustification(List<Node[]> justification) {
 		justification_ = justification;
+	}
+
+	public boolean isRun() {
+		return hasRun_;
+	}
+
+	public void setRun(boolean b) {
+		hasRun_ = b;
 	}
 }

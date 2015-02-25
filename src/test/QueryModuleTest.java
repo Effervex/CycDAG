@@ -61,6 +61,14 @@ public class QueryModuleTest {
 				CommonConcepts.DIFFERENT.getNode(dag_),
 				CommonConcepts.EVALUATABLE_PREDICATE.getNode(dag_) }, null,
 				true);
+		dag_.findOrCreateEdge(new Node[] { CommonConcepts.ISA.getNode(dag_),
+				CommonConcepts.GENLS.getNode(dag_),
+				CommonConcepts.MONOTONIC_PREDICATE.getNode(dag_) }, null,
+				true);
+		dag_.findOrCreateEdge(new Node[] { CommonConcepts.ISA.getNode(dag_),
+				CommonConcepts.ISA.getNode(dag_),
+				CommonConcepts.MONOTONIC_PREDICATE.getNode(dag_) }, null,
+				true);
 	}
 
 	@After
@@ -213,6 +221,9 @@ public class QueryModuleTest {
 		results = sut_.executeQuery(true, qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertEquals(results.size(), 1);
+		
+		// Chucking a 'different' in the and
+		
 	}
 
 	@Test
@@ -530,7 +541,7 @@ public class QueryModuleTest {
 
 		// SiblingDisjointCollectionType
 		Edge edge = dag_.findOrCreateEdge(new Node[] { disjoint, cat, dog },
-				creator, false);
+				creator, true);
 		dag_.removeEdge(edge);
 		qo = new QueryObject(true, disjoint, cat, dog);
 		assertNull(sut_.executeQuery(true, qo));
@@ -590,10 +601,10 @@ public class QueryModuleTest {
 		DAGNode sibDisjExcep = CommonConcepts.SIBLING_DISJOINT_EXCEPTION
 				.getNode(dag_);
 		DAGNode symmetric = CommonConcepts.SYMMETRIC_BINARY.getNode(dag_);
-		assertFalse(dag_.findOrCreateEdge(new Node[] { sibDisjExcep, cat, dog }, creator,
-				true) instanceof ErrorEdge);
-		assertFalse(dag_.findOrCreateEdge(new Node[] { isa, sibDisjExcep, symmetric },
-				creator, true) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(
+				new Node[] { sibDisjExcep, cat, dog }, creator, true) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { isa, sibDisjExcep,
+				symmetric }, creator, true) instanceof ErrorEdge);
 		qo = new QueryObject(true, disjoint, cat, dog);
 		assertNull(sut_.executeQuery(true, qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
@@ -633,31 +644,16 @@ public class QueryModuleTest {
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(new Substitution(x, nonliving)));
 
-		// Curious case of transitivity
+		// Transitivity (not true)
 		edge = dag_.findOrCreateEdge(new Node[] { disjoint, cat, boxer },
-				creator, false);
+				creator, true);
 		dag_.removeEdge(edge);
 		assertEquals(sut_.prove(false, genls, boxer, dog), QueryResult.TRUE);
 		assertEquals(sut_.prove(false, isa, dog, species), QueryResult.TRUE);
 		assertEquals(sut_.prove(false, isa, cat, species), QueryResult.TRUE);
 		qo = new QueryObject(true, disjoint, boxer, cat);
-		assertNotNull(sut_.executeQuery(true, qo));
-		assertEquals(qo.getResultState(), QueryResult.TRUE);
-		justification = qo.getJustification();
-		assertEquals(justification.size(), 8);
-		assertArrayEquals(justification.get(0),
-				new Node[] { genls, boxer, dog });
-		assertArrayEquals(justification.get(1), new Node[0]);
-		assertArrayEquals(justification.get(2),
-				new Node[] { isa, dog, species });
-		assertArrayEquals(justification.get(3), new Node[0]);
-		assertArrayEquals(justification.get(4),
-				new Node[] { isa, cat, species });
-		assertArrayEquals(justification.get(5), new Node[0]);
-		assertArrayEquals(justification.get(6), new Node[] { isa, species,
-				disjointCollectionType });
-		assertArrayEquals(justification.get(7), new Node[] { genls,
-				disjointCollectionType, siblingDisjointCollectionType });
+		assertNull(sut_.executeQuery(true, qo));
+		assertEquals(qo.getResultState(), QueryResult.NIL);
 
 		qo = new QueryObject(true, disjoint, boxer, dog);
 		assertNull(sut_.executeQuery(true, qo));
@@ -666,6 +662,40 @@ public class QueryModuleTest {
 		assertEquals(justification.size(), 1);
 		assertArrayEquals(justification.get(0),
 				new Node[] { genls, boxer, dog });
+
+		// Negated disjoint information
+		DAGNode not = CommonConcepts.NOT.getNode(dag_);
+		DAGNode colour = (DAGNode) dag_.findOrCreateNode("Colour", creator,
+				true);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { isa, colour,
+				CommonConcepts.COLLECTION.getNode(dag_) }, creator, true) instanceof ErrorEdge);
+		DAGNode red = (DAGNode) dag_.findOrCreateNode("RedColour", creator,
+				true);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { isa, red,
+				CommonConcepts.COLLECTION.getNode(dag_) }, creator, true) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { genls, red, colour },
+				creator, true) instanceof ErrorEdge);
+		assertFalse(dag_.findOrCreateEdge(new Node[] { not,
+				new OntologyFunction(disjoint, mammal, colour) }, creator,
+				true) instanceof ErrorEdge);
+		qo = new QueryObject(true, disjoint, mammal, colour);
+		assertNull(sut_.executeQuery(true, qo));
+		assertEquals(qo.getResultState(), QueryResult.FALSE);
+		justification = qo.getJustification();
+		assertEquals(justification.size(), 1);
+		assertArrayEquals(justification.get(0), new Node[] { not,
+				new OntologyFunction(disjoint, mammal, colour) });
+
+		qo = new QueryObject(true, disjoint, boxer, red);
+		assertNull(sut_.executeQuery(true, qo));
+		assertEquals(qo.getResultState(), QueryResult.FALSE);
+		justification = qo.getJustification();
+		assertEquals(justification.size(), 4);
+		assertArrayEquals(justification.get(0), new Node[] { genls, boxer, dog });
+		assertArrayEquals(justification.get(1), new Node[] { genls, dog, mammal });
+		assertArrayEquals(justification.get(2), new Node[] { not,
+				new OntologyFunction(disjoint, mammal, colour) });
+		assertArrayEquals(justification.get(3), new Node[] { genls, red, colour });
 	}
 
 	@Test
@@ -854,6 +884,7 @@ public class QueryModuleTest {
 
 	@Test
 	public void testExecuteGenlsStress() {
+//		dag_.noChecks_ = true;
 		Node creator = new StringNode("TestCreator");
 		VariableNode x = VariableNode.DEFAULT;
 		DAGNode genls = (DAGNode) dag_.findOrCreateNode("genls", creator, true);
@@ -863,7 +894,7 @@ public class QueryModuleTest {
 		// Avoiding loops
 		DAGNode a = (DAGNode) dag_.findOrCreateNode("Aaaa", creator, true);
 		DAGNode prior = null;
-		int repeats = 100;
+		int repeats = 1000;
 		for (int i = 1; i <= repeats; i++) {
 			DAGNode b = (DAGNode) dag_.findOrCreateNode("Bbbb" + i, creator,
 					true);

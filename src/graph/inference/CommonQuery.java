@@ -117,7 +117,8 @@ public enum CommonQuery {
 					false);
 			QueryObject qo = new QueryObject(argIsa, args[0], new VariableNode(
 					"?X"));
-			for (Node n : querier.executeAndParseVar(qo, "?X"))
+			for (Node n : QueryModule.parseResultsFromSubstitutions("?X",
+					querier.executeQuery(false, qo)))
 				if (!results.contains(n))
 					results.add(n);
 			break;
@@ -127,7 +128,8 @@ public enum CommonQuery {
 					+ ((PrimitiveNode) args[1]).getPrimitive() + "Genl", null,
 					false);
 			qo = new QueryObject(argGenls, args[0], new VariableNode("?X"));
-			for (Node n : querier.executeAndParseVar(qo, "?X"))
+			for (Node n : QueryModule.parseResultsFromSubstitutions("?X",
+					querier.executeQuery(false, qo)))
 				if (!results.contains(n))
 					results.add(n);
 			break;
@@ -230,8 +232,8 @@ public enum CommonQuery {
 	 *            The DAG access.
 	 * @return The filtered input (same collection).
 	 */
-	public static Collection<? extends Node> minGeneralFilter(Collection<? extends Node> results,
-			DirectedAcyclicGraph dag) {
+	public static Collection<? extends Node> minGeneralFilter(
+			Collection<? extends Node> results, DirectedAcyclicGraph dag) {
 		if (results.size() <= 1)
 			return results;
 
@@ -273,7 +275,8 @@ public enum CommonQuery {
 
 		QueryModule querier = (QueryModule) dag.getModule(QueryModule.class);
 
-		Collection<Node> results = querier.executeAndParseVar(qo, "?X");
+		Collection<Node> results = QueryModule.parseResultsFromSubstitutions(
+				"?X", querier.executeQuery(false, qo));
 		if (specialQuery_)
 			results = runSpecial(results, querier, dag, args);
 		return results;
