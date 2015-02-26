@@ -149,10 +149,9 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		return counts[DISJOINT] + counts[CONJOINT] >= threshold;
 	}
 
-	protected boolean shouldCreateDisjoint(Pair<DAGNode, DAGNode> unknown,
+	protected boolean shouldCreateDisjoint(UnknownPair unknownPair,
 			RelationData rData, String[] outputString) {
-		Collection<DAGNode> unknownParents = new ArrayList<>(
-				rData.unknownParents_.get(unknown));
+		Collection<DAGNode> unknownParents = unknownPair.commonParents_;
 		// Remove non-significant parents
 		for (Iterator<DAGNode> iter = unknownParents.iterator(); iter.hasNext();) {
 			DAGNode parent = iter.next();
@@ -241,11 +240,23 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			if (isSignificant(rData.counts_, _STATMIN)
 					&& isReliable(rData.counts_, RELATION_RELIABLITY_THRESHOLD)) {
 				// Run through the unknown pairs
-				for (Pair<DAGNode, DAGNode> unknown : rData.unknownParents_
-						.keySet()) {
-					String[] outputData = rData.data_.get(unknown);
+				for (UnknownPair unknown : rData.unknownPairs_) {
+					String[] outputData = new String[RelationColumn.values().length];
 					if (shouldCreateDisjoint(unknown, rData, outputData)) {
 						numCreated++;
+						outputData[RelationColumn.ARG1TEXT.ordinal()] = unknown.argA_;
+						outputData[RelationColumn.ARG2TEXT.ordinal()] = unknown.argB_;
+						if (rData.intraNodeCounts_.containsKey(unknown.nodeA_))
+							outputData[RelationColumn.ARG1_CONJ_COUNT.ordinal()] = rData.intraNodeCounts_
+									.get(unknown.nodeA_)[CONJOINT] + "";
+						else
+							outputData[RelationColumn.ARG1_CONJ_COUNT.ordinal()] = "0";
+						if (rData.intraNodeCounts_.containsKey(unknown.nodeB_))
+							outputData[RelationColumn.ARG2_CONJ_COUNT.ordinal()] = rData.intraNodeCounts_
+									.get(unknown.nodeB_)[CONJOINT] + "";
+						else
+							outputData[RelationColumn.ARG2_CONJ_COUNT.ordinal()] = "0";
+						
 						outputData[RelationColumn.RELATION.ordinal()] = rData.relation_;
 						outputData[RelationColumn.REL_DISJ.ordinal()] = rData.counts_[DISJOINT]
 								+ "";
@@ -258,7 +269,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 						outputData[RelationColumn.REL_RELIA.ordinal()] = (rData.counts_[DISJOINT] / (1f * rData.counts_[DISJOINT] + rData.counts_[CONJOINT]))
 								+ "";
 						outputData[RelationColumn.DISJOINT_EDGE.ordinal()] = createDisjointEdge(
-								unknown.objA_, unknown.objB_, assertDisj_);
+								unknown.nodeA_, unknown.nodeB_, assertDisj_);
 						out.append(StringUtils.join(outputData, '\t') + '\n');
 					}
 				}
@@ -534,8 +545,11 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				relData_.addIntraParent(parent, flag);
 
 			// Note unknown pairs for later disjoint edge creation
-			if (flag == UNKNOWN)
-				relData_.addUnknownData(pair, first, second, common);
+			if (flag == UNKNOWN) {
+				UnknownPair up = new UnknownPair(first, pair.objA_, second,
+						pair.objB_, common);
+				relData_.unknownPairs_.add(up);
+			}
 		}
 
 		protected void processLine(String line) {
@@ -627,14 +641,12 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		public int[] counts_ = new int[3];
 		public Map<DAGNode, int[]> intraNodeCounts_;
 		public String relation_;
-		public MultiMap<Pair<DAGNode, DAGNode>, DAGNode> unknownParents_;
-		public Map<Pair<DAGNode, DAGNode>, String[]> data_;
+		public Collection<UnknownPair> unknownPairs_;
 
 		public RelationData(String relation) {
 			relation_ = relation;
 			intraNodeCounts_ = new ConcurrentHashMap<>();
-			unknownParents_ = MultiMap.createConcurrentHashSetMultiMap();
-			data_ = new HashMap<>();
+			unknownPairs_ = new ArrayList<>();
 		}
 
 		public void addIntraParent(DAGNode parent, int flag) {
@@ -644,26 +656,6 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				intraNodeCounts_.put(parent, counts);
 			}
 			counts[flag]++;
-		}
-
-		public void addUnknownData(Pair<DAGNode, DAGNode> pair, String arg1,
-				String arg2, Collection<DAGNode> common) {
-			unknownParents_.putCollection(pair, common);
-			String[] strData = data_.get(pair);
-			if (strData == null) {
-				strData = new String[RelationColumn.values().length];
-				data_.put(pair, strData);
-			}
-			strData[RelationColumn.ARG1TEXT.ordinal()] = arg1;
-			strData[RelationColumn.ARG2TEXT.ordinal()] = arg2;
-			int arg1ConjCount = (intraNodeCounts_.containsKey(pair.objA_)) ? intraNodeCounts_
-					.get(pair.objA_)[CONJOINT] : 0;
-			strData[RelationColumn.ARG1_CONJ_COUNT.ordinal()] = arg1ConjCount
-					+ "";
-			int arg2ConjCount = (intraNodeCounts_.containsKey(pair.objB_)) ? intraNodeCounts_
-					.get(pair.objB_)[CONJOINT] : 0;
-			strData[RelationColumn.ARG2_CONJ_COUNT.ordinal()] = arg2ConjCount
-					+ "";
 		}
 
 		public void incrementRelation(int flag) {
@@ -678,6 +670,23 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			return relation_ + " - Counts: " + Arrays.toString(counts_) + " "
 					+ df.format(reliability) + ", # intra: "
 					+ intraNodeCounts_.size();
+		}
+	}
+
+	private class UnknownPair {
+		private String argA_;
+		private String argB_;
+		private DAGNode nodeA_;
+		private DAGNode nodeB_;
+		private Collection<DAGNode> commonParents_;
+
+		public UnknownPair(String argA, DAGNode nodeA, String argB,
+				DAGNode nodeB, Collection<DAGNode> commonParents) {
+			argA_ = argA;
+			argB_ = argB;
+			nodeA_ = nodeA;
+			nodeB_ = nodeB;
+			commonParents_ = commonParents;
 		}
 	}
 }

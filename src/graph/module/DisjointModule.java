@@ -379,11 +379,19 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 		if (nodes[0].equals(CommonConcepts.DISJOINTWITH.getNode(dag_))) {
 			// Easy peasy, just remove the element from the map
 			if (negated) {
-				notDisjointMap_.get(nodes[1]).remove(nodes[2]);
-				notDisjointMap_.get(nodes[2]).remove(nodes[1]);
+				Collection<DAGNode> coll = notDisjointMap_.get(nodes[1]);
+				if (coll != null)
+					coll.remove(nodes[2]);
+				coll = notDisjointMap_.get(nodes[2]);
+				if (coll != null)
+					coll.remove(nodes[1]);
 			} else {
-				disjointMap_.get(nodes[1]).remove(nodes[2]);
-				disjointMap_.get(nodes[2]).remove(nodes[1]);
+				Collection<DAGNode> coll = disjointMap_.get(nodes[1]);
+				if (coll != null)
+					coll.remove(nodes[2]);
+				coll = disjointMap_.get(nodes[2]);
+				if (coll != null)
+					coll.remove(nodes[1]);
 			}
 		} else if (nodes[0].equals(CommonConcepts.GENLS.getNode(dag_))) {
 			// TODO For each child of the arg1, recalculate disjoint
