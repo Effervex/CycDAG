@@ -70,13 +70,13 @@ public class CycDAG extends DirectedAcyclicGraph {
 	/** The key for the microtheory property. */
 	public static final String MICROTHEORY = "MT";
 
-	private transient QueryModule querier_;
+	private QueryModule querier_;
 
 	private RewriteOfModule rewriteModule_;
 
-	public boolean loadAssertions_ = true;
+	public boolean loadAssertions_;
 
-	public boolean retainingRemovals_ = false;
+	public boolean retainingRemovals_;
 
 	public CycDAG() {
 		this(new File("cyc"), null, null);
@@ -536,10 +536,14 @@ public class CycDAG extends DirectedAcyclicGraph {
 	@Override
 	protected void readConfigLine(String variable, String value) {
 		super.readConfigLine(variable, value);
-		if (variable.equalsIgnoreCase("retainingRemovals"))
+		if (variable.equalsIgnoreCase("retainingRemovals")) {
 			retainingRemovals_ = value.equalsIgnoreCase("TRUE");
-		else if (variable.equalsIgnoreCase("loadAssertions"))
+			System.out
+					.println("Retaining removal set to " + retainingRemovals_);
+		} else if (variable.equalsIgnoreCase("loadAssertions")) {
 			loadAssertions_ = value.equalsIgnoreCase("TRUE");
+			System.out.println("Load assertions set to " + loadAssertions_);
+		}
 	}
 
 	@Override
@@ -620,7 +624,13 @@ public class CycDAG extends DirectedAcyclicGraph {
 		Edge edge = super.findOrCreateEdge(edgeNodes, creator, flags);
 		if (edge != null && !(edge instanceof ErrorEdge)
 				&& ((DAGEdge) edge).getProperty(MICROTHEORY) == null) {
-			if (microtheory != null)
+			// First check if there is a removed edge
+			Edge removed = findEdge(CommonConcepts.REMOVED.getNode(this),
+					new OntologyFunction(edgeNodes));
+			if (removed != null) {
+				removeEdge(removed);
+				copyProperties((DAGEdge) removed, (DAGEdge) edge);
+			} else if (microtheory != null)
 				addProperty((DAGObject) edge, MICROTHEORY, microtheory);
 
 			// Add alias info

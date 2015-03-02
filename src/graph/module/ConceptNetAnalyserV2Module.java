@@ -44,8 +44,6 @@ import util.collection.MultiMap;
  * @author Sam Sarjant
  */
 public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
-	private static final float RELATION_RELIABLITY_THRESHOLD = .85f;
-	private static final float INTRA_RELATION_RELIABILITY_THRESHOLD = 0.85f;
 	private static final Node CREATOR = new StringNode("DisjointDiscovery");
 	private static final File DISJOINT_OUT = new File("createdDisjoints.txt");
 	private static final Pattern RELATION_PATTERN = Pattern
@@ -133,9 +131,9 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			return nodes;
 		} else if (useIsas) {
 			// Return isa edges if applicable.
-			nodes = isaEdges_.get(conceptName);
-			if (nodes != null)
-				return nodes;
+			// nodes = isaEdges_.get(conceptName);
+			// if (nodes != null)
+			// return nodes;
 		}
 
 		return CollectionUtils.EMPTY_COLLECTION;
@@ -180,8 +178,6 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			sum += reliArray[i];
 			sumIntraConjCount += counts[CONJOINT];
 			i++;
-			if (!isReliable(counts, INTRA_RELATION_RELIABILITY_THRESHOLD))
-				return false;
 		}
 		outputString[RelationColumn.AV_PARENT_CONJ_COUNTS.ordinal()] = sumIntraConjCount
 				/ minParents.size() + "";
@@ -237,8 +233,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		try {
 			BufferedWriter out = new BufferedWriter(new FileWriter(
 					DISJOINT_OUT, true));
-			if (isSignificant(rData.counts_, _STATMIN)
-					&& isReliable(rData.counts_, RELATION_RELIABLITY_THRESHOLD)) {
+			if (isSignificant(rData.counts_, _STATMIN)) {
 				// Run through the unknown pairs
 				for (UnknownPair unknown : rData.unknownPairs_) {
 					String[] outputData = new String[RelationColumn.values().length];
@@ -256,7 +251,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 									.get(unknown.nodeB_)[CONJOINT] + "";
 						else
 							outputData[RelationColumn.ARG2_CONJ_COUNT.ordinal()] = "0";
-						
+
 						outputData[RelationColumn.RELATION.ordinal()] = rData.relation_;
 						outputData[RelationColumn.REL_DISJ.ordinal()] = rData.counts_[DISJOINT]
 								+ "";
@@ -480,8 +475,8 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 						node, CommonConcepts.COLLECTION.getNode(dag_)) == QueryResult.TRUE) {
 					collections.add(node);
 				} else {
-					for (Node isa : CommonQuery.MINISA.runQuery(dag_, node))
-						collections.add((DAGNode) isa);
+					// for (Node isa : CommonQuery.MINISA.runQuery(dag_, node))
+					// collections.add((DAGNode) isa);
 				}
 			}
 
