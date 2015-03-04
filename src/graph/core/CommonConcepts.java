@@ -400,7 +400,7 @@ public enum CommonConcepts {
 								+ "than', etc).") }, _COMMON_CONCEPT, true);
 		Edge e = dag.findEdge(ISA.getNode(dag), URLFN.getNode(dag),
 				REIFIABLE_FUNCTION.getNode(dag));
-		dag.removeEdge(e);
+		dag.removeEdge(e, true);
 		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), URLFN.getNode(dag),
 				UNREIFIABLE_FUNCTION.getNode(dag) }, _COMMON_CONCEPT, true);
 		dag.findOrCreateEdge(

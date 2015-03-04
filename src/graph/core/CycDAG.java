@@ -628,7 +628,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			Edge removed = findEdge(CommonConcepts.REMOVED.getNode(this),
 					new OntologyFunction(edgeNodes));
 			if (removed != null) {
-				removeEdge(removed);
+				removeEdge(removed, true);
 				copyProperties((DAGEdge) removed, (DAGEdge) edge);
 			} else if (microtheory != null)
 				addProperty((DAGObject) edge, MICROTHEORY, microtheory);
@@ -648,7 +648,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			// Propagate subpreds
 			Edge propEdge = propagateEdge(edge, creator, microtheory, flags);
 			if (propEdge instanceof ErrorEdge) {
-				removeEdge(edge);
+				removeEdge(edge, true);
 				return propEdge;
 			}
 		}
@@ -862,7 +862,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 				if (forwardChainCreate) {
 					// Unassert the edges
 					for (Edge e : forwardEdges)
-						removeEdge(e);
+						removeEdge(e, true);
 				}
 				SemanticArgErrorEdge semanticArgError = new SemanticArgErrorEdge(
 						predNode, i, edgeNodes[i]);
@@ -994,9 +994,25 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	@Override
 	public synchronized boolean removeEdge(Edge edge) {
+		return removeEdge(edge, true);
+	}
+
+	/**
+	 * A remove edge method for dealing with the removed special modifier. If
+	 * the edge should be removed and not retained, set forceRemove to true.
+	 *
+	 * @param edge
+	 *            The edge to remove
+	 * @param forceRemove
+	 *            If the edge is completely removed, otherwise it will be
+	 *            retained if retain removals is true.
+	 * @return If the edge was removed successfully.
+	 */
+	public synchronized boolean removeEdge(Edge edge, boolean forceRemove) {
 		boolean result = super.removeEdge(edge);
 		// Cannot remove twice.
-		if (retainingRemovals_ && result && !EdgeModifier.isRemoved(edge, this)) {
+		if (!forceRemove && retainingRemovals_ && result
+				&& !EdgeModifier.isRemoved(edge, this)) {
 			// Add a new 'removed' edge
 			Edge removedEdge = findOrCreateEdge(new Node[] {
 					CommonConcepts.REMOVED.getNode(this),

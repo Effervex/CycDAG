@@ -11,6 +11,7 @@
 package graph.module;
 
 import graph.core.CommonConcepts;
+import graph.core.CycDAG;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Edge;
@@ -61,7 +62,7 @@ public class StrictlyFunctionalModule extends DAGModule<DAGNode> {
 			// Remove all existing edges (hopefully only one)
 			for (Edge e : existing) {
 				if (!edge.equals(e))
-					dag_.removeEdge(e);
+					((CycDAG) dag_).removeEdge(e, false);
 			}
 			return true;
 		}

@@ -32,6 +32,7 @@ public class CycDAGCLI extends DAGCommandLineInterface {
 	@Override
 	protected void initialiseCoreCommands() {
 		super.initialiseCoreCommands();
+		CommandParser.addCommand("removeEdge", CycRemoveEdgeCommand.class);
 		CommandParser.addCommand("randomNode", RandomCycNodeCommand.class);
 		CommandParser.addCommand("randomEdge", RandomCycEdgeCommand.class);
 		CommandParser.addCommand("extract", ExtractCommand.class);

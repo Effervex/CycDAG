@@ -91,7 +91,7 @@ public class PruneCyclesCommand extends Command {
 
 				// Removing the edge
 				if (edge != null) {
-					if (!dag.removeEdge(edge))
+					if (!dag.removeEdge(edge, true))
 						print("Could not removed edge " + cycleEdges.objA_
 								+ "!\n");
 					print("Removed edge " + cycleEdges.objA_ + "\n");
