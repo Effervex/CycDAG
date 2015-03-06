@@ -66,7 +66,10 @@ public class QueryObject {
 			QueryResult.NIL);
 	/** The reason for a query's rejection (if rejected). */
 	private ErrorEdge rejectionReason_;
+	/** If the query has already been run. */
 	private boolean hasRun_ = false;
+	/** If the arguments should be verified. */
+	private boolean verifyArguments_ = true;
 
 	/**
 	 * Constructor for a new QueryObject. This QO is initialised with no
@@ -76,7 +79,7 @@ public class QueryObject {
 	 *            The nodes of the query.
 	 */
 	public QueryObject(Node... nodes) {
-		this(false, nodes);
+		this(false, false, nodes);
 	}
 
 	/**
@@ -87,7 +90,9 @@ public class QueryObject {
 	 * @param nodes
 	 *            The nodes of the query.
 	 */
-	public QueryObject(boolean needJustification, Node... nodes) {
+	public QueryObject(boolean shouldVerify, boolean needJustification,
+			Node... nodes) {
+		verifyArguments_ = shouldVerify;
 		nodes_ = nodes;
 		buildAtomicVariableSets(nodes);
 		results_ = new ArrayList<>();
@@ -370,7 +375,8 @@ public class QueryObject {
 	 * @return The new QueryObject sharing the results.
 	 */
 	public QueryObject modifyNodes(Node... nodes) {
-		QueryObject newObj = new QueryObject(needJustification_, nodes);
+		QueryObject newObj = new QueryObject(verifyArguments_,
+				needJustification_, nodes);
 		newObj.completed_ = completed_;
 		newObj.completedSet_ = completedSet_;
 		newObj.results_ = results_;
@@ -393,12 +399,12 @@ public class QueryObject {
 	public void setToComplete(Collection<Substitution> intersect) {
 		if (intersect != null) {
 			toComplete_ = new HashSet<>(intersect);
-//			results_.clear();
-//			completed_.clear();
-//			completedSet_.clear();
-//			resultsSet_.clear();
-//			resultState_.object_ = QueryResult.NIL;
-//			justification_.clear();
+			// results_.clear();
+			// completed_.clear();
+			// completedSet_.clear();
+			// resultsSet_.clear();
+			// resultState_.object_ = QueryResult.NIL;
+			// justification_.clear();
 		}
 	}
 
@@ -451,5 +457,13 @@ public class QueryObject {
 
 	public void setRun(boolean b) {
 		hasRun_ = b;
+	}
+
+	public boolean shouldVerify() {
+		return verifyArguments_;
+	}
+
+	public void setVerify(boolean shouldVerify) {
+		verifyArguments_ = shouldVerify;
 	}
 }

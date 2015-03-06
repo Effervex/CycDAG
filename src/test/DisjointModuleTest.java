@@ -59,8 +59,8 @@ public class DisjointModuleTest {
 		Edge disjDogCat = dag_.findOrCreateEdge(
 				new Node[] { disjoint, dog, cat }, null, true, false);
 		assertTrue(disjDogCat instanceof DAGEdge);
-		QueryObject qo = new QueryObject(true, disjoint, dog, cat);
-		assertEquals(querier_.prove(true, qo), QueryResult.TRUE);
+		QueryObject qo = new QueryObject(true, true, disjoint, dog, cat);
+		assertEquals(querier_.prove(qo), QueryResult.TRUE);
 		List<Node[]> justification = qo.getJustification();
 		assertEquals(justification.size(), 1);
 
@@ -72,13 +72,13 @@ public class DisjointModuleTest {
 		// Transitive disjointness
 		dag_.findOrCreateEdge(new Node[] { genls, boxer, dog }, null, true,
 				false);
-		qo = new QueryObject(true, disjoint, boxer, dog);
-		assertEquals(querier_.prove(true, qo), QueryResult.FALSE);
+		qo = new QueryObject(true, true, disjoint, boxer, dog);
+		assertEquals(querier_.prove(qo), QueryResult.FALSE);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 1);
 
-		qo = new QueryObject(true, disjoint, boxer, cat);
-		assertEquals(querier_.prove(true, qo), QueryResult.TRUE);
+		qo = new QueryObject(true, true, disjoint, boxer, cat);
+		assertEquals(querier_.prove(qo), QueryResult.TRUE);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 2);
 
@@ -89,8 +89,8 @@ public class DisjointModuleTest {
 				true, false);
 		dag_.findOrCreateEdge(new Node[] { genls, housecat, cat }, null, true,
 				false);
-		qo = new QueryObject(true, disjoint, boxer, housecat);
-		assertEquals(querier_.prove(true, qo), QueryResult.TRUE);
+		qo = new QueryObject(true, true, disjoint, boxer, housecat);
+		assertEquals(querier_.prove(qo), QueryResult.TRUE);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 3);
 

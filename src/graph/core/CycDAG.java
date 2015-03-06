@@ -87,11 +87,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	private DAGErrorEdge checkArity(DAGNode predNode, QueryObject edgeQuery) {
-		QueryObject arityQuery = new QueryObject(edgeQuery.shouldJustify(),
+		QueryObject arityQuery = new QueryObject(false, edgeQuery.shouldJustify(),
 				CommonConcepts.ARITY.getNode(this), predNode,
 				VariableNode.DEFAULT);
-		Collection<Substitution> subs = querier_
-				.executeQuery(false, arityQuery);
+		Collection<Substitution> subs = querier_.executeQuery(arityQuery);
 		for (Substitution sub : subs) {
 			PrimitiveNode numArgs = (PrimitiveNode) sub
 					.getSubstitution(VariableNode.DEFAULT);
@@ -145,11 +144,11 @@ public class CycDAG extends DirectedAcyclicGraph {
 			CommonConcepts argTest, CommonConcepts argQuery,
 			String microtheory, Collection<Edge> forwardEdges,
 			boolean ephemeral, QueryObject edgeQuery) {
-		QueryObject constraintQuery = new QueryObject(
+		QueryObject constraintQuery = new QueryObject(false,
 				edgeQuery.shouldJustify(), argTest.getNode(this), predNode,
 				PrimitiveNode.parseNode("" + i), VariableNode.DEFAULT);
-		Collection<Substitution> constraints = querier_.executeQuery(false,
-				constraintQuery);
+		Collection<Substitution> constraints = querier_
+				.executeQuery(constraintQuery);
 
 		for (Substitution sub : constraints) {
 			// Skip 'Thing'
@@ -164,14 +163,14 @@ public class CycDAG extends DirectedAcyclicGraph {
 			if (testNode instanceof StringNode
 					&& argQuery.getNode(this).equals(
 							CommonConcepts.ISA.getNode(this)))
-				proofQuery = new QueryObject(edgeQuery.shouldJustify(),
+				proofQuery = new QueryObject(false, edgeQuery.shouldJustify(),
 						CommonConcepts.GENLS.getNode(this), constraint,
 						CommonConcepts.STRING.getNode(this));
 			else
-				proofQuery = new QueryObject(edgeQuery.shouldJustify(),
+				proofQuery = new QueryObject(false, edgeQuery.shouldJustify(),
 						argQuery.getNode(this), querier_.getExpanded(testNode),
 						constraint);
-			meetsConstraint = querier_.prove(false, proofQuery);
+			meetsConstraint = querier_.prove(proofQuery);
 
 			if (meetsConstraint == QueryResult.NIL) {
 				if (forwardEdges != null) {
@@ -255,9 +254,9 @@ public class CycDAG extends DirectedAcyclicGraph {
 				edgeNodes[0], CommonConcepts.SYMMETRIC_BINARY.getNode(this)) == QueryResult.TRUE)
 			return null;
 
-		QueryObject oppQuery = new QueryObject(edgeQuery.shouldJustify(),
+		QueryObject oppQuery = new QueryObject(false, edgeQuery.shouldJustify(),
 				edgeNodes[0], edgeNodes[2], edgeNodes[1]);
-		if (querier_.prove(false, oppQuery) == QueryResult.TRUE) {
+		if (querier_.prove(oppQuery) == QueryResult.TRUE) {
 			CyclicErrorEdge cee = new CyclicErrorEdge(edgeNodes);
 			edgeQuery.setRejectionReason(cee);
 			edgeQuery.addResult(false, null, oppQuery.getJustification());
@@ -268,14 +267,12 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 	/**
 	 * Checks if the edge nodes can be added or not due to disjointness.
-	 *
+	 * 
 	 * @param edgeNodes
 	 *            The edge nodes being defined.
-	 * @param negated
-	 *            If the edge nodes are a negated edge.
 	 * @return If the edge created will cause a disjoint contradiction.
 	 */
-	private DisjointErrorEdge isDisjoint(QueryObject edgeQuery, boolean negated) {
+	private DisjointErrorEdge isDisjoint(QueryObject edgeQuery) {
 		// If not isa/genls, return true
 		Collection<Node> existingCols = null;
 		Node[] edgeNodes = edgeQuery.getNodes();
@@ -293,10 +290,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 		// Checks if the existing collections are disjoint with the asserted
 		// edge.
 		for (Node n : existingCols) {
-			QueryObject disjointQuery = new QueryObject(
+			QueryObject disjointQuery = new QueryObject(false, 
 					edgeQuery.shouldJustify(),
 					CommonConcepts.DISJOINTWITH.getNode(this), n, edgeNodes[2]);
-			if (querier_.prove(false, disjointQuery) == QueryResult.TRUE) {
+			if (querier_.prove(disjointQuery) == QueryResult.TRUE) {
 				DisjointErrorEdge dee = new DisjointErrorEdge(
 						(DAGNode) edgeNodes[2], (DAGNode) n, this);
 				// Adding in isa justification step
@@ -315,6 +312,68 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return null;
 	}
 
+	private CollectionOrderErrorEdge isInvalidCollectionOrder(
+			QueryObject edgeQuery) {
+		Node[] edgeNodes = edgeQuery.getNodes();
+		Node relation = edgeNodes[0];
+		DAGNode isa = CommonConcepts.ISA.getNode(this);
+
+		// If genls
+		if (relation.equals(CommonConcepts.GENLS.getNode(this))) {
+			VariableNode x = new VariableNode("?X");
+			OntologyFunction isaAX = new OntologyFunction(isa, edgeNodes[1], x);
+			VariableNode y = new VariableNode("?Y");
+			OntologyFunction isaBY = new OntologyFunction(isa, edgeNodes[2], y);
+			OntologyFunction isaXOrder = new OntologyFunction(isa, x,
+					CommonConcepts.COLLECTION_ORDER.getNode(this));
+			OntologyFunction isaYOrder = new OntologyFunction(isa, y,
+					CommonConcepts.COLLECTION_ORDER.getNode(this));
+			OntologyFunction diffXY = new OntologyFunction(
+					CommonConcepts.DIFFERENT.getNode(this), x, y);
+			QueryResult result = querier_.prove(false,
+					CommonConcepts.AND.getNode(this), isaAX, isaBY, isaXOrder,
+					isaYOrder, diffXY);
+			if (result == QueryResult.TRUE)
+				return new CollectionOrderErrorEdge(edgeNodes);
+		}
+
+		// If isa
+		else if (relation.equals(isa)) {
+			// First check Indiv/Collection
+			OntologyFunction isaXCol = new OntologyFunction(isa, edgeNodes[1],
+					CommonConcepts.COLLECTION.getNode(this));
+			OntologyFunction isaYFOC = new OntologyFunction(isa, edgeNodes[2],
+					CommonConcepts.FIRST_ORDER_COLLECTION.getNode(this));
+			QueryResult result = querier_.prove(false,
+					CommonConcepts.AND.getNode(this), isaXCol, isaYFOC);
+			if (result == QueryResult.TRUE)
+				return new CollectionOrderErrorEdge(edgeNodes);
+
+			// Then check the order is increasing
+			VariableNode x = new VariableNode("?X");
+			OntologyFunction isaAX = new OntologyFunction(isa, edgeNodes[1], x);
+			VariableNode y = new VariableNode("?Y");
+			OntologyFunction isaBY = new OntologyFunction(isa, edgeNodes[2], y);
+			OntologyFunction isaXOrder = new OntologyFunction(isa, x,
+					CommonConcepts.COLLECTION_ORDER.getNode(this));
+			OntologyFunction isaYOrder = new OntologyFunction(isa, y,
+					CommonConcepts.COLLECTION_ORDER.getNode(this));
+			QueryObject qo = new QueryObject(false, false,
+					CommonConcepts.AND.getNode(this), isaAX, isaBY, isaXOrder,
+					isaYOrder);
+			Collection<Substitution> results = querier_.executeQuery(qo);
+			// Test for collection order definitions
+			if (qo.getResultState() == QueryResult.TRUE) {
+				Substitution sub = results.iterator().next();
+				if (results.size() != 1
+						|| querier_.prove(false, isa, sub.getSubstitution(x),
+								sub.getSubstitution(y)) != QueryResult.TRUE)
+					return new CollectionOrderErrorEdge(edgeNodes);
+			}
+		}
+		return null;
+	}
+
 	/**
 	 * Checks if the edge nodes create a contradiction by way of negation.
 	 *
@@ -326,10 +385,12 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 */
 	private NegatedErrorEdge isNegated(QueryObject edgeQuery, boolean negated) {
 		// Searching directly for negation
-		if (querier_.prove(false, edgeQuery) == QueryResult.FALSE) {
+		boolean before = edgeQuery.shouldVerify();
+		edgeQuery.setVerify(false);
+		if (querier_.prove(edgeQuery) == QueryResult.FALSE) {
 			List<Node[]> justification = edgeQuery.getJustification();
 			if (!edgeQuery.shouldJustify()) {
-				QueryObject justifQO = new QueryObject(true,
+				QueryObject justifQO = new QueryObject(false, true,
 						edgeQuery.getNodes());
 				justification = justifQO.getJustification();
 				edgeQuery.addResult(false, null, justification);
@@ -342,6 +403,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			edgeQuery.setRejectionReason(negatedError);
 			return negatedError;
 		}
+		edgeQuery.setVerify(before);
 		return null;
 	}
 
@@ -635,7 +697,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 
 			// Add alias info
 			if (qm.prove(
-					false,
 					new QueryObject(CommonConcepts.GENLPREDS.getNode(this),
 							edgeNodes[0], CommonConcepts.TERM_STRING
 									.getNode(this))) == QueryResult.TRUE) {
@@ -1103,9 +1164,14 @@ public class CycDAG extends DirectedAcyclicGraph {
 			return null;
 
 		// Check disjointness
-		DisjointErrorEdge disjointEdge = isDisjoint(edgeQuery, negated);
+		DisjointErrorEdge disjointEdge = isDisjoint(edgeQuery);
 		if (disjointEdge != null)
 			return disjointEdge;
+
+		// Check collection order
+		CollectionOrderErrorEdge collectionOrderEdge = isInvalidCollectionOrder(edgeQuery);
+		if (collectionOrderEdge != null)
+			return collectionOrderEdge;
 
 		// Check symmetry
 		CyclicErrorEdge cyclicEdge = isCyclic(edgeQuery, negated);

@@ -91,15 +91,12 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		Node[] asNodes = new Node[args.length];
 		System.arraycopy(args, 0, asNodes, 0, args.length);
 
-		return executeQuery(true, new QueryObject(asNodes));
+		QueryObject qo = new QueryObject(asNodes);
+		qo.setVerify(true);
+		return executeQuery(qo);
 	}
 
 	public Collection<Substitution> executeQuery(QueryObject queryObj) {
-		return executeQuery(false, queryObj);
-	}
-
-	public Collection<Substitution> executeQuery(boolean checkValidity,
-			QueryObject queryObj) {
 		// Remove negation when evaluating and flip result if negated
 		boolean negated = queryObj.getNode(0).equals(
 				CommonConcepts.NOT.getNode(dag_));
@@ -109,7 +106,7 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 					.getNode(1)).getNodes());
 
 		// Verify arguments before executing module.
-		if (checkValidity) {
+		if (queryObj.shouldVerify()) {
 			ErrorEdge ee = ((CycDAG) dag_).verifyEdgeArguments(queryObj,
 					negated, false, null, false);
 			if (queryObj.isProof() || ee != null) {
@@ -169,12 +166,12 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	}
 
 	public QueryResult prove(boolean checkValidity, Node... nodes) {
-		QueryObject qo = new QueryObject(false, nodes);
-		return prove(checkValidity, qo);
+		QueryObject qo = new QueryObject(checkValidity, false, nodes);
+		return prove(qo);
 	}
 
-	public QueryResult prove(boolean checkValidity, QueryObject queryObject) {
-		executeQuery(checkValidity, queryObject);
+	public QueryResult prove(QueryObject queryObject) {
+		executeQuery(queryObject);
 		return queryObject.getResultState();
 	}
 
@@ -188,7 +185,7 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	 * @return The parsed results.
 	 */
 	protected Collection<Node> executeAndParseVar(QueryObject qo, String var) {
-		Collection<Substitution> subs = executeQuery(false, qo);
+		Collection<Substitution> subs = executeQuery(qo);
 		if (qo.getResultState() == QueryResult.TRUE)
 			return parseResultsFromSubstitutions(var, subs);
 		else

@@ -10,7 +10,6 @@
  ******************************************************************************/
 package graph.inference;
 
-import graph.core.DAGNode;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 

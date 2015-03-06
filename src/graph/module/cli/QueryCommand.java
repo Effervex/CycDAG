@@ -62,9 +62,8 @@ public class QueryCommand extends CollectionCommand {
 			return;
 		}
 
-		QueryObject qo = new QueryObject(args);
-		Collection<Substitution> substitutions = queryModule.executeQuery(true,
-				qo);
+		QueryObject qo = new QueryObject(true, false, args);
+		Collection<Substitution> substitutions = queryModule.executeQuery(qo);
 
 		// Sort
 		substitutions = dagHandler.postProcess(substitutions, rangeStart_,

@@ -43,7 +43,8 @@ public class AndWorker extends QueryWorker {
 		Collection<QueryObject> evaluatables = new HashSet<>();
 		for (int i = 1; i < nodes.length; i++) {
 			if (nodes[i] instanceof OntologyFunction) {
-				QueryObject subQO = new QueryObject(queryObj.shouldJustify(),
+				QueryObject subQO = new QueryObject(queryObj.shouldVerify(),
+						queryObj.shouldJustify(),
 						((OntologyFunction) nodes[i]).getNodes());
 				components.add(subQO);
 				if (isEvaluatable(subQO))
@@ -102,10 +103,16 @@ public class AndWorker extends QueryWorker {
 				// Run the query if not run yet
 				if (!lowQO.isRun()) {
 					lowQO.setToComplete(intersect);
-					querier_.executeQuery(true, lowQO);
+					querier_.executeQuery(lowQO);
 				} else {
 					// Set up an intersect operation
 					maxBound = 0;
+				}
+				
+				// If proof
+				if (lowQO.isProof()) {
+					smallestQO = lowQO;
+					break;
 				}
 
 				// Find the lowest substitution size query

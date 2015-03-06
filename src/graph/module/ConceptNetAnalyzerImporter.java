@@ -128,11 +128,11 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 		out.println(left.getName() + "," + leftconjCount + ","
 				+ right.getName() + "," + rightconjCount + "," + relationName);
 
-//		Node[] edge = new Node[] { CommonConcepts.DISJOINTWITH.getNode(dag_),
-//				left, right };
-//		Node creator = new StringNode("ConceptNet" + relationName);
-//
-//		dag_.findOrCreateEdge(edge, creator, true);
+		// Node[] edge = new Node[] { CommonConcepts.DISJOINTWITH.getNode(dag_),
+		// left, right };
+		// Node creator = new StringNode("ConceptNet" + relationName);
+		//
+		// dag_.findOrCreateEdge(edge, creator, true);
 
 		// if (left.hashCode() > right.hashCode())
 		dummyDisjoints_.put(p, true);
@@ -227,7 +227,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 		VariableNode x = VariableNode.DEFAULT;
 		QueryObject qo = new QueryObject(and, new OntologyFunction(genls, x,
 				nodeA), new OntologyFunction(genls, x, nodeB));
-		Collection<Substitution> results = queryModule_.executeQuery(false, qo);
+		Collection<Substitution> results = queryModule_.executeQuery(qo);
 		if (results.size() != 0) {
 			return true;
 		}
@@ -235,7 +235,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 		x = VariableNode.DEFAULT;
 		qo = new QueryObject(and, new OntologyFunction(isa, x, nodeA),
 				new OntologyFunction(isa, x, nodeB));
-		results = queryModule_.executeQuery(false, qo);
+		results = queryModule_.executeQuery(qo);
 		if (results.size() != 0) {
 			return true;
 		}
@@ -282,7 +282,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 
 		if (lowest.isEmpty())
 			return false;
-		
+
 		// Then for each lowest entry, if one is not reliable, return false
 		for (Node node : lowest) {
 			if (getReliabilityScore(intermap.get(node), this._STATMIN) < 0.9) {
@@ -705,10 +705,10 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 
 		// Double loop to create pair of second order cyc isa parent from both
 		// node
-//		ArrayList<Node> leftIsa = getAllGenlsParents(left);
-//		ArrayList<Node> rightIsa = getAllGenlsParents(right);
+		// ArrayList<Node> leftIsa = getAllGenlsParents(left);
+		// ArrayList<Node> rightIsa = getAllGenlsParents(right);
 
-//		ArrayList<Node> commonparents = getCommomParents(leftIsa, rightIsa);
+		// ArrayList<Node> commonparents = getCommomParents(leftIsa, rightIsa);
 		Collection<DAGNode> commonparents = getCommonParents(left, right);
 
 		for (Node node : commonparents) {
@@ -725,8 +725,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 			nodecountmap.get(node)[flag]++;
 			if (flag == 2) {// If it's unknown, add to unknown backups
 				Pair<Node, Node> pair = null;
-				int compare = left.getName().compareTo(
-						right.getName());
+				int compare = left.getName().compareTo(right.getName());
 				if (compare < 0) {
 					pair = new Pair<Node, Node>(left, right);
 				} else if (compare > 0) {
@@ -740,7 +739,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 		}
 
 	}
-	
+
 	/**
 	 * Calculates the common parents of two nodes.
 	 *
@@ -827,7 +826,7 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 		and = CommonConcepts.AND.getNode(dag_);
 
 		aliasModule_ = (NodeAliasModule) dag_.getModule(NodeAliasModule.class);
-		
+
 		ptChildren_ = CommonQuery.SPECS.runQuery(dag_,
 				CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
 		// Do not include PartiallyTangible itself.

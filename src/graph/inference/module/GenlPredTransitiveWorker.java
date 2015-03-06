@@ -51,9 +51,9 @@ public class GenlPredTransitiveWorker extends QueryWorker {
 
 		// Sub preds
 		VariableNode varNode = new VariableNode("?SUB_PREDS");
-		Collection<Substitution> subPreds = querier_.executeQuery(false,
-				new QueryObject(CommonConcepts.GENLPREDS.getNode(dag_),
-						varNode, queryObj.getNode(0)));
+		Collection<Substitution> subPreds = querier_
+				.executeQuery(new QueryObject(CommonConcepts.GENLPREDS
+						.getNode(dag_), varNode, queryObj.getNode(0)));
 		if (subPreds.isEmpty())
 			subPreds.add(new Substitution(varNode, (DAGNode) queryObj
 					.getNode(0)));

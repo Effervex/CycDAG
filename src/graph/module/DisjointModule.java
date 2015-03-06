@@ -146,20 +146,19 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 	 *         of the edge's collections.
 	 */
 	private boolean isLegalDisjointEdge(Node[] nodes) {
-		Collection<Substitution> genlQuery = queryModule_.executeQuery(false,
-				new QueryObject(CommonConcepts.AND.getNode(dag_),
-						new OntologyFunction(
-								CommonConcepts.GENLS.getNode(dag_),
-								VariableNode.DEFAULT, nodes[1]),
-						new OntologyFunction(
-								CommonConcepts.GENLS.getNode(dag_),
-								VariableNode.DEFAULT, nodes[2])));
+		Collection<Substitution> genlQuery = queryModule_
+				.executeQuery(new QueryObject(true, false, CommonConcepts.AND
+						.getNode(dag_), new OntologyFunction(
+						CommonConcepts.GENLS.getNode(dag_),
+						VariableNode.DEFAULT, nodes[1]), new OntologyFunction(
+						CommonConcepts.GENLS.getNode(dag_),
+						VariableNode.DEFAULT, nodes[2])));
 		if (!genlQuery.isEmpty())
 			return false;
-		Collection<Substitution> isaQuery = queryModule_.executeQuery(false,
-				new QueryObject(CommonConcepts.AND.getNode(dag_),
-						new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
-								VariableNode.DEFAULT, nodes[1]),
+		Collection<Substitution> isaQuery = queryModule_
+				.executeQuery(new QueryObject(true, false, CommonConcepts.AND
+						.getNode(dag_), new OntologyFunction(CommonConcepts.ISA
+						.getNode(dag_), VariableNode.DEFAULT, nodes[1]),
 						new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
 								VariableNode.DEFAULT, nodes[2])));
 		if (!isaQuery.isEmpty())
@@ -320,9 +319,9 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 		List<Node[]> justification = queryObj.getJustification();
 
 		// Add the first genls justification.
-		QueryObject genlsA = new QueryObject(true, genls, queryObj.getAtomic(),
-				disjMap.get(key));
-		queryModule_.prove(false, genlsA);
+		QueryObject genlsA = new QueryObject(false, true, genls,
+				queryObj.getAtomic(), disjMap.get(key));
+		queryModule_.prove(genlsA);
 		List<Node[]> justificationA = genlsA.getJustification();
 		if (justificationA.size() != 1
 				|| !Arrays.equals(justificationA.get(0), new Node[] { genls,
@@ -347,9 +346,9 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 		justification.add(disjointEdge);
 
 		// Add the last genls justification (reversed).
-		QueryObject genlsB = new QueryObject(true, genls,
+		QueryObject genlsB = new QueryObject(false, true, genls,
 				queryObj.getNode(varIndex), key);
-		queryModule_.prove(false, genlsB);
+		queryModule_.prove(genlsB);
 		List<Node[]> justificationB = genlsB.getJustification();
 		if (justificationB.size() != 1
 				|| !Arrays.equals(justificationB.get(0), new Node[] { genls,

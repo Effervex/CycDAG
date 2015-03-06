@@ -66,7 +66,7 @@ public class PredicateResolutionModule extends DAGModule<WeightedSet<DAGNode>> {
 		QueryObject qo = new QueryObject(
 				CommonConcepts.GENLPREDS.getNode(dag_), var, basePred);
 
-		Collection<Substitution> subs = qm.executeQuery(false, qo);
+		Collection<Substitution> subs = qm.executeQuery(qo);
 		for (Substitution sub : subs) {
 			DAGNode pred = (DAGNode) sub.getSubstitution(var);
 			predDist = predicateDistance(pred, args);

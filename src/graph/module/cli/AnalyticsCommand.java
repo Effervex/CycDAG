@@ -123,7 +123,6 @@ public class AnalyticsCommand extends Command {
 			switch (type) {
 			case COLLECTIONS:
 				Collection<Substitution> collections = querier_.executeQuery(
-						false,
 						new QueryObject(CommonConcepts.ISA.getNode(dag),
 								VariableNode.DEFAULT, CommonConcepts.COLLECTION
 										.getNode(dag)));
@@ -131,7 +130,6 @@ public class AnalyticsCommand extends Command {
 				break;
 			case PREDICATES:
 				Collection<Substitution> predicates = querier_.executeQuery(
-						false,
 						new QueryObject(CommonConcepts.ISA.getNode(dag),
 								VariableNode.DEFAULT, CommonConcepts.PREDICATE
 										.getNode(dag)));
@@ -139,7 +137,6 @@ public class AnalyticsCommand extends Command {
 				break;
 			case FUNCTIONS:
 				Collection<Substitution> functions = querier_.executeQuery(
-						false,
 						new QueryObject(CommonConcepts.ISA.getNode(dag),
 								VariableNode.DEFAULT, CommonConcepts.FUNCTION
 										.getNode(dag)));
@@ -147,7 +144,6 @@ public class AnalyticsCommand extends Command {
 				break;
 			case INDIVIDUALS:
 				Collection<Substitution> individuals = querier_.executeQuery(
-						false,
 						new QueryObject(CommonConcepts.ISA.getNode(dag),
 								VariableNode.DEFAULT, CommonConcepts.INDIVIDUAL
 										.getNode(dag)));
@@ -208,7 +204,7 @@ public class AnalyticsCommand extends Command {
 				+ "";
 
 		// Arity
-		Collection<Substitution> arity = querier_.executeQuery(false,
+		Collection<Substitution> arity = querier_.executeQuery(
 				new QueryObject(CommonConcepts.ARITY.getNode(dag), function,
 						VariableNode.DEFAULT));
 		values[indexMap.get(ARITY)] = (arity.isEmpty()) ? "" : arity.iterator()
@@ -274,7 +270,7 @@ public class AnalyticsCommand extends Command {
 		values[indexMap.get(SUBTYPES)] = subTypes.size() + "";
 
 		// Arity
-		Collection<Substitution> arity = querier_.executeQuery(false,
+		Collection<Substitution> arity = querier_.executeQuery(
 				new QueryObject(CommonConcepts.ARITY.getNode(dag), predicate,
 						VariableNode.DEFAULT));
 		values[indexMap.get(ARITY)] = (arity.isEmpty()) ? "" : arity.iterator()

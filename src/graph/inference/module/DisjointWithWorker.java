@@ -91,19 +91,17 @@ public class DisjointWithWorker extends QueryWorker {
 		VariableNode transTwo = new VariableNode("?_TRANSTWO_");
 		Node node1 = queryObj.getNode(1);
 		Node node2 = queryObj.getNode(2);
-		QueryObject qo = new QueryObject(queryObj.shouldJustify(),
-				CommonConcepts.AND.getNode(dag_), 
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
-						node1, queryVar), // First
-				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
-						node2, queryVar), // Second
+		QueryObject qo = new QueryObject(true, queryObj.shouldJustify(),
+				CommonConcepts.AND.getNode(dag_), new OntologyFunction(
+						CommonConcepts.ISA.getNode(dag_), node1, queryVar), // First
+				new OntologyFunction(CommonConcepts.ISA.getNode(dag_), node2,
+						queryVar), // Second
 				new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
 						queryVar,
 						CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
 								.getNode(dag_)) // Is a sibling disjoint
 		);
-		Collection<Substitution> siblingDisjoints = querier_.executeQuery(
-				false, qo);
+		Collection<Substitution> siblingDisjoints = querier_.executeQuery(qo);
 
 		if (queryObj.isProof() && qo.getResultState() == QueryResult.TRUE) {
 			// Sibling Disjoint Exception?
@@ -147,10 +145,10 @@ public class DisjointWithWorker extends QueryWorker {
 			return;
 		VariableNode varNode = (queryObj.isProof()) ? VariableNode.DEFAULT
 				: queryObj.getVariable();
-		QueryObject genlResults1 = new QueryObject(queryObj.shouldJustify(),
-				CommonConcepts.GENLS.getNode(dag_), queryObj.getAtomic(),
-				varNode);
-		querier_.executeQuery(false, genlResults1);
+		QueryObject genlResults1 = new QueryObject(false,
+				queryObj.shouldJustify(), CommonConcepts.GENLS.getNode(dag_),
+				queryObj.getAtomic(), varNode);
+		querier_.executeQuery(genlResults1);
 		QueryObject genlResults2 = null;
 
 		Collection<DAGNode> genlResults = genlResults1.getCompleted();
@@ -159,10 +157,10 @@ public class DisjointWithWorker extends QueryWorker {
 
 		// For proofs, work out the smaller set of the two.
 		if (queryObj.isProof()) {
-			genlResults2 = new QueryObject(queryObj.shouldJustify(),
+			genlResults2 = new QueryObject(false, queryObj.shouldJustify(),
 					CommonConcepts.GENLS.getNode(dag_), queryObj.getNode(2),
 					varNode);
-			querier_.executeQuery(false, genlResults2);
+			querier_.executeQuery(genlResults2);
 
 			genlResults = new ArrayList<>(genlResults1.getCompleted());
 			genlResults.removeAll(genlResults2.getCompleted());
@@ -233,7 +231,7 @@ public class DisjointWithWorker extends QueryWorker {
 		QueryObject isException = new QueryObject(
 				CommonConcepts.SIBLING_DISJOINT_EXCEPTION.getNode(dag_), node,
 				node2);
-		querier_.executeQuery(false, isException);
+		querier_.executeQuery(isException);
 		return isException.getResultState() == QueryResult.TRUE;
 	}
 
@@ -281,9 +279,9 @@ public class DisjointWithWorker extends QueryWorker {
 		Node arg1 = queryObj.getNode(1);
 
 		// Add isa sibling query for arg 1
-		proof = new QueryObject(queryObj.shouldJustify(),
+		proof = new QueryObject(false, queryObj.shouldJustify(),
 				CommonConcepts.ISA.getNode(dag_), arg1, queryVar);
-		querier_.prove(false, proof);
+		querier_.prove(proof);
 		if (queryObj.shouldJustify()) {
 			justification.addAll(proof.getJustification());
 			justification.add(new Node[0]);
@@ -293,19 +291,19 @@ public class DisjointWithWorker extends QueryWorker {
 		Node arg2 = queryObj.getNode(2);
 
 		// Add isa sibling query for arg 2
-		proof = new QueryObject(queryObj.shouldJustify(),
+		proof = new QueryObject(false, queryObj.shouldJustify(),
 				CommonConcepts.ISA.getNode(dag_), arg2, queryVar);
-		querier_.prove(false, proof);
+		querier_.prove(proof);
 		if (queryObj.shouldJustify()) {
 			justification.addAll(proof.getJustification());
 			justification.add(new Node[0]);
 		}
 
 		// Add isa sibling collection to sibling collection type
-		proof = new QueryObject(queryObj.shouldJustify(),
+		proof = new QueryObject(false, queryObj.shouldJustify(),
 				CommonConcepts.ISA.getNode(dag_), queryVar,
 				CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE.getNode(dag_));
-		querier_.prove(false, proof);
+		querier_.prove(proof);
 		if (queryObj.shouldJustify()) {
 			justification.addAll(proof.getJustification());
 		}
@@ -342,17 +340,17 @@ public class DisjointWithWorker extends QueryWorker {
 		// Skip if variables involved.
 		if (queryObj.getVariable() != null)
 			return false;
-		QueryObject genlsA = new QueryObject(queryObj.shouldJustify(),
+		QueryObject genlsA = new QueryObject(false, queryObj.shouldJustify(),
 				CommonConcepts.GENLS.getNode(dag_), queryObj.getNode(1),
 				queryObj.getNode(2));
-		if (querier_.prove(false, genlsA) == QueryResult.TRUE) {
+		if (querier_.prove(genlsA) == QueryResult.TRUE) {
 			queryObj.addResult(false, null, genlsA.getJustification());
 			return true;
 		}
-		QueryObject genlsB = new QueryObject(queryObj.shouldJustify(),
+		QueryObject genlsB = new QueryObject(false, queryObj.shouldJustify(),
 				CommonConcepts.GENLS.getNode(dag_), queryObj.getNode(2),
 				queryObj.getNode(1));
-		if (querier_.prove(false, genlsB) == QueryResult.TRUE) {
+		if (querier_.prove(genlsB) == QueryResult.TRUE) {
 			queryObj.addResult(false, null, genlsB.getJustification());
 			return true;
 		}

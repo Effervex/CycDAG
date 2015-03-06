@@ -118,7 +118,7 @@ public enum CommonQuery {
 			QueryObject qo = new QueryObject(argIsa, args[0], new VariableNode(
 					"?X"));
 			for (Node n : QueryModule.parseResultsFromSubstitutions("?X",
-					querier.executeQuery(false, qo)))
+					querier.executeQuery(qo)))
 				if (!results.contains(n))
 					results.add(n);
 			break;
@@ -129,7 +129,7 @@ public enum CommonQuery {
 					false);
 			qo = new QueryObject(argGenls, args[0], new VariableNode("?X"));
 			for (Node n : QueryModule.parseResultsFromSubstitutions("?X",
-					querier.executeQuery(false, qo)))
+					querier.executeQuery(qo)))
 				if (!results.contains(n))
 					results.add(n);
 			break;
@@ -276,7 +276,7 @@ public enum CommonQuery {
 		QueryModule querier = (QueryModule) dag.getModule(QueryModule.class);
 
 		Collection<Node> results = QueryModule.parseResultsFromSubstitutions(
-				"?X", querier.executeQuery(false, qo));
+				"?X", querier.executeQuery(qo));
 		if (specialQuery_)
 			results = runSpecial(results, querier, dag, args);
 		return results;

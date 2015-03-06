@@ -98,7 +98,8 @@ public enum CommonConcepts {
 	URLFN("URLFn"),
 	YEARFN("YearFn"),
 	ZERO("Zero"),
-	MONOTONIC_PREDICATE("DefaultMonotonicPredicate");
+	MONOTONIC_PREDICATE("DefaultMonotonicPredicate"),
+	COLLECTION_ORDER("CollectionOrder");
 
 	private static final StringNode _COMMON_CONCEPT = new StringNode(
 			"CommonConcept");
@@ -184,8 +185,10 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), DISJOINTWITH.getNode(dag),
 						SYMMETRIC_BINARY.getNode(dag) }, _COMMON_CONCEPT, true);
-		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), DISJOINTWITH.getNode(dag),
-				MONOTONIC_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), DISJOINTWITH.getNode(dag),
+						MONOTONIC_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
 		dag.findOrCreateEdge(
 				new Node[] { ARGISA.getNode(dag), DISJOINTWITH.getNode(dag),
 						PrimitiveNode.parseNode("1"), COLLECTION.getNode(dag) },
@@ -194,6 +197,11 @@ public enum CommonConcepts {
 				new Node[] { ARGISA.getNode(dag), DISJOINTWITH.getNode(dag),
 						PrimitiveNode.parseNode("2"), COLLECTION.getNode(dag) },
 				_COMMON_CONCEPT, true);
+
+		// Collection order
+		dag.findOrCreateEdge(
+				new Node[] { GENLS.getNode(dag), COLLECTION_ORDER.getNode(dag),
+						COLLECTION.getNode(dag) }, _COMMON_CONCEPT, true);
 
 		// Individual
 		dag.findOrCreateEdge(
@@ -274,8 +282,10 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), RESULT_GENL.getNode(dag),
 						BINARY_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
-		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), RESULT_GENL.getNode(dag),
-				MONOTONIC_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), RESULT_GENL.getNode(dag),
+						MONOTONIC_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
 		dag.findOrCreateEdge(
 				new Node[] { ARGISA.getNode(dag), RESULT_GENL.getNode(dag),
 						PrimitiveNode.parseNode("1"), FUNCTION.getNode(dag) },
@@ -287,8 +297,10 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), RESULT_ISA.getNode(dag),
 						BINARY_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
-		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), RESULT_ISA.getNode(dag),
-				MONOTONIC_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), RESULT_ISA.getNode(dag),
+						MONOTONIC_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
 		dag.findOrCreateEdge(
 				new Node[] { ARGISA.getNode(dag), RESULT_ISA.getNode(dag),
 						PrimitiveNode.parseNode("1"), FUNCTION.getNode(dag) },
@@ -300,8 +312,10 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), RESULT_GENL_ARG.getNode(dag),
 						PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
-		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), RESULT_GENL_ARG.getNode(dag),
-				MONOTONIC_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), RESULT_GENL_ARG.getNode(dag),
+						MONOTONIC_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
 		dag.findOrCreateEdge(
 				new Node[] { ARGISA.getNode(dag), RESULT_GENL_ARG.getNode(dag),
 						PrimitiveNode.parseNode("1"), FUNCTION.getNode(dag) },
@@ -313,8 +327,10 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), RESULT_ISA_ARG.getNode(dag),
 						PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
-		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag), RESULT_ISA_ARG.getNode(dag),
-				MONOTONIC_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), RESULT_ISA_ARG.getNode(dag),
+						MONOTONIC_PREDICATE.getNode(dag) }, _COMMON_CONCEPT,
+				true);
 		dag.findOrCreateEdge(
 				new Node[] { ARGISA.getNode(dag), RESULT_ISA_ARG.getNode(dag),
 						PrimitiveNode.parseNode("1"), FUNCTION.getNode(dag) },
@@ -409,10 +425,34 @@ public enum CommonConcepts {
 						new StringNode("<a href=______>______</a>") },
 				_COMMON_CONCEPT, true);
 
-		// First Order Collection
+		// Ordered Collections
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), INDIVIDUAL.getNode(dag),
+						COLLECTION_ORDER.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag), INDIVIDUAL.getNode(dag),
+						FIRST_ORDER_COLLECTION.getNode(dag) }, _COMMON_CONCEPT,
+				true);
 		dag.findOrCreateEdge(new Node[] { GENLS.getNode(dag),
 				FIRST_ORDER_COLLECTION.getNode(dag), COLLECTION.getNode(dag) },
 				_COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag),
+						FIRST_ORDER_COLLECTION.getNode(dag),
+						COLLECTION_ORDER.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { GENLS.getNode(dag),
+						SECOND_ORDER_COLLECTION.getNode(dag),
+						COLLECTION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag),
+						FIRST_ORDER_COLLECTION.getNode(dag),
+						SECOND_ORDER_COLLECTION.getNode(dag) },
+				_COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag),
+						SECOND_ORDER_COLLECTION.getNode(dag),
+						COLLECTION_ORDER.getNode(dag) }, _COMMON_CONCEPT, true);
 
 		// Primitives
 		dag.findOrCreateEdge(new Node[] { ISA.getNode(dag),

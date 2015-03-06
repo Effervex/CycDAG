@@ -85,7 +85,7 @@ public class NLPToStringModule extends DAGModule<String> {
 		// If non-DAG node, just return regular name
 		if (!(node instanceof DAGNode))
 			return node.toString();
-		
+
 		// Use prettyString-Canonical where possible
 		Collection<Node> canonicalStrs = querier_.executeAndParseVar(
 				new QueryObject(CommonConcepts.ASSERTED_SENTENCE.getNode(dag_),
@@ -208,11 +208,10 @@ public class NLPToStringModule extends DAGModule<String> {
 		}
 
 		// Get the predicate string if it exists.
-		Collection<Substitution> predicateStrings = querier_.executeQuery(
-				false,
-				new QueryObject(CommonConcepts.NLP_PREDICATE_STRING
-						.getNode(dag_), nodes[0],
-						VariableNode.DEFAULT));
+		Collection<Substitution> predicateStrings = querier_
+				.executeQuery(new QueryObject(
+						CommonConcepts.NLP_PREDICATE_STRING.getNode(dag_),
+						nodes[0], VariableNode.DEFAULT));
 		if (predicateStrings.isEmpty()) {
 			// No NLP String, revert to default
 			StringBuilder buffer = new StringBuilder();

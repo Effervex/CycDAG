@@ -47,10 +47,10 @@ public class IsaWorker extends QueryWorker {
 		else
 			transitiveArgs[1] = varNode;
 
-		QueryObject transitiveObj = (queryObj == null) ? new QueryObject(
+		QueryObject transitiveObj = (queryObj == null) ? new QueryObject(false,
 				shouldJustify, transitiveArgs) : queryObj
 				.modifyNodes(transitiveArgs);
-		querier_.executeQuery(false, transitiveObj);
+		querier_.executeQuery(transitiveObj);
 		return transitiveObj;
 	}
 
