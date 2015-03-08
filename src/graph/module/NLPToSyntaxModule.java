@@ -15,12 +15,14 @@ import graph.core.DAGNode;
 import graph.core.Edge;
 
 import java.text.Normalizer;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.text.WordUtils;
 
 public class NLPToSyntaxModule extends DAGModule<Edge> {
 	private static final long serialVersionUID = 7531237954403448195L;
+	private static final Pattern HYPHEN_TRIM = Pattern.compile("^-*(.+?)-*$");
 
 	@Override
 	public Edge execute(Object... args) throws IllegalArgumentException,
@@ -28,7 +30,7 @@ public class NLPToSyntaxModule extends DAGModule<Edge> {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	/**
 	 * Replaces special characters from the latin-1 table with the nearest
 	 * characters from the ascii table:
@@ -43,12 +45,12 @@ public class NLPToSyntaxModule extends DAGModule<Edge> {
 		String temp = Normalizer.normalize(str, Normalizer.Form.NFD);
 		Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
 		str = pattern.matcher(temp).replaceAll("");
-	
+
 		StringBuilder buffer = new StringBuilder();
 		char[] strArray = str.toCharArray();
 		for (int i = 0; i < strArray.length; i++) {
 			char c = strArray[i];
-	
+
 			if (c < 128)
 				buffer.append(c);
 			else if (c == 176)
@@ -91,13 +93,18 @@ public class NLPToSyntaxModule extends DAGModule<Edge> {
 		text = text.replaceAll("\\.", "");
 		// Remove other punctuation
 		text = text.replaceAll("[^A-Za-z0-9 ()-]", " ");
-		
+
 		text = text.replaceAll("\\(", "- ");
-		text = text.replaceAll("\\)", "");
+		text = text.replaceAll("\\)", "- ");
 
 		// Remove whitespace
 		text = WordUtils.capitalize(text);
 		text = text.replaceAll("\\s+", "");
+
+		// Trim '-' on either end
+		Matcher m = HYPHEN_TRIM.matcher(text);
+		if (m.matches())
+			text = m.group(1);
 		return text;
 	}
 
