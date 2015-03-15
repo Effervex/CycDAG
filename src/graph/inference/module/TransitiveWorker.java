@@ -120,8 +120,7 @@ public class TransitiveWorker extends QueryWorker {
 				Collection<DAGNode> functionEdges = querier_.functionResults(
 						(OntologyFunction) n, CommonConcepts.RESULT_GENL);
 				for (DAGNode resultNode : functionEdges) {
-					if (queryObj.isProof()
-							&& resultNode.equals(queryNodes[2])) {
+					if (queryObj.isProof() && resultNode.equals(queryNodes[2])) {
 						queryObj.addResult(true, new Substitution(),
 								CommonConcepts.GENLS.getNode(dag_), n,
 								resultNode);
@@ -147,8 +146,7 @@ public class TransitiveWorker extends QueryWorker {
 					selfEdges = CollectionUtils.retainAll(selfEdges, genlEdges);
 				}
 				if (!selfEdges.isEmpty()) {
-					if (queryObj
-							.addResult(true, queryNodes[0], atomic, n))
+					if (queryObj.addResult(true, queryNodes[0], atomic, n))
 						return;
 				}
 			}

@@ -55,6 +55,10 @@ public class SemanticSiblingsCommand extends CollectionCommand {
 		}
 
 		Node node = dag.findDAGNode(data);
+		if (node == null) {
+			print("-1|Could not parse node.\n");
+			return;
+		}
 		Collection<Node> parentsA = semanticModule.getParents(node);
 
 		// First, get all siblings

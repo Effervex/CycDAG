@@ -22,10 +22,12 @@ import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
 import graph.core.StringNode;
+import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
 import graph.inference.QueryResult;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
+import graph.inference.VariableNode;
 import graph.inference.module.AndWorker;
 import graph.inference.module.AssertedSentenceWorker;
 import graph.inference.module.DisjointWithWorker;
@@ -36,6 +38,7 @@ import graph.inference.module.OrWorker;
 import graph.inference.module.TransitiveWorker;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -269,11 +272,12 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	 */
 	public Collection<DAGNode> functionResults(OntologyFunction functionNode,
 			CommonConcepts resultQuery) {
+		Node[] funcNodes = functionNode.getNodes();
 		Collection<DAGNode> results = new ArrayList<>();
 		RelatedEdgeModule relatedModule = (RelatedEdgeModule) dag_
 				.getModule(RelatedEdgeModule.class);
 		Collection<Edge> resultEdges = relatedModule.findEdgeByNodes(
-				resultQuery.getNode(dag_), functionNode.getNodes()[0]);
+				resultQuery.getNode(dag_), funcNodes[0]);
 		for (Edge e : resultEdges) {
 			if (!EdgeModifier.isNegated(e, dag_))
 				results.add((DAGNode) e.getNodes()[2]);
@@ -288,12 +292,52 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				: (resultQuery == CommonConcepts.RESULT_ISA) ? CommonConcepts.RESULT_ISA_ARG
 						: null;
 		resultEdges = relatedModule.findEdgeByNodes(
-				resultArgConcept.getNode(dag_), functionNode.getNodes()[0]);
+				resultArgConcept.getNode(dag_), funcNodes[0]);
 		for (Edge e : resultEdges) {
 			Integer argIndex = Integer.parseInt(e.getNodes()[2].toString());
-			Node n = functionNode.getNodes()[argIndex];
+			Node n = funcNodes[argIndex];
 			if (n instanceof DAGNode)
 				results.add((DAGNode) n);
+		}
+
+		// Preserves genls in arg
+		CommonConcepts isaGenls = CommonConcepts.GENLS;
+		CommonConcepts preserves = CommonConcepts.PRESERVES_GENLS_IN_ARG;
+		if (resultQuery == CommonConcepts.RESULT_ISA) {
+			isaGenls = CommonConcepts.ISA;
+			preserves = CommonConcepts.PRESERVES_ISA_IN_ARG;
+		}
+
+		resultEdges = relatedModule.findEdgeByNodes(preserves.getNode(dag_),
+				funcNodes[0]);
+		if (!resultEdges.isEmpty()) {
+			// For every preserved argument
+			for (Edge e : resultEdges) {
+				// Find the genls and build as function
+				PrimitiveNode preserveIndex = (PrimitiveNode) e.getNodes()[2];
+				int index = ((Number) preserveIndex.getPrimitive()).intValue();
+				Node preserveNode = funcNodes[index];
+				if (preserveNode instanceof DAGNode) {
+					// Get the direct isa/genls
+					Collection<Edge> preserveParents = relatedModule
+							.findEdgeByNodes(isaGenls.getNode(dag_),
+									preserveNode);
+					for (Edge parent : preserveParents) {
+						// Check it is a valid arg
+						Node[] edgeNodes = parent.getNodes();
+						if (((CycDAG) dag_).isValidArgument(
+								(DAGNode) funcNodes[0], index, edgeNodes[2])) {
+							// Add as result
+							Node[] cloneArgs = Arrays.copyOf(funcNodes,
+									funcNodes.length);
+							cloneArgs[index] = edgeNodes[2];
+							results.add(((CycDAG) dag_)
+									.findOrCreateFunctionNode(false, false,
+											null, cloneArgs));
+						}
+					}
+				}
+			}
 		}
 
 		return results;

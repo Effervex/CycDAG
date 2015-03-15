@@ -63,12 +63,10 @@ public class QueryModuleTest {
 				true);
 		dag_.findOrCreateEdge(new Node[] { CommonConcepts.ISA.getNode(dag_),
 				CommonConcepts.GENLS.getNode(dag_),
-				CommonConcepts.MONOTONIC_PREDICATE.getNode(dag_) }, null,
-				true);
+				CommonConcepts.MONOTONIC_PREDICATE.getNode(dag_) }, null, true);
 		dag_.findOrCreateEdge(new Node[] { CommonConcepts.ISA.getNode(dag_),
 				CommonConcepts.ISA.getNode(dag_),
-				CommonConcepts.MONOTONIC_PREDICATE.getNode(dag_) }, null,
-				true);
+				CommonConcepts.MONOTONIC_PREDICATE.getNode(dag_) }, null, true);
 	}
 
 	@After
@@ -221,9 +219,9 @@ public class QueryModuleTest {
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertEquals(results.size(), 1);
-		
+
 		// Chucking a 'different' in the and
-		
+
 	}
 
 	@Test
@@ -404,6 +402,26 @@ public class QueryModuleTest {
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(new Substitution(x, dog)));
 		assertEquals(results, sut_.execute(disjoint, x, cat));
+
+		// Testing violation of disjoint agreement (no common instances)
+		DAGNode fluffy = (DAGNode) dag_.findOrCreateNode("Fluffy", creator,
+				true);
+		assertTrue(dag_.findOrCreateEdge(new Node[] { genls, cat, fluffy },
+				creator, true) instanceof DAGEdge);
+		// Obvious not disjoint
+		qo = new QueryObject(true, true, disjoint, cat, fluffy);
+		results = sut_.executeQuery(qo);
+		assertEquals(qo.getResultState(), QueryResult.FALSE);
+		// Common genls child
+		qo = new QueryObject(true, true, disjoint, mammal, fluffy);
+		results = sut_.executeQuery(qo);
+		assertEquals(qo.getResultState(), QueryResult.FALSE);
+		// Common isa child
+		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, fido, fluffy },
+				creator, true) instanceof DAGEdge);
+		qo = new QueryObject(true, true, disjoint, mammal, fluffy);
+		results = sut_.executeQuery(qo);
+		assertEquals(qo.getResultState(), QueryResult.FALSE);
 
 		// Sub-collection
 		DAGNode tomcat = (DAGNode) dag_.findOrCreateNode("TomCat", creator,
@@ -675,9 +693,10 @@ public class QueryModuleTest {
 				CommonConcepts.COLLECTION.getNode(dag_) }, creator, true) instanceof ErrorEdge);
 		assertFalse(dag_.findOrCreateEdge(new Node[] { genls, red, colour },
 				creator, true) instanceof ErrorEdge);
-		assertFalse(dag_.findOrCreateEdge(new Node[] { not,
-				new OntologyFunction(disjoint, mammal, colour) }, creator,
-				true) instanceof ErrorEdge);
+		assertFalse(dag_
+				.findOrCreateEdge(new Node[] { not,
+						new OntologyFunction(disjoint, mammal, colour) },
+						creator, true) instanceof ErrorEdge);
 		qo = new QueryObject(true, true, disjoint, mammal, colour);
 		assertNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
@@ -691,11 +710,14 @@ public class QueryModuleTest {
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 4);
-		assertArrayEquals(justification.get(0), new Node[] { genls, boxer, dog });
-		assertArrayEquals(justification.get(1), new Node[] { genls, dog, mammal });
+		assertArrayEquals(justification.get(0),
+				new Node[] { genls, boxer, dog });
+		assertArrayEquals(justification.get(1),
+				new Node[] { genls, dog, mammal });
 		assertArrayEquals(justification.get(2), new Node[] { not,
 				new OntologyFunction(disjoint, mammal, colour) });
-		assertArrayEquals(justification.get(3), new Node[] { genls, red, colour });
+		assertArrayEquals(justification.get(3),
+				new Node[] { genls, red, colour });
 	}
 
 	@Test
@@ -880,11 +902,35 @@ public class QueryModuleTest {
 				new Node[] { genls, wolf, canis });
 		assertArrayEquals(justification.get(1), new Node[] { genls, canis,
 				animal });
+
+		// Functions
+		DAGNode maleFn = (DAGNode) dag_.findOrCreateNode("MaleFn", creator,
+				true);
+		dag_.findOrCreateEdge(new Node[] { CommonConcepts.ISA.getNode(dag_),
+				maleFn, CommonConcepts.FUNCTION.getNode(dag_) }, creator, true);
+		DAGNode maleDog = (DAGNode) dag_.findOrCreateFunctionNode(true, false,
+				creator, maleFn, dog);
+		DAGNode preserves = CommonConcepts.PRESERVES_GENLS_IN_ARG.getNode(dag_);
+		dag_.findOrCreateEdge(
+				new Node[] { preserves, maleFn, PrimitiveNode.parseNode("1") },
+				creator, true);
+		qo = new QueryObject(true, true, genls, maleDog, VariableNode.DEFAULT);
+		results = sut_.executeQuery(qo);
+		assertEquals(qo.getResultState(), QueryResult.TRUE);
+		assertEquals(results.size(), 4);
+		assertTrue(results.contains(new Substitution(VariableNode.DEFAULT,
+				maleDog)));
+		assertTrue(results.contains(new Substitution(VariableNode.DEFAULT,
+				new OntologyFunction(maleFn, mammal))));
+		assertTrue(results.contains(new Substitution(VariableNode.DEFAULT,
+				new OntologyFunction(maleFn, canis))));
+		assertTrue(results.contains(new Substitution(VariableNode.DEFAULT,
+				new OntologyFunction(maleFn, animal))));
 	}
 
 	@Test
 	public void testExecuteGenlsStress() {
-//		dag_.noChecks_ = true;
+		// dag_.noChecks_ = true;
 		Node creator = new StringNode("TestCreator");
 		VariableNode x = VariableNode.DEFAULT;
 		DAGNode genls = (DAGNode) dag_.findOrCreateNode("genls", creator, true);
@@ -926,7 +972,7 @@ public class QueryModuleTest {
 		assertTrue(elapsed + "", elapsed < .1 * repeats);
 	}
 
-//	@Test
+	// @Test
 	public void testPredicateTransitivity() throws NamingException {
 		// TODO Not actually sure if predicates are transitive...
 		Node creator = new StringNode("TestCreator");
@@ -1370,7 +1416,8 @@ public class QueryModuleTest {
 				creator, true);
 		assertEdge(dag_.findOrCreateEdge(new Node[] { resultGenl, hardcore,
 				hardcorePlant }, creator, true));
-		qo = new QueryObject(true, true, genls, hardcorePlant, VariableNode.DEFAULT);
+		qo = new QueryObject(true, true, genls, hardcorePlant,
+				VariableNode.DEFAULT);
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertEquals(results.size(), 1);

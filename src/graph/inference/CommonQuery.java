@@ -185,9 +185,15 @@ public enum CommonQuery {
 						(OntologyFunction) args[0], CommonConcepts.RESULT_GENL));
 			break;
 		case DIRECTINSTANCE:
-			// TODO
+			if (args[0] instanceof OntologyFunction)
+				results.addAll(querier.functionResults(
+						(OntologyFunction) args[0], CommonConcepts.RESULT_ISA));
+			break;
 		case DIRECTSPECS:
-			// TODO
+			if (args[0] instanceof OntologyFunction)
+				results.addAll(querier.functionResults(
+						(OntologyFunction) args[0], CommonConcepts.RESULT_GENL));
+			break;
 		default:
 			break;
 		}

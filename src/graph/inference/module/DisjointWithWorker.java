@@ -225,6 +225,39 @@ public class DisjointWithWorker extends QueryWorker {
 							e.getNodes());
 			}
 		}
+
+		// If no result, check for common child
+		if (queryObj.isProof() && queryObj.getResultState() == QueryResult.NIL) {
+			// Genls
+			OntologyFunction genlsA = new OntologyFunction(
+					CommonConcepts.GENLS.getNode(dag_), VariableNode.DEFAULT,
+					queryObj.getNode(1));
+			OntologyFunction genlsB = new OntologyFunction(
+					CommonConcepts.GENLS.getNode(dag_), VariableNode.DEFAULT,
+					queryObj.getNode(2));
+			QueryObject andQuery = new QueryObject(false,
+					queryObj.shouldJustify(), CommonConcepts.AND.getNode(dag_),
+					genlsA, genlsB);
+			if (querier_.prove(andQuery) == QueryResult.TRUE) {
+				queryObj.addResult(false, null, andQuery.getJustification());
+				return;
+			}
+
+			// Isa
+			OntologyFunction isaA = new OntologyFunction(
+					CommonConcepts.ISA.getNode(dag_), VariableNode.DEFAULT,
+					queryObj.getNode(1));
+			OntologyFunction isaB = new OntologyFunction(
+					CommonConcepts.ISA.getNode(dag_), VariableNode.DEFAULT,
+					queryObj.getNode(2));
+			andQuery = new QueryObject(false,
+					queryObj.shouldJustify(), CommonConcepts.AND.getNode(dag_),
+					isaA, isaB);
+			if (querier_.prove(andQuery) == QueryResult.TRUE) {
+				queryObj.addResult(false, null, andQuery.getJustification());
+				return;
+			}
+		}
 	}
 
 	private boolean isException(Node node, Node node2) {

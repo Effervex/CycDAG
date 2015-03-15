@@ -187,8 +187,8 @@ public class RewriteOfModule extends DAGModule<DAGNode> {
 				Node[] newFuncNodes = rewriteEdge(targetNode, rewriteNode,
 						funcNodes, ephemeral, creator);
 				rewrittenEdgeNodes[i] = ((CycDAG) dag_)
-						.findOrCreateFunctionNode(true, ephemeral, true,
-								creator, newFuncNodes);
+						.findOrCreateFunctionNode(true, ephemeral, creator,
+								newFuncNodes);
 			}
 		}
 		return rewrittenEdgeNodes;
@@ -228,8 +228,8 @@ public class RewriteOfModule extends DAGModule<DAGNode> {
 					}
 
 					OntologyFunction newFunc = ((CycDAG) dag_)
-							.findOrCreateFunctionNode(true, ephemeral, true,
-									creator, newFuncNodes);
+							.findOrCreateFunctionNode(true, ephemeral, creator,
+									newFuncNodes);
 					rewrittenEdgeNodes[i] = newFunc;
 					i--;
 				}

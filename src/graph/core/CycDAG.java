@@ -388,18 +388,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 		boolean before = edgeQuery.shouldVerify();
 		edgeQuery.setVerify(false);
 		if (querier_.prove(edgeQuery) == QueryResult.FALSE) {
-			List<Node[]> justification = edgeQuery.getJustification();
-			if (!edgeQuery.shouldJustify()) {
-				QueryObject justifQO = new QueryObject(false, true,
-						edgeQuery.getNodes());
-				justification = justifQO.getJustification();
-				edgeQuery.addResult(false, null, justification);
-			}
-
-			Node[] contradictionNodes = (justification.isEmpty()) ? new Node[0]
-					: justification.get(justification.size() - 1);
 			NegatedErrorEdge negatedError = new NegatedErrorEdge(negated,
-					edgeQuery.getNodes(), contradictionNodes);
+					edgeQuery.getNodes());
 			edgeQuery.setRejectionReason(negatedError);
 			return negatedError;
 		}
@@ -749,8 +739,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 *            If the node can be created if not found.
 	 * @param ephemeral
 	 *            If the node should be ephemeral.
-	 * @param canReify
-	 *            If the function being created can be reified.
 	 * @param creator
 	 *            The creator (can be null).
 	 * @param args
@@ -759,7 +747,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 *         problem.
 	 */
 	public OntologyFunction findOrCreateFunctionNode(boolean createNew,
-			boolean ephemeral, boolean canReify, Node creator, Node... args) {
+			boolean ephemeral, Node creator, Node... args) {
 		if (args != null
 				&& (!createNew || isSemanticallyValid(new QueryObject(args),
 						null, false, ephemeral, false) == null)) {
@@ -795,7 +783,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			Node[] subNodes = parseNodes(nodeStr, creator, createNew, true,
 					allowVariables);
 			return findOrCreateFunctionNode(createNew,
-					bFlags.getFlag("ephemeral"), true, creator, subNodes);
+					bFlags.getFlag("ephemeral"), creator, subNodes);
 		} else if (allowVariables && nodeStr.startsWith("?")) {
 			return new VariableNode(nodeStr);
 		}

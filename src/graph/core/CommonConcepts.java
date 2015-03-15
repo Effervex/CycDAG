@@ -72,6 +72,8 @@ public enum CommonConcepts {
 	PREDICATE("Predicate"),
 	PRETTY_STRING("prettyString"),
 	PRETTY_STRING_CANONICAL("prettyString-Canonical"),
+	PRESERVES_GENLS_IN_ARG("preservesGenlsInArg"),
+	PRESERVES_ISA_IN_ARG("preservesIsaInArg"),
 	QUOTED_ISA("quotedIsa"),
 	REIFIABLE_FUNCTION("ReifiableFunction"),
 	RELATION("Relation"),
@@ -339,6 +341,23 @@ public enum CommonConcepts {
 				new Node[] { ARGISA.getNode(dag), RESULT_ISA_ARG.getNode(dag),
 						PrimitiveNode.parseNode("2"),
 						POSITIVE_INTEGER.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag),
+						PRESERVES_GENLS_IN_ARG.getNode(dag),
+						BINARY_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ARGISA.getNode(dag),
+						PRESERVES_GENLS_IN_ARG.getNode(dag),
+						PrimitiveNode.parseNode("2"),
+						POSITIVE_INTEGER.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag),
+						PRESERVES_ISA_IN_ARG.getNode(dag),
+						BINARY_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(new Node[] { ARGISA.getNode(dag),
+				PRESERVES_ISA_IN_ARG.getNode(dag),
+				PrimitiveNode.parseNode("2"), POSITIVE_INTEGER.getNode(dag) },
+				_COMMON_CONCEPT, true);
 
 		// Strictly Functional
 		dag.findOrCreateEdge(
@@ -381,7 +400,7 @@ public enum CommonConcepts {
 		dag.findOrCreateEdge(
 				new Node[] { GENLS.getNode(dag), STRING.getNode(dag),
 						CHARACTER_STRING.getNode(dag) }, _COMMON_CONCEPT, true);
-		Node theString = dag.findOrCreateFunctionNode(true, false, true,
+		Node theString = dag.findOrCreateFunctionNode(true, false,
 				_COMMON_CONCEPT, THE_FN.getNode(dag), STRING.getNode(dag));
 		dag.findOrCreateEdge(
 				new Node[] { ISA.getNode(dag), theString, STRING.getNode(dag) },

@@ -77,20 +77,20 @@ public class NLPToStringModuleTest {
 		DAGNode appleTree = (DAGNode) dag_.findOrCreateNode("AppleTree",
 				creator, true, true, true);
 		OntologyFunction apple = dag_.findOrCreateFunctionNode(true, false,
-				true, null, fruitFn, appleTree);
+				null, fruitFn, appleTree);
 		result = sut_.nodeToString(apple, false);
 		assertEquals(result, "Apple Tree (Fruit)");
 
 		DAGNode fermentedFn = (DAGNode) dag_.findOrCreateNode("FermentedFn",
 				creator, true, true, true);
 		OntologyFunction fermentedAppleTree = dag_.findOrCreateFunctionNode(
-				true, false, true, null, fermentedFn, appleTree);
+				true, false, null, fermentedFn, appleTree);
 		result = sut_.nodeToString(fermentedAppleTree, false);
 		assertEquals(result, "Apple Tree (Fermented)");
 
 		// Double wrap
 		OntologyFunction fermentedApple = dag_.findOrCreateFunctionNode(true,
-				false, true, null, fermentedFn, apple);
+				false, null, fermentedFn, apple);
 		result = sut_.nodeToString(fermentedApple, false);
 		assertEquals(result, "Apple Tree (Fruit, Fermented)");
 
@@ -107,7 +107,7 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "fermented fruit of the Apple Tree");
 
 		OntologyFunction samApple = dag_.findOrCreateFunctionNode(true, false,
-				true, null, fruitFn, samuel);
+				null, fruitFn, samuel);
 		result = sut_.nodeToString(samApple, false);
 		assertEquals(result, "fruit of the Samuel L. Jackson");
 
@@ -121,7 +121,7 @@ public class NLPToStringModuleTest {
 		DAGNode url = (DAGNode) dag_.findOrCreateNode("URLFn", creator, true,
 				true, true);
 		OntologyFunction urlFn = dag_.findOrCreateFunctionNode(true, false,
-				true, null, url, new StringNode(
+				null, url, new StringNode(
 						"http://en.wikipedia.org/wiki/Gaetano_Salvemini"));
 		result = sut_.nodeToString(urlFn, false);
 		assertEquals(
