@@ -63,6 +63,8 @@ public class NLPToStringModuleTest {
 				new StringNode("Sam Jackson") }, creator, true);
 		result = sut_.nodeToString(samuel, false);
 		assertEquals(result, "Sam Jackson");
+		result = sut_.nodeToString(samuel, true);
+		assertEquals(result, "[[SamuelLJackson|Sam Jackson]]");
 
 		DAGNode canonical = CommonConcepts.PRETTY_STRING_CANONICAL
 				.getNode(dag_);
@@ -80,6 +82,8 @@ public class NLPToStringModuleTest {
 				null, fruitFn, appleTree);
 		result = sut_.nodeToString(apple, false);
 		assertEquals(result, "Apple Tree (Fruit)");
+		result = sut_.nodeToString(apple, true);
+		assertEquals(result, "[[(FruitFn AppleTree)|Apple Tree (Fruit)]]");
 
 		DAGNode fermentedFn = (DAGNode) dag_.findOrCreateNode("FermentedFn",
 				creator, true, true, true);
@@ -127,6 +131,23 @@ public class NLPToStringModuleTest {
 		assertEquals(
 				result,
 				"<a href=\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\">\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\"</a>");
+		result = sut_.nodeToString(urlFn, true);
+		assertEquals(
+				result,
+				"<a href=\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\">\"http://en.wikipedia.org/wiki/Gaetano_Salvemini\"</a>");
+
+		// String and Primitive Nodes
+		StringNode strNode = new StringNode("Test node");
+		result = sut_.nodeToString(strNode, false);
+		assertEquals(result, "\"Test node\"");
+		result = sut_.nodeToString(strNode, true);
+		assertEquals(result, "\"Test node\"");
+		
+		PrimitiveNode primNode = PrimitiveNode.parseNode("2");
+		result = sut_.nodeToString(primNode, false);
+		assertEquals(result, "2");
+		result = sut_.nodeToString(primNode, true);
+		assertEquals(result, "2");
 	}
 
 	@Test
@@ -221,8 +242,7 @@ public class NLPToStringModuleTest {
 		DAGNode comment = CommonConcepts.COMMENT.getNode(dag_);
 		qo = new QueryObject(comment, broader, new StringNode("Test"));
 		result = sut_.edgeToString(qo, false, false, false, true);
-		assertEquals(result,
-				"broader Term does not have comment \"Test\"");
+		assertEquals(result, "broader Term does not have comment \"Test\"");
 		DAGNode arg1Isa = CommonConcepts.ARG1ISA.getNode(dag_);
 		qo = new QueryObject(arg1Isa, broader, comment);
 		result = sut_.edgeToString(qo, false, false, false, true);
@@ -314,7 +334,7 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "what things ?X are an instance of Actor OR "
 				+ "is Samuel L Jackson an instance of Actor AND "
 				+ "what things ?Y are broader than what things ?X?");
-		
+
 		// Negation
 		qo = new QueryObject(isa2, samuel, actor);
 		result = sut_.edgeToString(qo, true, false, false, true);

@@ -438,7 +438,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	}
 
 	private enum ARFFData {
-		RELATION("string"),
+		RELATION("nominal"),
 		ARG1("string"),
 		ARG2("string"),
 		DISAMB1("string"),
@@ -458,7 +458,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		INTRA_RELATION_DISJOINT("numeric"),
 		INTRA_RELATION_CONJOINT("numeric"),
 		INTRA_RELATION_UNKNOWN("numeric"),
-		CLASS("{ disjoint, conjoint, unknown }");
+		CLASS("{ disjoint, conjoint }");
 
 		private String type_;
 
@@ -739,8 +739,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 
 			String[] data = new String[ARFFData.values().length];
 			// Write string stuff
-			data[ARFFData.RELATION.ordinal()] = "'"
-					+ relation.replaceAll("'", "\\\\'") + "'";
+			data[ARFFData.RELATION.ordinal()] = relation;
 			data[ARFFData.ARG1.ordinal()] = "'"
 					+ first.replaceAll("'", "\\\\'") + "'";
 			data[ARFFData.ARG2.ordinal()] = "'"
