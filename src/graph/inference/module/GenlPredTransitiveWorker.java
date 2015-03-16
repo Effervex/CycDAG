@@ -25,8 +25,6 @@ import graph.module.QueryModule;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.apache.commons.collections4.CollectionUtils;
-
 public class GenlPredTransitiveWorker extends QueryWorker {
 	public GenlPredTransitiveWorker(QueryModule queryModule) {
 		super(queryModule);
@@ -39,20 +37,16 @@ public class GenlPredTransitiveWorker extends QueryWorker {
 			throws IllegalArgumentException {
 		// Find related edges for args
 		Node[] nodes = queryObj.getNodes();
-		Collection<Edge> nonPredEdges = getRelatedEdges(nodes);
-
-		// If not complete, try symmetric
 		boolean isSymmetric = querier_.prove(false,
-				CommonConcepts.ISA.getNode(dag_), queryObj.getNode(0),
+				CommonConcepts.ISA.getNode(dag_), nodes[0],
 				CommonConcepts.SYMMETRIC_BINARY.getNode(dag_)) == QueryResult.TRUE;
-		if (isSymmetric)
-			nonPredEdges.addAll(getRelatedEdges(new Node[] { nodes[0],
-					nodes[2], nodes[1] }));
-
+		
+		Object[] nodeArgs = asArgs(nodes, isSymmetric);
+		
 		// Sub preds
 		VariableNode varNode = new VariableNode("?SUB_PREDS");
 		Collection<Substitution> subPreds = querier_
-				.executeQuery(new QueryObject(CommonConcepts.GENLPREDS
+				.executeQuery(new QueryObject(false, false, CommonConcepts.GENLPREDS
 						.getNode(dag_), varNode, queryObj.getNode(0)));
 		if (subPreds.isEmpty())
 			subPreds.add(new Substitution(varNode, (DAGNode) queryObj
@@ -61,10 +55,11 @@ public class GenlPredTransitiveWorker extends QueryWorker {
 		// Try the subs
 		for (Substitution sub : subPreds) {
 			Node subPred = sub.getSubstitution(varNode);
-			Collection<Edge> predEdges = relatedModule_
-					.findEdgeByNodes(subPred);
-			Collection<Edge> intersect = CollectionUtils.retainAll(
-					nonPredEdges, predEdges);
+			Object[] predArgs = new Object[nodeArgs.length + 2];
+			System.arraycopy(nodeArgs, 0, predArgs, 2, nodeArgs.length);
+			predArgs[0] = subPred;
+			predArgs[1] = 1;
+			Collection<Edge> intersect = relatedModule_.execute(predArgs);
 			for (Edge interEdge : intersect) {
 				Node[] edgeNodes = interEdge.getNodes();
 				if (queryObj.addResult(
@@ -80,16 +75,15 @@ public class GenlPredTransitiveWorker extends QueryWorker {
 		}
 	}
 
-	protected Collection<Edge> getRelatedEdges(Node[] nodes) {
-		ArrayList<Object> nonPreds = new ArrayList<>();
+	private Object[] asArgs(Node[] nodes, boolean isSymmetric) {
+		ArrayList<Object> nodeArgs = new ArrayList<>();
 		for (int i = 1; i < nodes.length; i++) {
 			if (!(nodes[i] instanceof VariableNode)) {
-				nonPreds.add(nodes[i]);
-				nonPreds.add(i + 1);
+				nodeArgs.add(nodes[i]);
+				if (!isSymmetric)
+					nodeArgs.add(i + 1);
 			}
 		}
-		Collection<Edge> nonPredEdges = relatedModule_.execute(nonPreds
-				.toArray(new Object[nonPreds.size()]));
-		return nonPredEdges;
+		return nodeArgs.toArray(new Object[nodeArgs.size()]);
 	}
 }

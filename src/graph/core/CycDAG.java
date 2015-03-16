@@ -735,7 +735,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 	/**
 	 * Finds or creates a new functionally-defined node.
 	 * 
-	 * @param createNew
+	 * @param checkConstraints
 	 *            If the node can be created if not found.
 	 * @param ephemeral
 	 *            If the node should be ephemeral.
@@ -746,10 +746,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 * @return The OntologyFunction representing the node or null if there is a
 	 *         problem.
 	 */
-	public OntologyFunction findOrCreateFunctionNode(boolean createNew,
+	public OntologyFunction findOrCreateFunctionNode(boolean checkConstraints,
 			boolean ephemeral, Node creator, Node... args) {
 		if (args != null
-				&& (!createNew || isSemanticallyValid(new QueryObject(args),
+				&& (!checkConstraints || isSemanticallyValid(new QueryObject(args),
 						null, false, ephemeral, false) == null)) {
 			FunctionIndex functionIndexer = (FunctionIndex) getModule(FunctionIndex.class);
 			nodeLock_.lock();

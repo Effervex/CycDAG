@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -52,6 +53,12 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	public static final String EVALUATABLE_WORKER = "_EVALUATABLE_";
 
 	private transient Map<String, QueryWorker> inferenceModules_;
+
+	/**
+	 * A threadlocal list for checking for cycles defined by the preserved
+	 * logic.
+	 */
+	private transient ThreadLocal<Collection<Node>> seenPreservedNodes_;
 
 	// private BackwardChainer backwardChainer_;
 
@@ -224,6 +231,11 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		initInferenceModules();
 		for (QueryWorker qw : inferenceModules_.values())
 			qw.setDAG(directedAcyclicGraph);
+		seenPreservedNodes_ = new ThreadLocal<Collection<Node>>() {
+			protected Collection<Node> initialValue() {
+				return new HashSet<>();
+			}
+		};
 	}
 
 	/**
@@ -310,34 +322,45 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 
 		resultEdges = relatedModule.findEdgeByNodes(preserves.getNode(dag_),
 				funcNodes[0]);
-		if (!resultEdges.isEmpty()) {
+		// Cannot handle >1 preserves
+		if (resultEdges.size() == 1) {
 			// For every preserved argument
 			for (Edge e : resultEdges) {
+				if (EdgeModifier.isSpecial(e, dag_))
+					continue;
 				// Find the genls and build as function
 				PrimitiveNode preserveIndex = (PrimitiveNode) e.getNodes()[2];
 				int index = ((Number) preserveIndex.getPrimitive()).intValue();
 				Node preserveNode = funcNodes[index];
 				if (preserveNode instanceof DAGNode) {
+					Collection<Node> seenNodes = seenPreservedNodes_.get();
+					if (seenNodes.contains(preserveNode))
+						break;
+					seenNodes.add(preserveNode);
+					
 					// Get the direct isa/genls
 					Collection<Edge> preserveParents = relatedModule
 							.findEdgeByNodes(isaGenls.getNode(dag_),
 									preserveNode);
 					for (Edge parent : preserveParents) {
+						if (EdgeModifier.isSpecial(parent, dag_))
+							continue;
 						// Check it is a valid arg
 						Node[] edgeNodes = parent.getNodes();
-						if (((CycDAG) dag_).isValidArgument(
-								(DAGNode) funcNodes[0], index, edgeNodes[2])) {
-							// Add as result
-							Node[] cloneArgs = Arrays.copyOf(funcNodes,
-									funcNodes.length);
-							cloneArgs[index] = edgeNodes[2];
-							results.add(((CycDAG) dag_)
-									.findOrCreateFunctionNode(false, false,
-											null, cloneArgs));
-						}
+						
+						// Add as result
+						Node[] cloneArgs = Arrays.copyOf(funcNodes,
+								funcNodes.length);
+						cloneArgs[index] = edgeNodes[2];
+						OntologyFunction parentFunc = ((CycDAG) dag_)
+								.findOrCreateFunctionNode(true, false, null,
+										cloneArgs);
+						if (parentFunc != null)
+							results.add(parentFunc);
 					}
 				}
 			}
+			seenPreservedNodes_.get().clear();
 		}
 
 		return results;

@@ -917,9 +917,7 @@ public class QueryModuleTest {
 		qo = new QueryObject(true, true, genls, maleDog, VariableNode.DEFAULT);
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
-		assertEquals(results.size(), 4);
-		assertTrue(results.contains(new Substitution(VariableNode.DEFAULT,
-				maleDog)));
+		assertEquals(results.size(), 3);
 		assertTrue(results.contains(new Substitution(VariableNode.DEFAULT,
 				new OntologyFunction(maleFn, mammal))));
 		assertTrue(results.contains(new Substitution(VariableNode.DEFAULT,
