@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.lang3.StringUtils;
@@ -47,11 +48,12 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 		MultiMap<Object, Edge> nodeEdges = relatedEdges_.get(n);
 		if (nodeEdges == null)
 			return funcEdges;
-		for (Object key : nodeEdges.keySet()) {
-			if (functionOnly && key.toString().contains(FUNC_SPLIT))
-				funcEdges.addAll(nodeEdges.get(key));
-			else if (!functionOnly && !key.toString().contains(FUNC_SPLIT))
-				funcEdges.addAll(nodeEdges.get(key));
+		for (Map.Entry<Object, Collection<Edge>> entry : nodeEdges.entrySet()) {
+			if (functionOnly && entry.getKey().toString().contains(FUNC_SPLIT))
+				funcEdges.addAll(nodeEdges.get(entry.getValue()));
+			else if (!functionOnly
+					&& !entry.getKey().toString().contains(FUNC_SPLIT))
+				funcEdges.addAll(nodeEdges.get(entry.getValue()));
 		}
 		return funcEdges;
 	}
@@ -247,12 +249,14 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 		}
 
 		Collection<Edge> edges = new HashSet<>();
-		for (Object key : indexedEdges.keySet()) {
-			if (!key.equals(butEdgeKey)) {
+		for (Map.Entry<Object, Collection<Edge>> entry : indexedEdges
+				.entrySet()) {
+			if (!entry.getKey().equals(butEdgeKey)) {
 				// Need to check same function level as butEdge
-				if (StringUtils.countMatches((String) key, FUNC_SPLIT) == StringUtils
-						.countMatches((String) butEdgeKey, FUNC_SPLIT))
-					edges.addAll(indexedEdges.get(key));
+				if (StringUtils.countMatches((String) entry.getKey(),
+						FUNC_SPLIT) == StringUtils.countMatches(
+						(String) butEdgeKey, FUNC_SPLIT))
+					edges.addAll(entry.getValue());
 			}
 		}
 		return edges;

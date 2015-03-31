@@ -18,6 +18,7 @@ import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
 import graph.module.QueryModule;
@@ -41,6 +42,11 @@ public class TransitiveWorker extends QueryWorker {
 
 	private boolean canUseTransitiveModule(QueryObject queryObj) {
 		Node[] nodes = queryObj.getNodes();
+		// Can only process goal=TRUE queries
+		if (queryObj.getGoalResult() != QueryResult.TRUE)
+			return false;
+
+		// Check it's ready
 		if (transIntModule_ == null || !transIntModule_.isReady()
 				|| !transIntModule_.getTransitiveNode().equals(nodes[0]))
 			return false;

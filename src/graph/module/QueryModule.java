@@ -22,12 +22,10 @@ import graph.core.Node;
 import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
 import graph.core.StringNode;
-import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
 import graph.inference.QueryResult;
 import graph.inference.QueryWorker;
 import graph.inference.Substitution;
-import graph.inference.VariableNode;
 import graph.inference.module.AndWorker;
 import graph.inference.module.AssertedSentenceWorker;
 import graph.inference.module.DisjointWithWorker;
@@ -65,6 +63,12 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	public QueryModule() {
 	}
 
+	private void applyModule(String moduleName, QueryObject queryObj)
+			throws IllegalArgumentException {
+		initInferenceModules();
+		inferenceModules_.get(moduleName).queryInternal(queryObj);
+	}
+
 	private void initInferenceModules() {
 		if (inferenceModules_ != null)
 			return;
@@ -85,10 +89,48 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				new GenlPredTransitiveWorker(this));
 	}
 
-	private void applyModule(String moduleName, QueryObject queryObj)
-			throws IllegalArgumentException {
-		initInferenceModules();
-		inferenceModules_.get(moduleName).queryInternal(queryObj);
+	private DAGNode integerToDAGNode(Number primitive) {
+		if (primitive.intValue() == 0)
+			return CommonConcepts.ZERO.getNode(dag_);
+		else if (primitive.intValue() > 0)
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+					CommonConcepts.POSITIVE_INTEGER.getNode(dag_));
+		else
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+					CommonConcepts.NEGATIVE_INTEGER.getNode(dag_));
+	}
+
+	private DAGNode rationalToDAGNode(Number primitive) {
+		if (primitive.intValue() == 0)
+			return CommonConcepts.ZERO.getNode(dag_);
+		else if (primitive.intValue() > 0)
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+					CommonConcepts.POSITIVE_NUMBER.getNode(dag_));
+		else
+			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+					CommonConcepts.NEGATIVE_NUMBER.getNode(dag_));
+	}
+
+	private DAGNode stringToDAGNode(String name) {
+		return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
+				CommonConcepts.STRING.getNode(dag_));
+	}
+
+	/**
+	 * Parses the nodes from the variable substitutions.
+	 * 
+	 * @param qo
+	 *            The query object to run and parse.
+	 * @param var
+	 *            The variable substitutions to extract.
+	 * @return The parsed results.
+	 */
+	protected Collection<Node> executeAndParseVar(QueryObject qo, String var) {
+		Collection<Substitution> subs = executeQuery(qo);
+		if (qo.getResultState() == QueryResult.TRUE)
+			return parseResultsFromSubstitutions(var, subs);
+		else
+			return new ArrayList<>();
 	}
 
 	/**
@@ -111,24 +153,10 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		boolean negated = queryObj.getNode(0).equals(
 				CommonConcepts.NOT.getNode(dag_));
 		QueryObject origQO = queryObj;
-		if (negated)
+		if (negated) {
 			queryObj = queryObj.modifyNodes(((OntologyFunction) queryObj
 					.getNode(1)).getNodes());
-
-		// Verify arguments before executing module.
-		if (queryObj.shouldVerify()) {
-			ErrorEdge ee = ((CycDAG) dag_).verifyEdgeArguments(queryObj,
-					negated, false, null, false);
-			if (queryObj.isProof() || ee != null) {
-				if (negated)
-					queryObj.flipResultState();
-				if (queryObj.getResultState() == QueryResult.FALSE)
-					queryObj.setRejectionReason(ee);
-				if (origQO.shouldJustify())
-					origQO.setJustification(queryObj.getJustification());
-				queryObj.setRun(true);
-				return queryObj.getResults();
-			}
+			queryObj.flipResultState();
 		}
 
 		String module = DEFAULT_WORKER;
@@ -142,10 +170,12 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 			// Iterate through prior variable matches (in toComplete) to
 			// minimise query to 1 or fewer variables.
 			Node[] nodes = queryObj.getNodes();
+			boolean isComplete = false;
 			for (Substitution variableMatch : priorSubs) {
 				QueryObject instantiated = queryObj.modifyNodes(variableMatch,
 						variableMatch.applySubstitution(nodes));
 				applyModule(module, instantiated);
+				isComplete |= instantiated.getResultState() == QueryResult.TRUE;
 				if (instantiated.shouldJustify()) {
 					List<Node[]> justification = instantiated
 							.getJustification();
@@ -158,14 +188,32 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				}
 			}
 
-			if (negated)
-				queryObj.flipResultState();
+			if (isComplete)
+				queryObj.setResultState(QueryResult.TRUE);
 			if (origQO.shouldJustify())
 				origQO.setJustification(queryObj.getJustification());
 			queryObj.setRun(true);
 			return queryObj.getResults();
 		} else {
 			applyModule(module, queryObj);
+
+			// Verify arguments after executing module.
+			if (queryObj.shouldVerify()
+					&& queryObj.getResultState() == QueryResult.NIL) {
+				ErrorEdge ee = ((CycDAG) dag_).verifyEdgeArguments(queryObj,
+						negated, false, null, false);
+				if (queryObj.isProof() || ee != null) {
+					if (negated)
+						queryObj.flipResultState();
+					if (queryObj.getResultState() == QueryResult.FALSE)
+						queryObj.setRejectionReason(ee);
+					if (origQO.shouldJustify())
+						origQO.setJustification(queryObj.getJustification());
+					queryObj.setRun(true);
+					return queryObj.getResults();
+				}
+			}
+
 			if (negated)
 				queryObj.flipResultState();
 			if (origQO.shouldJustify())
@@ -173,102 +221,6 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 			queryObj.setRun(true);
 			return queryObj.getResults();
 		}
-	}
-
-	public QueryResult prove(boolean checkValidity, Node... nodes) {
-		QueryObject qo = new QueryObject(checkValidity, false, nodes);
-		return prove(qo);
-	}
-
-	public QueryResult prove(QueryObject queryObject) {
-		executeQuery(queryObject);
-		return queryObject.getResultState();
-	}
-
-	/**
-	 * Parses the nodes from the variable substitutions.
-	 * 
-	 * @param qo
-	 *            The query object to run and parse.
-	 * @param var
-	 *            The variable substitutions to extract.
-	 * @return The parsed results.
-	 */
-	protected Collection<Node> executeAndParseVar(QueryObject qo, String var) {
-		Collection<Substitution> subs = executeQuery(qo);
-		if (qo.getResultState() == QueryResult.TRUE)
-			return parseResultsFromSubstitutions(var, subs);
-		else
-			return new ArrayList<>();
-	}
-
-	/**
-	 * Parses results from a collection of substitutions.
-	 * 
-	 * @param var
-	 *            The variable to parse out.
-	 * @param subs
-	 *            The collection of substitutions.
-	 * @return A collection of nodes representing the substitutions for the
-	 *         variable.
-	 */
-	public static Collection<Node> parseResultsFromSubstitutions(Object var,
-			Collection<Substitution> subs) {
-		if (subs == null)
-			return null;
-		Collection<Node> results = new ArrayList<>(subs.size());
-		for (Substitution s : subs) {
-			Node res = s.getSubstitution(var);
-			results.add(res);
-		}
-		return results;
-	}
-
-	@Override
-	public void setDAG(DirectedAcyclicGraph directedAcyclicGraph) {
-		super.setDAG(directedAcyclicGraph);
-
-		initInferenceModules();
-		for (QueryWorker qw : inferenceModules_.values())
-			qw.setDAG(directedAcyclicGraph);
-		seenPreservedNodes_ = new ThreadLocal<Collection<Node>>() {
-			protected Collection<Node> initialValue() {
-				return new HashSet<>();
-			}
-		};
-	}
-
-	/**
-	 * Gets the expanded set of nodes that all represent the input node. This is
-	 * used for decoding functions, Strings and primitives.
-	 * 
-	 * @param node
-	 *            The node to expand.
-	 * @return The set of nodes representing the expanded node.
-	 */
-	public DAGNode getExpanded(Node node) {
-		if (node == null)
-			return null;
-		if (node instanceof StringNode) {
-			return stringToDAGNode(node.getName());
-		} else if (node instanceof PrimitiveNode) {
-			PrimitiveNode primNode = (PrimitiveNode) node;
-			if (primNode.getPrimitive() instanceof Integer
-					|| primNode.getPrimitive() instanceof Short
-					|| primNode.getPrimitive() instanceof Long)
-				return integerToDAGNode((Number) primNode.getPrimitive());
-			else if (primNode.getPrimitive() instanceof Boolean) {
-				if ((Boolean) primNode.getPrimitive())
-					return CommonConcepts.TRUE.getNode(dag_);
-				else
-					return CommonConcepts.FALSE.getNode(dag_);
-			} else if (primNode.getPrimitive() instanceof Double
-					|| primNode.getPrimitive() instanceof Float)
-				return rationalToDAGNode((Number) primNode.getPrimitive());
-			else if (primNode.getPrimitive() instanceof Character)
-				return stringToDAGNode(node.getName());
-		}
-		return (DAGNode) node;
 	}
 
 	/**
@@ -313,84 +265,115 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		}
 
 		// Preserves genls in arg
-		CommonConcepts isaGenls = CommonConcepts.GENLS;
-		CommonConcepts preserves = CommonConcepts.PRESERVES_GENLS_IN_ARG;
-		if (resultQuery == CommonConcepts.RESULT_ISA) {
-			isaGenls = CommonConcepts.ISA;
-			preserves = CommonConcepts.PRESERVES_ISA_IN_ARG;
-		}
-
-		resultEdges = relatedModule.findEdgeByNodes(preserves.getNode(dag_),
-				funcNodes[0]);
-		// Cannot handle >1 preserves
-		if (resultEdges.size() == 1) {
-			// For every preserved argument
-			for (Edge e : resultEdges) {
-				if (EdgeModifier.isSpecial(e, dag_))
-					continue;
-				// Find the genls and build as function
-				PrimitiveNode preserveIndex = (PrimitiveNode) e.getNodes()[2];
-				int index = ((Number) preserveIndex.getPrimitive()).intValue();
-				Node preserveNode = funcNodes[index];
-				if (preserveNode instanceof DAGNode) {
-					Collection<Node> seenNodes = seenPreservedNodes_.get();
-					if (seenNodes.contains(preserveNode))
-						break;
-					seenNodes.add(preserveNode);
-					
-					// Get the direct isa/genls
-					Collection<Edge> preserveParents = relatedModule
-							.findEdgeByNodes(isaGenls.getNode(dag_),
-									preserveNode);
-					for (Edge parent : preserveParents) {
-						if (EdgeModifier.isSpecial(parent, dag_))
-							continue;
-						// Check it is a valid arg
-						Node[] edgeNodes = parent.getNodes();
-						
-						// Add as result
-						Node[] cloneArgs = Arrays.copyOf(funcNodes,
-								funcNodes.length);
-						cloneArgs[index] = edgeNodes[2];
-						OntologyFunction parentFunc = ((CycDAG) dag_)
-								.findOrCreateFunctionNode(true, false, null,
-										cloneArgs);
-						if (parentFunc != null)
-							results.add(parentFunc);
-					}
-				}
-			}
-			seenPreservedNodes_.get().clear();
-		}
+		// TODO This isn't working - creating infinite loop
+//		CommonConcepts isaGenls = CommonConcepts.GENLS;
+//		CommonConcepts preserves = CommonConcepts.PRESERVES_GENLS_IN_ARG;
+//		if (resultQuery == CommonConcepts.RESULT_ISA) {
+//			isaGenls = CommonConcepts.ISA;
+//			preserves = CommonConcepts.PRESERVES_ISA_IN_ARG;
+//		}
+//
+//		resultEdges = relatedModule.findEdgeByNodes(preserves.getNode(dag_),
+//				funcNodes[0]);
+//		// Cannot handle >1 preserves
+//		if (resultEdges.size() == 1) {
+//			// For every preserved argument
+//			for (Edge e : resultEdges) {
+//				if (EdgeModifier.isSpecial(e, dag_))
+//					continue;
+//				// Find the genls and build as function
+//				PrimitiveNode preserveIndex = (PrimitiveNode) e.getNodes()[2];
+//				int index = ((Number) preserveIndex.getPrimitive()).intValue();
+//				Node preserveNode = funcNodes[index];
+//				if (preserveNode instanceof DAGNode) {
+//					Collection<Node> seenNodes = seenPreservedNodes_.get();
+//					if (seenNodes.contains(preserveNode))
+//						break;
+//					seenNodes.add(preserveNode);
+//
+//					// Get the direct isa/genls
+//					Collection<Edge> preserveParents = relatedModule
+//							.findEdgeByNodes(isaGenls.getNode(dag_),
+//									preserveNode);
+//					for (Edge parent : preserveParents) {
+//						if (EdgeModifier.isSpecial(parent, dag_))
+//							continue;
+//						// Check it is a valid arg
+//						Node[] edgeNodes = parent.getNodes();
+//
+//						// Add as result
+//						Node[] cloneArgs = Arrays.copyOf(funcNodes,
+//								funcNodes.length);
+//						cloneArgs[index] = edgeNodes[2];
+//						OntologyFunction parentFunc = ((CycDAG) dag_)
+//								.findOrCreateFunctionNode(true, false, null,
+//										cloneArgs);
+//						if (parentFunc != null)
+//							results.add(parentFunc);
+//					}
+//				}
+//			}
+//			seenPreservedNodes_.get().clear();
+//		}
 
 		return results;
 	}
 
-	private DAGNode rationalToDAGNode(Number primitive) {
-		if (primitive.intValue() == 0)
-			return CommonConcepts.ZERO.getNode(dag_);
-		else if (primitive.intValue() > 0)
-			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
-					CommonConcepts.POSITIVE_NUMBER.getNode(dag_));
-		else
-			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
-					CommonConcepts.NEGATIVE_NUMBER.getNode(dag_));
+	/**
+	 * Gets the expanded set of nodes that all represent the input node. This is
+	 * used for decoding functions, Strings and primitives.
+	 * 
+	 * @param node
+	 *            The node to expand.
+	 * @return The set of nodes representing the expanded node.
+	 */
+	public DAGNode getExpanded(Node node) {
+		if (node == null)
+			return null;
+		if (node instanceof StringNode) {
+			return stringToDAGNode(node.getName());
+		} else if (node instanceof PrimitiveNode) {
+			PrimitiveNode primNode = (PrimitiveNode) node;
+			if (primNode.getPrimitive() instanceof Integer
+					|| primNode.getPrimitive() instanceof Short
+					|| primNode.getPrimitive() instanceof Long)
+				return integerToDAGNode((Number) primNode.getPrimitive());
+			else if (primNode.getPrimitive() instanceof Boolean) {
+				if ((Boolean) primNode.getPrimitive())
+					return CommonConcepts.TRUE.getNode(dag_);
+				else
+					return CommonConcepts.FALSE.getNode(dag_);
+			} else if (primNode.getPrimitive() instanceof Double
+					|| primNode.getPrimitive() instanceof Float)
+				return rationalToDAGNode((Number) primNode.getPrimitive());
+			else if (primNode.getPrimitive() instanceof Character)
+				return stringToDAGNode(node.getName());
+		}
+		return (DAGNode) node;
 	}
 
-	private DAGNode integerToDAGNode(Number primitive) {
-		if (primitive.intValue() == 0)
-			return CommonConcepts.ZERO.getNode(dag_);
-		else if (primitive.intValue() > 0)
-			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
-					CommonConcepts.POSITIVE_INTEGER.getNode(dag_));
-		else
-			return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
-					CommonConcepts.NEGATIVE_INTEGER.getNode(dag_));
+	public QueryResult prove(boolean checkValidity, Node... nodes) {
+		QueryObject qo = new QueryObject(checkValidity, false, QueryResult.ALL, nodes);
+		return prove(qo);
 	}
 
-	private DAGNode stringToDAGNode(String name) {
-		return new OntologyFunction(CommonConcepts.THE_FN.getNode(dag_),
-				CommonConcepts.STRING.getNode(dag_));
+	public QueryResult prove(QueryObject queryObject) {
+		executeQuery(queryObject);
+		return queryObject.getResultState();
+	}
+
+	@Override
+	public void setDAG(DirectedAcyclicGraph directedAcyclicGraph) {
+		super.setDAG(directedAcyclicGraph);
+
+		initInferenceModules();
+		for (QueryWorker qw : inferenceModules_.values())
+			qw.setDAG(directedAcyclicGraph);
+		seenPreservedNodes_ = new ThreadLocal<Collection<Node>>() {
+			protected Collection<Node> initialValue() {
+				return new HashSet<>();
+			}
+		};
 	}
 
 	@Override
@@ -401,5 +384,27 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	@Override
 	public boolean supportsNode(DAGNode node) {
 		return false;
+	}
+
+	/**
+	 * Parses results from a collection of substitutions.
+	 * 
+	 * @param var
+	 *            The variable to parse out.
+	 * @param subs
+	 *            The collection of substitutions.
+	 * @return A collection of nodes representing the substitutions for the
+	 *         variable.
+	 */
+	public static Collection<Node> parseResultsFromSubstitutions(Object var,
+			Collection<Substitution> subs) {
+		if (subs == null)
+			return null;
+		Collection<Node> results = new ArrayList<>(subs.size());
+		for (Substitution s : subs) {
+			Node res = s.getSubstitution(var);
+			results.add(res);
+		}
+		return results;
 	}
 }

@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import util.ObjectWrapper;
 
@@ -52,7 +54,7 @@ public class QueryObject {
 	/** Any prior substitutions to apply to the nodes. */
 	private Substitution priorSubstitution_;
 	/** The substitutions for a result. */
-	private ArrayList<Substitution> results_;
+	private SortedSet<Substitution> results_;
 	/** The substitutions for a result in set form. */
 	private Set<Substitution> resultsSet_;
 	/** The substitutions yet to be matched. */
@@ -70,6 +72,11 @@ public class QueryObject {
 	private boolean hasRun_ = false;
 	/** If the arguments should be verified. */
 	private boolean verifyArguments_ = true;
+	/** The query should only be run when the goal result can be attained. */
+	private QueryResult goalResult_;
+
+	// TODO Implement a 'cares about' variable so queries can be skipped if they
+	// don't produce the cared about answer.
 
 	/**
 	 * Constructor for a new QueryObject. This QO is initialised with no
@@ -79,7 +86,7 @@ public class QueryObject {
 	 *            The nodes of the query.
 	 */
 	public QueryObject(Node... nodes) {
-		this(false, false, nodes);
+		this(false, false, QueryResult.ALL, nodes);
 	}
 
 	/**
@@ -87,20 +94,24 @@ public class QueryObject {
 	 * 
 	 * @param needJustification
 	 *            If a justification is required.
+	 * @param goalResult
+	 *            The goal result for this query (i.e. what are we
+	 *            interpreting?). Default to ALL.
 	 * @param nodes
 	 *            The nodes of the query.
 	 */
 	public QueryObject(boolean shouldVerify, boolean needJustification,
-			Node... nodes) {
+			QueryResult goalResult, Node... nodes) {
 		verifyArguments_ = shouldVerify;
 		nodes_ = nodes;
 		buildAtomicVariableSets(nodes);
-		results_ = new ArrayList<>();
+		results_ = new TreeSet<>();
 		resultsSet_ = new HashSet<>();
 		completed_ = new ArrayList<>();
 		completedSet_ = new HashSet<>();
 		needJustification_ = needJustification;
 		justification_ = new ArrayList<>();
+		goalResult_ = goalResult;
 	}
 
 	private void buildAtomicVariableSets(Node... nodes) {
@@ -376,13 +387,14 @@ public class QueryObject {
 	 */
 	public QueryObject modifyNodes(Node... nodes) {
 		QueryObject newObj = new QueryObject(verifyArguments_,
-				needJustification_, nodes);
+				needJustification_, goalResult_, nodes);
 		newObj.completed_ = completed_;
 		newObj.completedSet_ = completedSet_;
 		newObj.results_ = results_;
 		newObj.resultsSet_ = resultsSet_;
 		newObj.toComplete_ = toComplete_;
 		newObj.resultState_ = resultState_;
+		newObj.priorSubstitution_ = priorSubstitution_;
 		return newObj;
 	}
 
@@ -391,9 +403,13 @@ public class QueryObject {
 	}
 
 	public QueryObject modifyNodes(Substitution baseSub, Node... nodes) {
-		QueryObject qo = modifyNodes(nodes);
-		qo.priorSubstitution_ = baseSub;
-		return qo;
+		QueryObject newObj = new QueryObject(verifyArguments_,
+				needJustification_, goalResult_, nodes);
+		newObj.results_ = results_;
+		newObj.resultsSet_ = resultsSet_;
+		newObj.toComplete_ = toComplete_;
+		newObj.priorSubstitution_ = baseSub;
+		return newObj;
 	}
 
 	public void setToComplete(Collection<Substitution> intersect) {
@@ -426,6 +442,13 @@ public class QueryObject {
 		return resultState_.object_;
 	}
 
+	/**
+	 * Sets the state of the executed query object - TRUE, FALSE, or NIL.
+	 */
+	public void setResultState(QueryResult result) {
+		resultState_.object_ = result;
+	}
+
 	public void flipResultState() {
 		if (resultState_.object_ == QueryResult.TRUE) {
 			resultState_.object_ = QueryResult.FALSE;
@@ -437,6 +460,11 @@ public class QueryObject {
 			results_.add(s);
 			resultsSet_.add(s);
 		}
+		
+		if (goalResult_ == QueryResult.TRUE)
+			goalResult_ = QueryResult.FALSE;
+		if (goalResult_ == QueryResult.FALSE)
+			goalResult_ = QueryResult.TRUE;
 	}
 
 	public ErrorEdge getRejectionReason() {
@@ -465,5 +493,34 @@ public class QueryObject {
 
 	public void setVerify(boolean shouldVerify) {
 		verifyArguments_ = shouldVerify;
+	}
+
+	/**
+	 * If the goal of this query desires a particular result.
+	 *
+	 * @param result
+	 *            The result that could be produced.
+	 * @return True if the goal allows the result.
+	 */
+	public boolean desiresResult(QueryResult result) {
+		// If all results, or goal is open, return true
+		if (goalResult_ == QueryResult.ALL || result == QueryResult.ALL
+				|| result == QueryResult.NIL)
+			return true;
+		// If after true and true, return true
+		if (result == QueryResult.TRUE && goalResult_ == QueryResult.TRUE)
+			return true;
+		// If after false and false, return true
+		if (result == QueryResult.FALSE && goalResult_ == QueryResult.FALSE)
+			return true;
+		return false;
+	}
+
+	public QueryResult getGoalResult() {
+		return goalResult_;
+	}
+
+	public void setGoalResult(QueryResult newGoal) {
+		goalResult_ = newGoal;
 	}
 }

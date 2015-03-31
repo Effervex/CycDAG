@@ -25,6 +25,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+import org.apache.commons.collections4.CollectionUtils;
 
 public class AndWorker extends QueryWorker {
 	private static final long serialVersionUID = 3867218930317989260L;
@@ -34,8 +38,8 @@ public class AndWorker extends QueryWorker {
 		super(queryModule);
 	}
 
-	@Override
-	public void queryInternal(QueryObject queryObj)
+	// @Override
+	public void queryInternal2(QueryObject queryObj)
 			throws IllegalArgumentException {
 		// Break the 'and' into separate queries
 		Node[] nodes = queryObj.getNodes();
@@ -44,7 +48,7 @@ public class AndWorker extends QueryWorker {
 		for (int i = 1; i < nodes.length; i++) {
 			if (nodes[i] instanceof OntologyFunction) {
 				QueryObject subQO = new QueryObject(queryObj.shouldVerify(),
-						queryObj.shouldJustify(),
+						queryObj.shouldJustify(), QueryResult.ALL,
 						((OntologyFunction) nodes[i]).getNodes());
 				components.add(subQO);
 				if (isEvaluatable(subQO))
@@ -108,7 +112,7 @@ public class AndWorker extends QueryWorker {
 					// Set up an intersect operation
 					maxBound = 0;
 				}
-				
+
 				// If proof
 				if (lowQO.isProof()) {
 					smallestQO = lowQO;
@@ -165,6 +169,142 @@ public class AndWorker extends QueryWorker {
 			queryObj.addResults(true, intersect);
 	}
 
+	@Override
+	public void queryInternal(QueryObject queryObj)
+			throws IllegalArgumentException {
+		// Break the 'and' into separate queries
+		Node[] nodes = queryObj.getNodes();
+		List<QueryObject> components = new ArrayList<>();
+		Collection<QueryObject> evaluatables = new HashSet<>();
+		for (int i = 1; i < nodes.length; i++) {
+			if (nodes[i] instanceof OntologyFunction) {
+				QueryObject subQO = new QueryObject(queryObj.shouldVerify(),
+						queryObj.shouldJustify(), QueryResult.ALL,
+						((OntologyFunction) nodes[i]).getNodes());
+				components.add(subQO);
+				if (isEvaluatable(subQO))
+					evaluatables.add(subQO);
+			} else if (!nodes[i].equals(PrimitiveNode.parseNode("true")))
+				return;
+		}
+
+		// Continue until every OntFunc evaluated (or early exit)
+		Collection<String> boundVariables = new HashSet<>();
+		Collection<Substitution> intersect = null;
+		while (!components.isEmpty()) {
+			// Find the QOs with the fewest free variables and most bound
+			// variables.
+			QueryObject lowestQO = null;
+			int minFree = Integer.MAX_VALUE;
+			int maxBound = 0;
+			boolean evalPred = false;
+			for (QueryObject component : components) {
+				// Count the free variables.
+				int numFree = 0;
+				int numBound = 0;
+				for (VariableNode v : component.getVariables()) {
+					if (!boundVariables.contains(v.toString()))
+						numFree++;
+					else
+						numBound++;
+				}
+
+				// Special case for evaluatables - run as soon as possible,
+				// otherwise ignore
+				if (evaluatables.contains(component)) {
+					if (numFree == 0) {
+						lowestQO = component;
+						evalPred = true;
+						break;
+					} else
+						continue;
+				}
+
+				if (numFree < minFree
+						|| (numFree == minFree && numBound > maxBound)) {
+					lowestQO = component;
+					minFree = numFree;
+					maxBound = numBound;
+				}
+			}
+
+			Collection<String> lowestVariables = new HashSet<>();
+			for (VariableNode vn : lowestQO.getVariables())
+				lowestVariables.add(vn.toString());
+
+			// Run the lowest QO
+			// Only set to complete if the intersect of the lowestQO and the
+			// boundVariables is a subset (or we have an evaluation pred)
+			Collection<String> intersectBind = CollectionUtils.intersection(
+					lowestVariables, boundVariables);
+			boolean existingBinding = evalPred
+					|| !intersectBind.isEmpty()
+					&& !intersectBind.equals(CollectionUtils.union(
+							lowestVariables, boundVariables));
+			if (existingBinding)
+				lowestQO.setToComplete(intersect);
+			querier_.executeQuery(lowestQO);
+			Collection<Substitution> results = lowestQO.getResults();
+
+			// Quit if the query is false
+			if (lowestQO.getResultState() == QueryResult.FALSE) {
+				queryObj.addResults(false, results);
+				queryObj.setRejectionReason(lowestQO.getRejectionReason());
+				return;
+			}
+
+			// Quit if no proof is found or no variables can match.
+			if (queryObj.isProof() && results == null || results.isEmpty())
+				return;
+
+			// Update the intersection
+			// If intersect is null, used an existing binding, or the bound
+			// variables is empty
+			if (intersect == null || existingBinding
+					|| boundVariables.isEmpty())
+				intersect = results;
+			else if (lowestVariables.equals(boundVariables)) {
+				// There was a bindings equal to the number of bound, just
+				// retain all
+				intersect = CollectionUtils.intersection(intersect, results);
+			} else {
+				// Merge results
+				SortedSet<Substitution> merged = new TreeSet<>();
+				for (Substitution iSub : intersect) {
+					for (Substitution rSub : results) {
+						Substitution s = new Substitution(
+								iSub.getSubstitutionMap());
+						s.getSubstitutionMap()
+								.putAll(rSub.getSubstitutionMap());
+						merged.add(s);
+					}
+				}
+				intersect = merged;
+			}
+			// Quit if no proof is found or no variables can match.
+			if (queryObj.isProof() && intersect == null || intersect.isEmpty())
+				return;
+
+			boundVariables.addAll(lowestVariables);
+
+			// Add justification
+			if (queryObj.shouldJustify()) {
+				if (!queryObj.getJustification().isEmpty())
+					queryObj.getJustification().add(new Node[0]);
+				queryObj.getJustification().addAll(lowestQO.getJustification());
+			}
+
+			// Remove from choices
+			components.remove(lowestQO);
+		}
+
+		// Add the intersect results
+		if (queryObj.isProof()) {
+			queryObj.addResult(true, new Substitution());
+		} else
+			queryObj.addResults(true, intersect);
+	}
+
 	/**
 	 * If this query predicate is an evaluatable predicate
 	 *
@@ -201,10 +341,10 @@ public class AndWorker extends QueryWorker {
 					// For each variable
 					Map<String, Node> subMap = subS.getSubstitutionMap();
 					boolean keepSub = true;
-					for (String key : subMap.keySet()) {
-						if (subI.containsVariable(key)
-								&& !subI.getSubstitution(key).equals(
-										subMap.get(key))) {
+					for (Map.Entry<String, Node> entry : subMap.entrySet()) {
+						if (subI.containsVariable(entry.getKey())
+								&& !subI.getSubstitution(entry.getKey()).equals(
+										entry.getValue())) {
 							keepSub = false;
 							break;
 						}

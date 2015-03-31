@@ -62,7 +62,7 @@ public class QueryCommand extends CollectionCommand {
 			return;
 		}
 
-		QueryObject qo = new QueryObject(true, false, args);
+		QueryObject qo = new QueryObject(true, false, QueryResult.ALL, args);
 		Collection<Substitution> substitutions = queryModule.executeQuery(qo);
 
 		// Sort
@@ -93,10 +93,13 @@ public class QueryCommand extends CollectionCommand {
 		for (Substitution sub : substitutions) {
 			Map<String, Node> varSub = sub.getSubstitutionMap();
 			boolean first = true;
-			for (String var : varSub.keySet()) {
+			for (Map.Entry<String, Node> entry : varSub.entrySet()) {
+				if (entry.getKey().startsWith("??"))
+					continue;
 				if (!first)
 					print(",");
-				print(var + "/" + dagHandler.textIDObject(varSub.get(var)));
+				print(entry.getKey() + "/"
+						+ dagHandler.textIDObject(entry.getValue()));
 				first = false;
 			}
 			print("|");

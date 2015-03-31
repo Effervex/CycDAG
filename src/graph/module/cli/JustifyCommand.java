@@ -79,7 +79,7 @@ public class JustifyCommand extends Command {
 			print("-1|Could not parse arguments.\n");
 			return;
 		}
-		QueryObject qo = new QueryObject(true, true, args);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, args);
 		queryModule.executeQuery(qo);
 		if (qo.getResultState() == QueryResult.NIL) {
 			print("0|NIL\n");

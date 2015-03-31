@@ -13,6 +13,7 @@ import graph.module.RelatedEdgeModule;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -124,11 +125,11 @@ public class CustomEdgesCommand extends CollectionCommand {
 		}
 
 		// Print the edges, in sorted and shortened order
-		for (DAGNode key : predEdges.keySet()) {
+		for (Map.Entry<DAGNode, SortedSet<Edge>> entry : predEdges.entrySet()) {
 			// Pred key
-			print(dagHandler.textIDObject(key) + "|");
+			print(dagHandler.textIDObject(entry.getKey()) + "|");
 			Collection<Edge> sortedEdges = dagHandler.postProcess(
-					predEdges.get(key), rangeStart_, rangeEnd_, true);
+					entry.getValue(), rangeStart_, rangeEnd_, true);
 			// Num edges
 			print(sortedEdges.size() + "|");
 			if (sortedEdges.isEmpty())

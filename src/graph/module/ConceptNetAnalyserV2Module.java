@@ -3,9 +3,11 @@ package graph.module;
 import graph.core.CommonConcepts;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
+import graph.core.DirectedAcyclicGraph;
+import graph.core.EdgeModifier;
 import graph.core.Node;
-import graph.core.StringNode;
 import graph.inference.CommonQuery;
+import graph.inference.QueryObject;
 import graph.inference.QueryResult;
 
 import java.io.BufferedReader;
@@ -15,13 +17,13 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.LineNumberReader;
+import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -30,11 +32,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import util.Pair;
-import util.UtilityMethods;
 import util.collection.MultiMap;
 
 /**
@@ -46,19 +46,16 @@ import util.collection.MultiMap;
  * @author Sam Sarjant
  */
 public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
-	private static final Node CREATOR = new StringNode("DisjointDiscovery");
+	private static final String ARFF_OUT = "DisjointData.arff";
 	private static final File DISJOINT_OUT = new File("createdDisjoints.txt");
+	private static final String PARSED = "parsed";
+
 	private static final Pattern RELATION_PATTERN = Pattern
 			.compile("/a/\\[.+?\\]\t/r/(\\S+)\t/c/[a-z]+/([^ \t/]+)\\S*\t/c/[a-z]+/([^ \t/]+)\t\\S+\t[\\d.]+.+?$");
 	private static final long serialVersionUID = 1L;
-
 	public static final int CONJOINT = 1;
 	public static final int DISJOINT = 0;
 	public static final int UNKNOWN = 2;
-	private static final String PARSED = "parsed";
-	private static final String ARFF_OUT = "DisjointData.arff";
-
-	private final int _STATMIN = 30;
 
 	private transient NodeAliasModule aliasModule_;
 
@@ -71,7 +68,8 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 
 	/** The QueryModule access. */
 	private transient QueryModule queryModule_;
-	private boolean assertDisj_ = false;
+	private Map<String, RelationData> relDataMap_;
+	private transient SemanticSimilarityModule semSimModule_;
 
 	/**
 	 * Calculates the common parents of two nodes.
@@ -91,29 +89,6 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	}
 
 	/**
-	 * Creates a disjoint edge from two nodes.
-	 *
-	 * @param objA
-	 *            The left side of the disjoint edge.
-	 * @param objB
-	 *            The right side of the disjoint edge.
-	 * @param assertDisj
-	 *            If the edges should be asserted to the DAG.
-	 * @return The assertion edge.
-	 * @throws IOException
-	 *             Should something go awry...
-	 */
-	private String createDisjointEdge(DAGNode objA, DAGNode objB,
-			boolean assertDisj) throws IOException {
-		Node[] edgeNodes = { CommonConcepts.DISJOINTWITH.getNode(dag_), objA,
-				objB };
-		String edge = "(" + StringUtils.join(edgeNodes, ' ') + ")";
-		if (assertDisj)
-			dag_.findOrCreateEdge(edgeNodes, CREATOR, true, false);
-		return edge;
-	}
-
-	/**
 	 * Disambiguates the concept into one or more nodes.
 	 *
 	 * @param conceptName
@@ -126,68 +101,24 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	@SuppressWarnings("unchecked")
 	private Collection<DAGNode> disambiguate(String conceptName, boolean useIsas) {
 		// Disambiguate
-		Collection<DAGNode> nodes = aliasModule_.findNodes(conceptName, false,
-				true);
-
-		if (!nodes.isEmpty()) {
-			// Return all disambiguations
-			return nodes;
-		} else if (useIsas) {
-			// TODO Return isa edges if applicable.
-			// nodes = isaEdges_.get(conceptName);
-			// if (nodes != null)
-			// return nodes;
+		Collection<DAGNode> nodes = new ArrayList<>();
+		// Only keep collections
+		for (Node node : aliasModule_.findNodes(conceptName, false, true)) {
+			if (queryModule_.prove(false, CommonConcepts.ISA.getNode(dag_),
+					node, CommonConcepts.COLLECTION.getNode(dag_)) == QueryResult.TRUE) {
+				nodes.add((DAGNode) node);
+			}
 		}
 
-		return CollectionUtils.EMPTY_COLLECTION;
-	}
-
-	private boolean isSignificant(int[] counts, int threshold) {
-		return counts[DISJOINT] + counts[CONJOINT] >= threshold;
-	}
-
-	protected boolean shouldCreateDisjoint(UnknownPair unknownPair,
-			RelationData rData, String[] outputString) {
-		Collection<DAGNode> unknownParents = unknownPair.commonParents_;
-		// Remove non-significant parents
-		for (Iterator<DAGNode> iter = unknownParents.iterator(); iter.hasNext();) {
-			DAGNode parent = iter.next();
-			if (!isSignificant(
-					rData.intraNodeCounts_.get(parent.getIdentifier(true)),
-					_STATMIN))
-				iter.remove();
+		// Add isa information too if we have it.
+		if (useIsas) {
+			Collection<DAGNode> isas = isaEdges_.get(conceptName);
+			if (isas != null)
+				nodes.addAll(isas);
 		}
 
-		// If common is empty, return false
-		if (unknownParents.isEmpty())
-			return false;
-
-		// Filter to min collection
-		Collection<? extends Node> minParents = CommonQuery.minGeneralFilter(
-				unknownParents, dag_);
-		// Check reliability of each parent
-		outputString[RelationColumn.COMMON_PARENTS.ordinal()] = minParents
-				.toString();
-		float sumIntraConjCount = 0;
-		float[] reliArray = new float[minParents.size()];
-		float sum = 0;
-		int i = 0;
-		for (Node minPar : minParents) {
-			int[] counts = rData.intraNodeCounts_.get(minPar
-					.getIdentifier(true));
-			reliArray[i] = counts[DISJOINT]
-					/ (1f * counts[DISJOINT] + counts[CONJOINT]);
-			sum += reliArray[i];
-			sumIntraConjCount += counts[CONJOINT];
-			i++;
-		}
-		outputString[RelationColumn.AV_PARENT_CONJ_COUNTS.ordinal()] = sumIntraConjCount
-				/ minParents.size() + "";
-		outputString[RelationColumn.PARENT_RELI.ordinal()] = Arrays
-				.toString(reliArray);
-		outputString[RelationColumn.AV_PARENT_RELI.ordinal()] = sum
-				/ minParents.size() + "";
-		return true;
+		nodes.retainAll(ptChildren_);
+		return nodes;
 	}
 
 	/**
@@ -218,79 +149,14 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		System.out.println("Disjointness Discovery: Calculation complete!");
 	}
 
-	/**
-	 * Creates the disjointness from the inferred counts.
-	 * 
-	 * @param assertDisj
-	 *            If the assertions should occur immediately.
-	 */
-	public synchronized void createDisjointness(RelationData rData) {
-		System.out
-				.println("Disjointness Discovery: Creating disjoint edges for "
-						+ rData.relation_);
-		System.out.println(rData);
-		int numCreated = 0;
-		try {
-			BufferedWriter out = new BufferedWriter(new FileWriter(
-					DISJOINT_OUT, true));
-			if (isSignificant(rData.counts_, _STATMIN)) {
-				// Run through the unknown pairs
-				for (UnknownPair unknown : rData.unknownPairs_) {
-					String[] outputData = new String[RelationColumn.values().length];
-					if (shouldCreateDisjoint(unknown, rData, outputData)) {
-						numCreated++;
-						outputData[RelationColumn.ARG1TEXT.ordinal()] = unknown.argA_;
-						outputData[RelationColumn.ARG2TEXT.ordinal()] = unknown.argB_;
-						if (rData.intraNodeCounts_.containsKey(unknown.nodeA_
-								.getIdentifier(true)))
-							outputData[RelationColumn.ARG1_CONJ_COUNT.ordinal()] = rData.intraNodeCounts_
-									.get(unknown.nodeA_.getIdentifier(true))[CONJOINT]
-									+ "";
-						else
-							outputData[RelationColumn.ARG1_CONJ_COUNT.ordinal()] = "0";
-						if (rData.intraNodeCounts_.containsKey(unknown.nodeB_
-								.getIdentifier(true)))
-							outputData[RelationColumn.ARG2_CONJ_COUNT.ordinal()] = rData.intraNodeCounts_
-									.get(unknown.nodeB_.getIdentifier(true))[CONJOINT]
-									+ "";
-						else
-							outputData[RelationColumn.ARG2_CONJ_COUNT.ordinal()] = "0";
-
-						outputData[RelationColumn.RELATION.ordinal()] = rData.relation_;
-						outputData[RelationColumn.REL_DISJ.ordinal()] = rData.counts_[DISJOINT]
-								+ "";
-						outputData[RelationColumn.REL_CONJ.ordinal()] = rData.counts_[CONJOINT]
-								+ "";
-						outputData[RelationColumn.REL_UNKN.ordinal()] = rData.counts_[UNKNOWN]
-								+ "";
-						outputData[RelationColumn.REL_SIG.ordinal()] = (rData.counts_[DISJOINT] + rData.counts_[CONJOINT])
-								+ "";
-						outputData[RelationColumn.REL_RELIA.ordinal()] = (rData.counts_[DISJOINT] / (1f * rData.counts_[DISJOINT] + rData.counts_[CONJOINT]))
-								+ "";
-						outputData[RelationColumn.DISJOINT_EDGE.ordinal()] = createDisjointEdge(
-								unknown.nodeA_, unknown.nodeB_, assertDisj_);
-						out.append(StringUtils.join(outputData, '\t') + '\n');
-					}
-				}
-			}
-			out.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		System.out.println("Disjointness Discovery: " + numCreated
-				+ " disjoint edges created!");
-	}
-
 	@Override
 	public Boolean execute(Object... args) throws IllegalArgumentException,
 			ModuleException {
-		queryModule_ = (QueryModule) dag_.getModule(QueryModule.class);
 		aliasModule_ = (NodeAliasModule) dag_.getModule(NodeAliasModule.class);
 		explored_ = MultiMap.createConcurrentHashSetMultiMap();
-		ptChildren_ = CommonQuery.SPECS.runQuery(dag_,
-				CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
 		// Do not include PartiallyTangible itself.
-		ptChildren_.remove(CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
+		// ptChildren_.remove(CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
+		relDataMap_ = new HashMap<>();
 
 		if (args.length == 0)
 			return false;
@@ -301,7 +167,6 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		assertDisj_ = (boolean) args[1];
 
 		try {
 			DISJOINT_OUT.createNewFile();
@@ -313,7 +178,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			e.printStackTrace();
 		}
 
-		// TODO readIsaData(dataFolder);
+		readIsaData(dataFolder);
 		countDisjointness(dataFolder);
 
 		// Clean up
@@ -321,6 +186,132 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		ptChildren_.clear();
 
 		return true;
+	}
+
+	/**
+	 * Calculates a bunch of ARFF data for a pair of possible disjoint concepts.
+	 * These concepts were originally linked by a relation. They may have also
+	 * calculated their common parents already (if not these will be
+	 * calculated).
+	 *
+	 * @param relation
+	 *            The relation between the concepts.
+	 * @param conceptA
+	 *            The first concept.
+	 * @param conceptB
+	 *            The second concept.
+	 * @param commonParents
+	 *            The possibly null precalculated set of common parents for the
+	 *            two concepts.
+	 * @param calculateClass
+	 *            If the ontology should be queried if the two are already
+	 *            disjoint.
+	 * @return The ARFF data representing the pair of relationed concepts.
+	 */
+	public String[][] getARFFData(String relation, DAGNode conceptA,
+			DAGNode conceptB, Collection<DAGNode> commonParents,
+			boolean calculateClass) {
+		String[] output = new String[ARFFData.values().length];
+		Arrays.fill(output, "");
+		if (relation != null)
+			output[ARFFData.RELATION.ordinal()] = relation;
+		output[ARFFData.ARG1.ordinal()] = "'arg1'";
+		output[ARFFData.ARG2.ordinal()] = "'arg2'";
+		output[ARFFData.DISAMB1.ordinal()] = "'"
+				+ conceptA.getIdentifier(true).replaceAll("'", "\\\\'") + "'";
+		output[ARFFData.DISAMB2.ordinal()] = "'"
+				+ conceptB.getIdentifier(true).replaceAll("'", "\\\\'") + "'";
+		// Depth
+		int depthA = Integer.parseInt(conceptA
+				.getProperty(DepthModule.DEPTH_PROPERTY));
+		output[ARFFData.DEPTH_1.ordinal()] = depthA + "";
+		int depthB = Integer.parseInt(conceptB
+				.getProperty(DepthModule.DEPTH_PROPERTY));
+		output[ARFFData.DEPTH_2.ordinal()] = depthB + "";
+		output[ARFFData.AV_DEPTH.ordinal()] = ((depthA + depthB) / 2f) + "";
+
+		// Impact
+		double impactA = Math.log(CommonQuery.SPECS.runQuery(dag_, conceptA)
+				.size());
+		output[ARFFData.IMPACT_A.ordinal()] = impactA + "";
+		double impactB = Math.log(CommonQuery.SPECS.runQuery(dag_, conceptB)
+				.size());
+		output[ARFFData.IMPACT_B.ordinal()] = impactB + "";
+		output[ARFFData.IMPACT_AB.ordinal()] = (impactA + impactB) + "";
+
+		// Class
+		output[ARFFData.CLASS.ordinal()] = "?";
+		if (calculateClass) {
+			QueryObject qo = new QueryObject(true, false, QueryResult.ALL,
+					CommonConcepts.DISJOINTWITH.getNode(dag_), conceptA,
+					conceptB);
+			queryModule_.executeQuery(qo);
+			if (qo.getResultState() == QueryResult.TRUE)
+				output[ARFFData.CLASS.ordinal()] = "disjoint";
+			else if (qo.getResultState() == QueryResult.FALSE)
+				output[ARFFData.CLASS.ordinal()] = "conjoint";
+		}
+		// Semantic similarity
+		output[ARFFData.SEMANTIC_SIMILARITY.ordinal()] = ""
+				+ semSimModule_.semanticSimilarity(conceptA, conceptB);
+
+		// Add the relation and intra-relation reliability.
+		RelationData rData = null;
+		if (relation != null) {
+			rData = relDataMap_.get(relation);
+			output[ARFFData.RELATION_DISJOINT.ordinal()] = rData.counts_[DISJOINT]
+					+ "";
+			output[ARFFData.RELATION_CONJOINT.ordinal()] = rData.counts_[CONJOINT]
+					+ "";
+			output[ARFFData.RELATION_UNKNOWN.ordinal()] = rData.counts_[UNKNOWN]
+					+ "";
+			output[ARFFData.RELATION_RELIABILITY.ordinal()] = (1f * (rData.counts_[DISJOINT] + 1) / (rData.counts_[DISJOINT]
+					+ rData.counts_[CONJOINT] + 2))
+					+ "";
+		}
+
+		// //// Parent Measures //////
+
+		// For every parent
+		if (commonParents == null)
+			commonParents = calculateCommon(conceptA, conceptB);
+		Collection<? extends Node> minParents = CommonQuery.minGeneralFilter(
+				commonParents, dag_);
+		String[][] results = new String[minParents.size()][];
+		int i = 0;
+		for (Node commonParent : minParents) {
+			// Common parent
+			String[] cloneData = Arrays.copyOf(output, output.length);
+			cloneData[ARFFData.COMMON_PARENT.ordinal()] = "'"
+					+ commonParent.getIdentifier(true).replaceAll("'", "\\\\'")
+					+ "'";
+			int parentDepth = Integer.parseInt(((DAGNode) commonParent)
+					.getProperty(DepthModule.DEPTH_PROPERTY));
+			cloneData[ARFFData.PARENT_DEPTH.ordinal()] = parentDepth + "";
+
+			cloneData[ARFFData.SEMANTIC_DISTANCE.ordinal()] = (Math.abs(depthA
+					- parentDepth) + Math.abs(depthB - parentDepth))
+					+ "";
+
+			if (rData != null) {
+				int[] counts = rData.intraNodeCounts_.get(commonParent
+						.getIdentifier(true));
+				if (counts != null) {
+					cloneData[ARFFData.INTRA_RELATION_RELIABILITY.ordinal()] = (1f * (counts[DISJOINT] + 1) / (counts[DISJOINT]
+							+ counts[CONJOINT] + 2))
+							+ "";
+					cloneData[ARFFData.INTRA_RELATION_DISJOINT.ordinal()] = counts[DISJOINT]
+							+ "";
+					cloneData[ARFFData.INTRA_RELATION_CONJOINT.ordinal()] = counts[CONJOINT]
+							+ "";
+					cloneData[ARFFData.INTRA_RELATION_UNKNOWN.ordinal()] = counts[UNKNOWN]
+							+ "";
+				}
+			}
+
+			results[i++] = cloneData;
+		}
+		return results;
 	}
 
 	/**
@@ -370,13 +361,48 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	}
 
 	@Override
+	public void setDAG(DirectedAcyclicGraph directedAcyclicGraph) {
+		super.setDAG(directedAcyclicGraph);
+		queryModule_ = (QueryModule) directedAcyclicGraph
+				.getModule(QueryModule.class);
+		semSimModule_ = (SemanticSimilarityModule) directedAcyclicGraph
+				.getModule(SemanticSimilarityModule.class);
+		ptChildren_ = CommonQuery.SPECS.runQuery(dag_,
+				CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
+	}
+
+	@Override
+	public boolean addEdge(DAGEdge edge) {
+		if (edge.getNodes()[0].equals(CommonConcepts.GENLS.getNode(dag_)))
+			ptChildren_ = CommonQuery.SPECS.runQuery(dag_,
+					CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
+		return super.addEdge(edge);
+	}
+
+	@Override
+	public boolean removeEdge(DAGEdge edge) {
+		if (edge.getNodes()[0].equals(CommonConcepts.GENLS.getNode(dag_)))
+			ptChildren_ = CommonQuery.SPECS.runQuery(dag_,
+					CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
+		return super.removeEdge(edge);
+	}
+
+	@Override
 	public boolean supportsEdge(DAGEdge edge) {
-		return false;
+		return !EdgeModifier.isSpecial(edge, dag_);
 	}
 
 	@Override
 	public boolean supportsNode(DAGNode node) {
 		return false;
+	}
+
+	public static void main(String[] args) {
+		try {
+			preParseConceptNetFiles(new File(args[0]));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static void preParseConceptNetFiles(File folder) throws IOException {
@@ -429,45 +455,23 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			writer.close();
 	}
 
-	public static void main(String[] args) {
-		try {
-			preParseConceptNetFiles(new File(args[0]));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+	private class InstanceData {
 
-	private enum ARFFData {
-		RELATION("nominal"),
-		ARG1("string"),
-		ARG2("string"),
-		DISAMB1("string"),
-		DISAMB2("string"),
-		SEMANTIC_DISTANCE("numeric"),
-		SEMANTIC_SIMILARITY("numeric"),
-		DEPTH_1("numeric"),
-		DEPTH_2("numeric"),
-		AV_DEPTH("numeric"),
-		COMMON_PARENT("string"),
-		PARENT_DEPTH("numeric"),
-		RELATION_RELIABILITY("numeric"),
-		RELATION_DISJOINT("numeric"),
-		RELATION_CONJOINT("numeric"),
-		RELATION_UNKNOWN("numeric"),
-		INTRA_RELATION_RELIABILITY("numeric"),
-		INTRA_RELATION_DISJOINT("numeric"),
-		INTRA_RELATION_CONJOINT("numeric"),
-		INTRA_RELATION_UNKNOWN("numeric"),
-		CLASS("{ disjoint, conjoint }");
+		public Collection<DAGNode> common_;
+		public DAGNode disamA_;
+		public DAGNode disamB_;
+		public String first_;
+		public int flag_;
+		public String second_;
 
-		private String type_;
-
-		private ARFFData(String datatype) {
-			type_ = datatype;
-		}
-
-		public String getType() {
-			return type_;
+		public InstanceData(String first, String second, DAGNode objA,
+				DAGNode objB, Collection<DAGNode> common, int flag) {
+			first_ = first;
+			second_ = second;
+			disamA_ = objA;
+			disamB_ = objB;
+			common_ = common;
+			flag_ = flag;
 		}
 	}
 
@@ -477,10 +481,10 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	 * @author Sam Sarjant
 	 */
 	private class ProcessRelationFile implements Runnable {
+		private Collection<InstanceData> arffInstances_;
 		private File file_;
-		private RelationData relData_;
 		private int numLines_;
-		private Collection<String[]> arffInstances_;
+		private RelationData relData_;
 
 		public ProcessRelationFile(File file) {
 			file_ = file;
@@ -496,47 +500,11 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				e.printStackTrace();
 			}
 			relData_ = new RelationData(file.getName().split("\\.")[0]);
-			arffInstances_ = new ArrayList<>();
-		}
-
-		/**
-		 * Converts the nodes into collections via MINISA, if applicable.
-		 *
-		 * @param nodes
-		 *            The nodes to convert to collections.
-		 * @return The nodes themselves, if they are collections, or MINISA
-		 *         parents.
-		 */
-		private Collection<DAGNode> asCollections(Collection<DAGNode> nodes) {
-			// For every node, convert to collection
-			Collection<DAGNode> collections = new HashSet<>();
-			for (DAGNode node : nodes) {
-				if (queryModule_.prove(false, CommonConcepts.ISA.getNode(dag_),
-						node, CommonConcepts.COLLECTION.getNode(dag_)) == QueryResult.TRUE) {
-					collections.add(node);
-				} else {
-					// TODO for (Node isa : CommonQuery.MINISA.runQuery(dag_,
-					// node))
-					// collections.add((DAGNode) isa);
-				}
+			synchronized (this) {
+				relDataMap_.put(relData_.relation_, relData_);
 			}
 
-			// Remove shallow nodes and materials
-			collections.retainAll(ptChildren_);
-			// DAGNode material = dag_
-			// .findDAGNode("CommonSubstances-Material-Topic");
-			// for (Iterator<DAGNode> iter = collections.iterator(); iter
-			// .hasNext();) {
-			// DAGNode node = iter.next();
-			// // Remove instances of material
-			// if (queryModule_.prove(false, CommonConcepts.ISA.getNode(dag_),
-			// node, material) == QueryResult.TRUE) {
-			// iter.remove();
-			// continue;
-			// }
-			// }
-
-			return collections;
+			arffInstances_ = new ArrayList<>();
 		}
 
 		/**
@@ -580,14 +548,77 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			for (DAGNode parent : common)
 				relData_.addIntraParent(parent, flag);
 
-			// Note unknown pairs for later disjoint edge creation
-			if (flag == UNKNOWN) {
-				UnknownPair up = new UnknownPair(first, pair.objA_, second,
-						pair.objB_, common);
-				relData_.unknownPairs_.add(up);
+			recordARFFData(relation, first, second, pair, common, flag);
+		}
+
+		/**
+		 * Records data about the disambiguated edges. This is for use in a
+		 * potential Machine Learning application later.
+		 *
+		 * @param relation
+		 *            The relation of the triple.
+		 * @param first
+		 *            The first word.
+		 * @param second
+		 *            The second word.
+		 * @param pair
+		 *            The disambiguated pair.
+		 * @param common
+		 *            The common parent(s) for the pair
+		 * @param flag
+		 *            The result of the proof.
+		 */
+		private void recordARFFData(String relation, String first,
+				String second, Pair<DAGNode, DAGNode> pair,
+				Collection<DAGNode> common, int flag) {
+			InstanceData id = new InstanceData(first, second, pair.objA_,
+					pair.objB_, common, flag);
+			arffInstances_.add(id);
+		}
+
+		private void writeARFFData(RelationData rData) throws IOException {
+			if (arffInstances_.isEmpty() || rData.counts_[UNKNOWN] == 0)
+				return;
+			File file = new File(rData.relation_ + ARFF_OUT);
+			file.createNewFile();
+			BufferedWriter arffWriter = new BufferedWriter(new FileWriter(file));
+			writeARFFPreamble(arffWriter);
+
+			// For every stored instance, calculate the instance data
+			for (InstanceData instData : arffInstances_) {
+				String[][] data = getARFFData(rData.relation_,
+						instData.disamA_, instData.disamB_, instData.common_,
+						false);
+				for (String[] instance : data) {
+					instance[ARFFData.ARG1.ordinal()] = "'"
+							+ instData.first_.replaceAll("'", "\\\\'") + "'";
+					instance[ARFFData.ARG2.ordinal()] = "'"
+							+ instData.second_.replaceAll("'", "\\\\'") + "'";
+					if (instData.flag_ == DISJOINT)
+						instance[ARFFData.CLASS.ordinal()] = "disjoint";
+					else if (instData.flag_ == CONJOINT)
+						instance[ARFFData.CLASS.ordinal()] = "conjoint";
+					else
+						instance[ARFFData.CLASS.ordinal()] = "?";
+
+					arffWriter.write(StringUtils.join(instance, ',') + "\n");
+				}
 			}
 
-			recordARFFData(relation, first, second, pair, common, flag);
+			arffWriter.close();
+		}
+
+		private void writeARFFPreamble(BufferedWriter arffWriter)
+				throws IOException {
+			arffWriter.write("@relation "
+					+ relData_.relation_.replaceAll("\\s+", "_")
+					+ "_disjoints\n");
+			for (ARFFData arffData : ARFFData.values()) {
+				arffWriter.write("@attribute '"
+						+ arffData.toString().toLowerCase() + "' "
+						+ arffData.getType() + "\n");
+			}
+			arffWriter.write("@data\n");
 		}
 
 		protected void processLine(String line) {
@@ -606,13 +637,9 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				return;
 			}
 
-			// Find left and right disjoint candidates
-			Collection<DAGNode> firstDisjoint = asCollections(firstNodes);
-			Collection<DAGNode> secondDisjoint = asCollections(secondNodes);
-
 			// For every disjoint pair
-			for (DAGNode firstNode : firstDisjoint) {
-				for (DAGNode secondNode : secondDisjoint) {
+			for (DAGNode firstNode : firstNodes) {
+				for (DAGNode secondNode : secondNodes) {
 					Pair<DAGNode, DAGNode> pair = null;
 					int compare = firstNode.getName().compareTo(
 							secondNode.getName());
@@ -649,179 +676,24 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				in.close();
 
 				// Infer disjointness
-				createDisjointness(relData_);
+				// createDisjointness(relData_);
 
 				writeARFFData(relData_);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
-
-		private void writeARFFPreamble(BufferedWriter arffWriter)
-				throws IOException {
-			arffWriter.write("@relation "
-					+ relData_.relation_.replaceAll("\\s+", "_")
-					+ "_disjoints\n");
-			for (ARFFData arffData : ARFFData.values()) {
-				arffWriter.write("@attribute '"
-						+ arffData.toString().toLowerCase() + "' "
-						+ arffData.getType() + "\n");
-			}
-			arffWriter.write("@data\n");
-		}
-
-		private void writeARFFData(RelationData rData) throws IOException {
-			if (arffInstances_.isEmpty() || rData.counts_[UNKNOWN] == 0)
-				return;
-			File file = new File(rData.relation_ + ARFF_OUT);
-			file.createNewFile();
-			BufferedWriter arffWriter = new BufferedWriter(new FileWriter(file));
-			writeARFFPreamble(arffWriter);
-
-			for (String[] data : arffInstances_) {
-				// Add the relation and intra-relation reliability.
-				data[ARFFData.RELATION_DISJOINT.ordinal()] = rData.counts_[DISJOINT]
-						+ "";
-				data[ARFFData.RELATION_CONJOINT.ordinal()] = rData.counts_[CONJOINT]
-						+ "";
-				data[ARFFData.RELATION_UNKNOWN.ordinal()] = rData.counts_[UNKNOWN]
-						+ "";
-				data[ARFFData.RELATION_RELIABILITY.ordinal()] = (1f * rData.counts_[DISJOINT] / (rData.counts_[DISJOINT] + rData.counts_[CONJOINT]))
-						+ "";
-
-				int[] counts = rData.intraNodeCounts_
-						.get(UtilityMethods.shrinkString(
-								data[ARFFData.COMMON_PARENT.ordinal()], 1));
-				if (counts != null) {
-					data[ARFFData.INTRA_RELATION_RELIABILITY.ordinal()] = (1f * counts[DISJOINT] / (counts[DISJOINT] + counts[CONJOINT]))
-							+ "";
-					data[ARFFData.INTRA_RELATION_DISJOINT.ordinal()] = counts[DISJOINT]
-							+ "";
-					data[ARFFData.INTRA_RELATION_CONJOINT.ordinal()] = counts[CONJOINT]
-							+ "";
-					data[ARFFData.INTRA_RELATION_UNKNOWN.ordinal()] = counts[UNKNOWN]
-							+ "";
-				} else {
-					data[ARFFData.INTRA_RELATION_RELIABILITY.ordinal()] = "";
-					data[ARFFData.INTRA_RELATION_DISJOINT.ordinal()] = "";
-					data[ARFFData.INTRA_RELATION_CONJOINT.ordinal()] = "";
-					data[ARFFData.INTRA_RELATION_UNKNOWN.ordinal()] = "";
-				}
-				arffWriter.write(StringUtils.join(data, ',') + "\n");
-			}
-
-			arffWriter.close();
-		}
-
-		/**
-		 * Records data about the disambiguated edges. This is for use in a
-		 * potential Machine Learning application later.
-		 *
-		 * @param relation
-		 *            The relation of the triple.
-		 * @param first
-		 *            The first word.
-		 * @param second
-		 *            The second word.
-		 * @param pair
-		 *            The disambiguated pair.
-		 * @param common
-		 *            The common parent(s) for the pair
-		 * @param flag
-		 *            The result of the proof.
-		 */
-		private void recordARFFData(String relation, String first,
-				String second, Pair<DAGNode, DAGNode> pair,
-				Collection<DAGNode> common, int flag) {
-			// Init modules
-			SemanticSimilarityModule ssm = (SemanticSimilarityModule) dag_
-					.getModule(SemanticSimilarityModule.class);
-
-			String[] data = new String[ARFFData.values().length];
-			// Write string stuff
-			data[ARFFData.RELATION.ordinal()] = relation;
-			data[ARFFData.ARG1.ordinal()] = "'"
-					+ first.replaceAll("'", "\\\\'") + "'";
-			data[ARFFData.ARG2.ordinal()] = "'"
-					+ second.replaceAll("'", "\\\\'") + "'";
-			data[ARFFData.DISAMB1.ordinal()] = "'"
-					+ pair.objA_.getIdentifier(true).replaceAll("'", "\\\\'")
-					+ "'";
-			data[ARFFData.DISAMB2.ordinal()] = "'"
-					+ pair.objB_.getIdentifier(true).replaceAll("'", "\\\\'")
-					+ "'";
-			int depthA = Integer.parseInt(pair.objA_
-					.getProperty(DepthModule.DEPTH_PROPERTY));
-			data[ARFFData.DEPTH_1.ordinal()] = depthA + "";
-			int depthB = Integer.parseInt(pair.objB_
-					.getProperty(DepthModule.DEPTH_PROPERTY));
-			data[ARFFData.DEPTH_2.ordinal()] = depthB + "";
-			data[ARFFData.AV_DEPTH.ordinal()] = ((depthA + depthB) / 2f) + "";
-
-			if (flag == DISJOINT)
-				data[ARFFData.CLASS.ordinal()] = "disjoint";
-			else if (flag == CONJOINT)
-				data[ARFFData.CLASS.ordinal()] = "conjoint";
-			else
-				data[ARFFData.CLASS.ordinal()] = "unknown";
-
-			// //// Measures //////
-			// Semantic similarity
-			data[ARFFData.SEMANTIC_SIMILARITY.ordinal()] = ""
-					+ ssm.semanticSimilarity(pair.objA_, pair.objB_);
-
-			// TODO Currently using all parents. Also try with min-parents
-			Collection<? extends Node> minParents = CommonQuery
-					.minGeneralFilter(common, dag_);
-			for (Node commonParent : minParents) {
-				// Common parent
-				String[] cloneData = Arrays.copyOf(data, data.length);
-				cloneData[ARFFData.COMMON_PARENT.ordinal()] = "'"
-						+ commonParent.getIdentifier(true).replaceAll("'",
-								"\\\\'") + "'";
-				int parentDepth = Integer.parseInt(((DAGNode) commonParent)
-						.getProperty(DepthModule.DEPTH_PROPERTY));
-				cloneData[ARFFData.PARENT_DEPTH.ordinal()] = parentDepth + "";
-
-				cloneData[ARFFData.SEMANTIC_DISTANCE.ordinal()] = (Math
-						.abs(depthA - parentDepth) + Math.abs(depthB
-						- parentDepth))
-						+ "";
-
-				arffInstances_.add(cloneData);
-			}
-		}
 	}
 
-	public enum RelationColumn {
-		DISJOINT_EDGE,
-		RELATION,
-		ARG1TEXT,
-		ARG2TEXT,
-		REL_DISJ,
-		REL_CONJ,
-		REL_UNKN,
-		REL_SIG,
-		REL_RELIA,
-		ARG1_CONJ_COUNT,
-		ARG2_CONJ_COUNT,
-		COMMON_PARENTS,
-		AV_PARENT_CONJ_COUNTS,
-		PARENT_RELI,
-		AV_PARENT_RELI;
-	}
-
-	private class RelationData {
-
+	private class RelationData implements Serializable {
+		private static final long serialVersionUID = 1L;
 		public int[] counts_ = new int[3];
 		public Map<String, int[]> intraNodeCounts_;
 		public String relation_;
-		public Collection<UnknownPair> unknownPairs_;
 
 		public RelationData(String relation) {
 			relation_ = relation;
 			intraNodeCounts_ = new ConcurrentHashMap<>();
-			unknownPairs_ = new ArrayList<>();
 		}
 
 		public void addIntraParent(DAGNode parent, int flag) {
@@ -849,20 +721,21 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		}
 	}
 
-	private class UnknownPair {
-		private String argA_;
-		private String argB_;
-		private DAGNode nodeA_;
-		private DAGNode nodeB_;
-		private Collection<DAGNode> commonParents_;
-
-		public UnknownPair(String argA, DAGNode nodeA, String argB,
-				DAGNode nodeB, Collection<DAGNode> commonParents) {
-			argA_ = argA;
-			argB_ = argB;
-			nodeA_ = nodeA;
-			nodeB_ = nodeB;
-			commonParents_ = commonParents;
-		}
+	public enum RelationColumn {
+		ARG1_CONJ_COUNT,
+		ARG1TEXT,
+		ARG2_CONJ_COUNT,
+		ARG2TEXT,
+		AV_PARENT_CONJ_COUNTS,
+		AV_PARENT_RELI,
+		COMMON_PARENTS,
+		DISJOINT_EDGE,
+		PARENT_RELI,
+		REL_CONJ,
+		REL_DISJ,
+		REL_RELIA,
+		REL_SIG,
+		REL_UNKN,
+		RELATION;
 	}
 }

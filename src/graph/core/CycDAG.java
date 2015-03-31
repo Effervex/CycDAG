@@ -87,7 +87,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 	}
 
 	private DAGErrorEdge checkArity(DAGNode predNode, QueryObject edgeQuery) {
-		QueryObject arityQuery = new QueryObject(false, edgeQuery.shouldJustify(),
+		QueryObject arityQuery = new QueryObject(false,
+				edgeQuery.shouldJustify(), QueryResult.TRUE,
 				CommonConcepts.ARITY.getNode(this), predNode,
 				VariableNode.DEFAULT);
 		Collection<Substitution> subs = querier_.executeQuery(arityQuery);
@@ -145,7 +146,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 			String microtheory, Collection<Edge> forwardEdges,
 			boolean ephemeral, QueryObject edgeQuery) {
 		QueryObject constraintQuery = new QueryObject(false,
-				edgeQuery.shouldJustify(), argTest.getNode(this), predNode,
+				edgeQuery.shouldJustify(), QueryResult.TRUE,
+				argTest.getNode(this), predNode,
 				PrimitiveNode.parseNode("" + i), VariableNode.DEFAULT);
 		Collection<Substitution> constraints = querier_
 				.executeQuery(constraintQuery);
@@ -164,12 +166,12 @@ public class CycDAG extends DirectedAcyclicGraph {
 					&& argQuery.getNode(this).equals(
 							CommonConcepts.ISA.getNode(this)))
 				proofQuery = new QueryObject(false, edgeQuery.shouldJustify(),
-						CommonConcepts.GENLS.getNode(this), constraint,
-						CommonConcepts.STRING.getNode(this));
+						QueryResult.ALL, CommonConcepts.GENLS.getNode(this),
+						constraint, CommonConcepts.STRING.getNode(this));
 			else
 				proofQuery = new QueryObject(false, edgeQuery.shouldJustify(),
-						argQuery.getNode(this), querier_.getExpanded(testNode),
-						constraint);
+						QueryResult.ALL, argQuery.getNode(this),
+						querier_.getExpanded(testNode), constraint);
 			meetsConstraint = querier_.prove(proofQuery);
 
 			if (meetsConstraint == QueryResult.NIL) {
@@ -254,8 +256,9 @@ public class CycDAG extends DirectedAcyclicGraph {
 				edgeNodes[0], CommonConcepts.SYMMETRIC_BINARY.getNode(this)) == QueryResult.TRUE)
 			return null;
 
-		QueryObject oppQuery = new QueryObject(false, edgeQuery.shouldJustify(),
-				edgeNodes[0], edgeNodes[2], edgeNodes[1]);
+		QueryObject oppQuery = new QueryObject(false,
+				edgeQuery.shouldJustify(), QueryResult.TRUE, edgeNodes[0],
+				edgeNodes[2], edgeNodes[1]);
 		if (querier_.prove(oppQuery) == QueryResult.TRUE) {
 			CyclicErrorEdge cee = new CyclicErrorEdge(edgeNodes);
 			edgeQuery.setRejectionReason(cee);
@@ -290,8 +293,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 		// Checks if the existing collections are disjoint with the asserted
 		// edge.
 		for (Node n : existingCols) {
-			QueryObject disjointQuery = new QueryObject(false, 
-					edgeQuery.shouldJustify(),
+			QueryObject disjointQuery = new QueryObject(false,
+					edgeQuery.shouldJustify(), QueryResult.TRUE,
 					CommonConcepts.DISJOINTWITH.getNode(this), n, edgeNodes[2]);
 			if (querier_.prove(disjointQuery) == QueryResult.TRUE) {
 				DisjointErrorEdge dee = new DisjointErrorEdge(
@@ -330,9 +333,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 					CommonConcepts.COLLECTION_ORDER.getNode(this));
 			OntologyFunction diffXY = new OntologyFunction(
 					CommonConcepts.DIFFERENT.getNode(this), x, y);
-			QueryResult result = querier_.prove(false,
+			QueryObject qo = new QueryObject(false, false, QueryResult.TRUE,
 					CommonConcepts.AND.getNode(this), isaAX, isaBY, isaXOrder,
 					isaYOrder, diffXY);
+			QueryResult result = querier_.prove(qo);
 			if (result == QueryResult.TRUE)
 				return new CollectionOrderErrorEdge(edgeNodes);
 		}
@@ -344,8 +348,9 @@ public class CycDAG extends DirectedAcyclicGraph {
 					CommonConcepts.COLLECTION.getNode(this));
 			OntologyFunction isaYFOC = new OntologyFunction(isa, edgeNodes[2],
 					CommonConcepts.FIRST_ORDER_COLLECTION.getNode(this));
-			QueryResult result = querier_.prove(false,
+			QueryObject qo = new QueryObject(false, false, QueryResult.TRUE,
 					CommonConcepts.AND.getNode(this), isaXCol, isaYFOC);
+			QueryResult result = querier_.prove(qo);
 			if (result == QueryResult.TRUE)
 				return new CollectionOrderErrorEdge(edgeNodes);
 
@@ -358,7 +363,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 					CommonConcepts.COLLECTION_ORDER.getNode(this));
 			OntologyFunction isaYOrder = new OntologyFunction(isa, y,
 					CommonConcepts.COLLECTION_ORDER.getNode(this));
-			QueryObject qo = new QueryObject(false, false,
+			qo = new QueryObject(false, false, QueryResult.TRUE,
 					CommonConcepts.AND.getNode(this), isaAX, isaBY, isaXOrder,
 					isaYOrder);
 			Collection<Substitution> results = querier_.executeQuery(qo);
@@ -387,6 +392,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 		// Searching directly for negation
 		boolean before = edgeQuery.shouldVerify();
 		edgeQuery.setVerify(false);
+		QueryResult beforeGoal = edgeQuery.getGoalResult();
+		edgeQuery.setGoalResult(QueryResult.FALSE);
 		if (querier_.prove(edgeQuery) == QueryResult.FALSE) {
 			NegatedErrorEdge negatedError = new NegatedErrorEdge(negated,
 					edgeQuery.getNodes());
@@ -394,6 +401,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			return negatedError;
 		}
 		edgeQuery.setVerify(before);
+		edgeQuery.setGoalResult(beforeGoal);
 		return null;
 	}
 
@@ -532,9 +540,9 @@ public class CycDAG extends DirectedAcyclicGraph {
 		ValueComparator vc = new ValueComparator(functions);
 		SortedMap<OntologyFunction, Integer> sortedFuncs = new TreeMap<>(vc);
 		sortedFuncs.putAll(functions);
-		for (OntologyFunction func : sortedFuncs.keySet()) {
-			out.write(CSV_FUNCTION_PREFIX + functions.get(func) + ":");
-			Node[] functionNodes = func.getNodes();
+		for (Map.Entry<OntologyFunction, Integer> entry : sortedFuncs.entrySet()) {
+			out.write(CSV_FUNCTION_PREFIX + entry.getValue() + ":");
+			Node[] functionNodes = entry.getKey().getNodes();
 			for (Node n : functionNodes) {
 				String name = n.getIdentifier(true);
 				if (n instanceof OntologyFunction)
@@ -660,8 +668,15 @@ public class CycDAG extends DirectedAcyclicGraph {
 			ErrorEdge ee = verifyEdgeArguments(qo, negated,
 					bFlags.getFlag("forceConstraints"), microtheory,
 					bFlags.getFlag("ephemeral"));
+
 			if (ee != null)
 				return ee;
+			else {
+				// Check if the negation exists.
+				ee = isNegated(qo, negated);
+				if (ee != null)
+					return ee;
+			}
 		}
 
 		boolean ephemeral = bFlags.getFlag("ephemeral");
@@ -686,10 +701,9 @@ public class CycDAG extends DirectedAcyclicGraph {
 				addProperty((DAGObject) edge, MICROTHEORY, microtheory);
 
 			// Add alias info
-			if (qm.prove(
-					new QueryObject(CommonConcepts.GENLPREDS.getNode(this),
-							edgeNodes[0], CommonConcepts.TERM_STRING
-									.getNode(this))) == QueryResult.TRUE) {
+			if (qm.prove(new QueryObject(false, false, QueryResult.TRUE,
+					CommonConcepts.GENLPREDS.getNode(this), edgeNodes[0],
+					CommonConcepts.TERM_STRING.getNode(this))) == QueryResult.TRUE) {
 				addProperty((DAGEdge) edge, NodeAliasModule.ALIAS_PROP, "T");
 				NodeAliasModule nam = (NodeAliasModule) getModule(NodeAliasModule.class);
 				if (nam.supportsEdge((DAGEdge) edge))
@@ -749,8 +763,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 	public OntologyFunction findOrCreateFunctionNode(boolean checkConstraints,
 			boolean ephemeral, Node creator, Node... args) {
 		if (args != null
-				&& (!checkConstraints || isSemanticallyValid(new QueryObject(args),
-						null, false, ephemeral, false) == null)) {
+				&& (!checkConstraints || isSemanticallyValid(new QueryObject(
+						args), null, false, ephemeral, false) == null)) {
 			FunctionIndex functionIndexer = (FunctionIndex) getModule(FunctionIndex.class);
 			nodeLock_.lock();
 			try {
@@ -1122,9 +1136,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 * A series of tests to run an edge through to verify if it is valid. Used
 	 * both when creating new edges and when querying the validity of a query
 	 * edge.
-	 *
-	 * @param edgeNodes
-	 *            The nodes of the edge.
+	 * 
 	 * @param negated
 	 *            Is the tested edge negated?
 	 * @param forceConstraints
@@ -1133,6 +1145,9 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 *            The microtheory to create new forced edges under.
 	 * @param ephemeral
 	 *            Are edges created ephemerally?
+	 * @param edgeNodes
+	 *            The nodes of the edge.
+	 * 
 	 * @return An error edge or null if no problems.
 	 */
 	public ErrorEdge verifyEdgeArguments(QueryObject edgeQuery,
@@ -1165,11 +1180,6 @@ public class CycDAG extends DirectedAcyclicGraph {
 		CyclicErrorEdge cyclicEdge = isCyclic(edgeQuery, negated);
 		if (cyclicEdge != null)
 			return cyclicEdge;
-
-		// Check if the negation exists.
-		NegatedErrorEdge negatedEdge = isNegated(edgeQuery, negated);
-		if (negatedEdge != null)
-			return negatedEdge;
 		return null;
 	}
 

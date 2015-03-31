@@ -14,9 +14,10 @@ import graph.core.Node;
 import graph.core.OntologyFunction;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
-public class Substitution {
+public class Substitution implements Comparable<Substitution> {
 	private Map<String, Node> substitutionMap_;
 
 	public Substitution() {
@@ -83,6 +84,39 @@ public class Substitution {
 		} else if (!substitutionMap_.equals(other.substitutionMap_))
 			return false;
 		return true;
+	}
+
+	@Override
+	public int compareTo(Substitution o) {
+		if (o == null)
+			return -1;
+
+		// Smaller sub first
+		int result = Integer.compare(substitutionMap_.size(),
+				o.substitutionMap_.size());
+		if (result != 0)
+			return result;
+
+		// Otherwise, iterate through keys and values
+		Iterator<Map.Entry<String, Node>> thisIter = substitutionMap_
+				.entrySet().iterator();
+		Iterator<Map.Entry<String, Node>> thatIter = o.substitutionMap_
+				.entrySet().iterator();
+		while (thisIter.hasNext()) {
+			Map.Entry<String, Node> entryA = thisIter.next();
+			Map.Entry<String, Node> entryB = thatIter.next();
+			result = entryA.getKey().compareTo(entryB.getKey());
+			if (result != 0)
+				return result;
+
+			result = entryA.getValue().getIdentifier()
+					.compareTo(entryB.getValue().getIdentifier());
+			if (result != 0)
+				return result;
+		}
+
+		// Else, compare by hashcode
+		return Integer.compare(hashCode(), o.hashCode());
 	}
 
 	public boolean containsVariable(String var) {

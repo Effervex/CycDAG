@@ -37,7 +37,7 @@ public class OrWorker extends QueryWorker {
 		for (int i = 1; i < nodes.length; i++) {
 			QueryObject funcObject = new QueryObject(queryObj.shouldVerify(),
 					queryObj.shouldJustify(),
-					((OntologyFunction) nodes[i]).getNodes());
+					QueryResult.ALL, ((OntologyFunction) nodes[i]).getNodes());
 			querier_.executeQuery(funcObject);
 
 			// Intersect results
