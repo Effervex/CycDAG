@@ -1,7 +1,7 @@
 package graph.module;
 
 public enum ARFFData {
-	RELATION("string"),
+	RELATION("nominal"),
 	ARG1("string"),
 	ARG2("string"),
 	DISAMB1("string"),
@@ -13,7 +13,7 @@ public enum ARFFData {
 	IMPACT_A("numeric"),
 	IMPACT_B("numeric"),
 	IMPACT_AB("numeric"),
-	COMMON_PARENT("string"),
+	COMMON_PARENT("nominal"),
 	PARENT_DEPTH("numeric"),
 	SEMANTIC_DISTANCE("numeric"),
 	RELATION_RELIABILITY("numeric"),

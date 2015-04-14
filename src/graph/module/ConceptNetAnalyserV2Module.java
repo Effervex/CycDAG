@@ -104,18 +104,15 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		Collection<DAGNode> nodes = new ArrayList<>();
 		// Only keep collections
 		for (Node node : aliasModule_.findNodes(conceptName, false, true)) {
-			if (queryModule_.prove(false, CommonConcepts.ISA.getNode(dag_),
-					node, CommonConcepts.COLLECTION.getNode(dag_)) == QueryResult.TRUE) {
-				nodes.add((DAGNode) node);
-			}
+			nodes.add((DAGNode) node);
 		}
 
 		// Add isa information too if we have it.
-		if (useIsas) {
-			Collection<DAGNode> isas = isaEdges_.get(conceptName);
-			if (isas != null)
-				nodes.addAll(isas);
-		}
+		// if (useIsas) {
+		// Collection<DAGNode> isas = isaEdges_.get(conceptName);
+		// if (isas != null)
+		// nodes.addAll(isas);
+		// }
 
 		nodes.retainAll(ptChildren_);
 		return nodes;
@@ -178,7 +175,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			e.printStackTrace();
 		}
 
-		readIsaData(dataFolder);
+//		readIsaData(dataFolder);
 		countDisjointness(dataFolder);
 
 		// Clean up
