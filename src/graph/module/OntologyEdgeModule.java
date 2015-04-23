@@ -50,10 +50,10 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 			return funcEdges;
 		for (Map.Entry<Object, Collection<Edge>> entry : nodeEdges.entrySet()) {
 			if (functionOnly && entry.getKey().toString().contains(FUNC_SPLIT))
-				funcEdges.addAll(nodeEdges.get(entry.getValue()));
+				funcEdges.addAll(entry.getValue());
 			else if (!functionOnly
 					&& !entry.getKey().toString().contains(FUNC_SPLIT))
-				funcEdges.addAll(nodeEdges.get(entry.getValue()));
+				funcEdges.addAll(entry.getValue());
 		}
 		return funcEdges;
 	}

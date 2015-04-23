@@ -45,7 +45,7 @@ public class ImpactCommand extends Command {
 		int sumGenls = 0;
 		int sumIsa = 0;
 		for (String coll : split) {
-			Node n = dag.findDAGNode(coll);
+			Node n = dag.findOrCreateNode(coll, null, false, false, true);
 			int numGenls = CommonQuery.SPECS.runQuery(dag, n).size();
 			int numIsa = CommonQuery.INSTANCES.runQuery(dag, n).size();
 			print(Math.log(numGenls) + ":" + Math.log(numIsa) + ":"

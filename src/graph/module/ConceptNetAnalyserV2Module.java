@@ -101,18 +101,24 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	@SuppressWarnings("unchecked")
 	private Collection<DAGNode> disambiguate(String conceptName, boolean useIsas) {
 		// Disambiguate
-		Collection<DAGNode> nodes = new ArrayList<>();
+		Collection<DAGNode> nodes = new HashSet<>();
 		// Only keep collections
 		for (Node node : aliasModule_.findNodes(conceptName, false, true)) {
+			// If the node is an individual, use the MIN-ISA
+			if (queryModule_.prove(false, CommonConcepts.ISA.getNode(dag_),
+					node, CommonConcepts.INDIVIDUAL.getNode(dag_)) == QueryResult.TRUE) {
+				for (Node n : CommonQuery.MINISA.runQuery(dag_, node))
+					nodes.add((DAGNode) n);
+			}
 			nodes.add((DAGNode) node);
 		}
 
 		// Add isa information too if we have it.
-		// if (useIsas) {
-		// Collection<DAGNode> isas = isaEdges_.get(conceptName);
-		// if (isas != null)
-		// nodes.addAll(isas);
-		// }
+//		if (useIsas) {
+//			Collection<DAGNode> isas = isaEdges_.get(conceptName);
+//			if (isas != null)
+//				nodes.addAll(isas);
+//		}
 
 		nodes.retainAll(ptChildren_);
 		return nodes;
@@ -132,8 +138,6 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				.getRuntime().availableProcessors());
 		File[] relationFiles = dataFolder.listFiles();
 		for (File file : relationFiles) {
-			if (file.getName().endsWith("IsA.txt"))
-				continue;
 			Runnable worker = new ProcessRelationFile(file);
 			executor.execute(worker);
 		}

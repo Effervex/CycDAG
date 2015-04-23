@@ -17,9 +17,12 @@ import graph.core.cli.DAGPortHandler;
 import graph.inference.QueryObject;
 import graph.inference.QueryResult;
 import graph.inference.Substitution;
+import graph.inference.VariableNode;
 import graph.module.QueryModule;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 
 public class QueryCommand extends CollectionCommand {
@@ -64,6 +67,14 @@ public class QueryCommand extends CollectionCommand {
 
 		QueryObject qo = new QueryObject(true, false, QueryResult.ALL, args);
 		Collection<Substitution> substitutions = queryModule.executeQuery(qo);
+		// Remove "??" variables
+		if (data.contains("??")) {
+			Collection<String> ignoredVars = new ArrayList<>();
+			for (VariableNode var : qo.getVariables())
+				if (var.toString().startsWith("??"))
+					ignoredVars.add(var.toString());
+			substitutions = filterIgnoredVariables(substitutions, ignoredVars);
+		}
 
 		// Sort
 		substitutions = dagHandler.postProcess(substitutions, rangeStart_,
@@ -94,8 +105,6 @@ public class QueryCommand extends CollectionCommand {
 			Map<String, Node> varSub = sub.getSubstitutionMap();
 			boolean first = true;
 			for (Map.Entry<String, Node> entry : varSub.entrySet()) {
-				if (entry.getKey().startsWith("??"))
-					continue;
 				if (!first)
 					print(",");
 				print(entry.getKey() + "/"
@@ -105,5 +114,17 @@ public class QueryCommand extends CollectionCommand {
 			print("|");
 		}
 		print("\n");
+	}
+
+	private Collection<Substitution> filterIgnoredVariables(
+			Collection<Substitution> substitutions,
+			Collection<String> ignoredVars) {
+		Collection<Substitution> filtered = new HashSet<>();
+		for (Substitution sub : substitutions) {
+			for (String ignoredVar : ignoredVars)
+				sub.getSubstitutionMap().remove(ignoredVar);
+			filtered.add(sub);
+		}
+		return filtered;
 	}
 }
