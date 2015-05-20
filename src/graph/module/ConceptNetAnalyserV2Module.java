@@ -98,7 +98,6 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 	 *            be found.
 	 * @return The disambiguations for the concept or an empty collection.
 	 */
-	@SuppressWarnings("unchecked")
 	private Collection<DAGNode> disambiguate(String conceptName, boolean useIsas) {
 		// Disambiguate
 		Collection<DAGNode> nodes = new HashSet<>();
@@ -114,11 +113,11 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		}
 
 		// Add isa information too if we have it.
-//		if (useIsas) {
-//			Collection<DAGNode> isas = isaEdges_.get(conceptName);
-//			if (isas != null)
-//				nodes.addAll(isas);
-//		}
+		if (useIsas) {
+			Collection<DAGNode> isas = isaEdges_.get(conceptName);
+			if (isas != null)
+				nodes.addAll(isas);
+		}
 
 		nodes.retainAll(ptChildren_);
 		return nodes;
@@ -155,8 +154,8 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			ModuleException {
 		aliasModule_ = (NodeAliasModule) dag_.getModule(NodeAliasModule.class);
 		explored_ = MultiMap.createConcurrentHashSetMultiMap();
-		// Do not include PartiallyTangible itself.
-		// ptChildren_.remove(CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
+		ptChildren_ = CommonQuery.SPECS.runQuery(dag_,
+				CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
 		relDataMap_ = new HashMap<>();
 
 		if (args.length == 0)
@@ -179,7 +178,7 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 			e.printStackTrace();
 		}
 
-//		readIsaData(dataFolder);
+		// readIsaData(dataFolder);
 		countDisjointness(dataFolder);
 
 		// Clean up
@@ -223,11 +222,11 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 		output[ARFFData.DISAMB2.ordinal()] = "'"
 				+ conceptB.getIdentifier(true).replaceAll("'", "\\\\'") + "'";
 		// Depth
-		int depthA = Integer.parseInt(conceptA
-				.getProperty(DepthModule.DEPTH_PROPERTY));
+		String depthProp = conceptA.getProperty(DepthModule.DEPTH_PROPERTY);
+		int depthA = (depthProp != null) ? Integer.parseInt(depthProp) : -1;
 		output[ARFFData.DEPTH_1.ordinal()] = depthA + "";
-		int depthB = Integer.parseInt(conceptB
-				.getProperty(DepthModule.DEPTH_PROPERTY));
+		depthProp = conceptA.getProperty(DepthModule.DEPTH_PROPERTY);
+		int depthB = (depthProp != null) ? Integer.parseInt(depthProp) : -1;
 		output[ARFFData.DEPTH_2.ordinal()] = depthB + "";
 		output[ARFFData.AV_DEPTH.ordinal()] = ((depthA + depthB) / 2f) + "";
 
@@ -310,6 +309,41 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				}
 			}
 
+			// V2 Relationless data
+//			int[] globalCounts = new int[3];
+//			for (Map.Entry<String, RelationData> entry : relDataMap_.entrySet()) {
+//				int[] counts = entry.getValue().intraNodeCounts_
+//						.get(commonParent.getIdentifier(true));
+//				if (counts != null) {
+//					for (int j = 0; j < globalCounts.length; j++)
+//						globalCounts[j] += counts[j];
+//				}
+//
+//				// Intra relation counts
+//				if (entry.equals(relation)) {
+//					cloneData[ARFFData.INTRA_RELATION_RELIABILITY.ordinal()] = (1f * (counts[DISJOINT] + 1) / (counts[DISJOINT]
+//							+ counts[CONJOINT] + 2))
+//							+ "";
+//					cloneData[ARFFData.INTRA_RELATION_DISJOINT.ordinal()] = counts[DISJOINT]
+//							+ "";
+//					cloneData[ARFFData.INTRA_RELATION_CONJOINT.ordinal()] = counts[CONJOINT]
+//							+ "";
+//					cloneData[ARFFData.INTRA_RELATION_UNKNOWN.ordinal()] = counts[UNKNOWN]
+//							+ "";
+//				}
+//			}
+//
+//			// Global counts
+//			cloneData[ARFFData.GLOBAL_RELATION_RELIABILITY.ordinal()] = (1f * (globalCounts[DISJOINT] + 1) / (counts[DISJOINT]
+//					+ globalCounts[CONJOINT] + 2))
+//					+ "";
+//			cloneData[ARFFData.GLOBAL_RELATION_DISJOINT.ordinal()] = globalCounts[DISJOINT]
+//					+ "";
+//			cloneData[ARFFData.GLOBAL_RELATION_CONJOINT.ordinal()] = globalCounts[CONJOINT]
+//					+ "";
+//			cloneData[ARFFData.GLOBAL_RELATION_UNKNOWN.ordinal()] = globalCounts[UNKNOWN]
+//					+ "";
+
 			results[i++] = cloneData;
 		}
 		return results;
@@ -370,22 +404,6 @@ public class ConceptNetAnalyserV2Module extends DAGModule<Boolean> {
 				.getModule(SemanticSimilarityModule.class);
 		ptChildren_ = CommonQuery.SPECS.runQuery(dag_,
 				CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
-	}
-
-	@Override
-	public boolean addEdge(DAGEdge edge) {
-		if (edge.getNodes()[0].equals(CommonConcepts.GENLS.getNode(dag_)))
-			ptChildren_ = CommonQuery.SPECS.runQuery(dag_,
-					CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
-		return super.addEdge(edge);
-	}
-
-	@Override
-	public boolean removeEdge(DAGEdge edge) {
-		if (edge.getNodes()[0].equals(CommonConcepts.GENLS.getNode(dag_)))
-			ptChildren_ = CommonQuery.SPECS.runQuery(dag_,
-					CommonConcepts.PARTIALLY_TANGIBLE.getNode(dag_));
-		return super.removeEdge(edge);
 	}
 
 	@Override

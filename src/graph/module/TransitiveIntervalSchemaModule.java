@@ -125,7 +125,6 @@ public class TransitiveIntervalSchemaModule extends
 
 			dag_.removeProperty(n, MARK);
 			// For every incoming edge
-
 			Collection<DAGNode> transitiveNodes = getTransitiveNodes(n,
 					!predecessorTree);
 
@@ -306,38 +305,38 @@ public class TransitiveIntervalSchemaModule extends
 		}
 
 		if (edge.getNodes()[0].equals(transitiveNode_)) {
-			DAGNode nodeObj = (DAGNode) edge.getNodes()[1];
-			String objIntIDStr = nodeObj.getProperty(PREDECESSOR_ID);
-			DAGNode nodeSubj = (DAGNode) edge.getNodes()[2];
+			DAGNode nodeSubj = (DAGNode) edge.getNodes()[1];
 			String subjIntIDStr = nodeSubj.getProperty(PREDECESSOR_ID);
-			if (objIntIDStr == null) {
+			DAGNode nodeObj = (DAGNode) edge.getNodes()[2];
+			String objIntIDStr = nodeObj.getProperty(PREDECESSOR_ID);
+			if (subjIntIDStr == null) {
 				// genls NEW exist
 
 				// Create new root node for predecessorTree
-				if (!predecessorMap_.addNewRootedNode(nodeObj))
+				if (!predecessorMap_.addNewRootedNode(nodeSubj))
 					return rebuildTrees();
 
 				// Attach to parent descendant node in ancestorTree
-				if (!ancestorMap_.addNewLeafNode(nodeObj,
-						Integer.parseInt(nodeSubj.getProperty(ANCESTOR_ID))))
+				if (!ancestorMap_.addNewLeafNode(nodeSubj,
+						Integer.parseInt(nodeObj.getProperty(ANCESTOR_ID))))
 					return rebuildTrees();
 			}
-			if (subjIntIDStr == null) {
+			if (objIntIDStr == null) {
 				// genls exist NEW
 
 				// Create new root node for ancestorTree
-				if (!ancestorMap_.addNewRootedNode(nodeSubj))
+				if (!ancestorMap_.addNewRootedNode(nodeObj))
 					return rebuildTrees();
 				// Attach to parent descendant node in predecessorTree
-				if (!predecessorMap_.addNewLeafNode(nodeSubj,
-						Integer.parseInt(objIntIDStr)))
+				if (!predecessorMap_.addNewLeafNode(nodeObj,
+						Integer.parseInt(subjIntIDStr)))
 					return rebuildTrees();
 			}
 
 			// Propagate the intervals
-			predecessorMap_.propagateIntervalAddition(nodeObj, nodeSubj,
+			predecessorMap_.propagateIntervalAddition(nodeSubj, nodeObj,
 					ancestorMap_, false);
-			ancestorMap_.propagateIntervalAddition(nodeSubj, nodeObj,
+			ancestorMap_.propagateIntervalAddition(nodeObj, nodeSubj,
 					predecessorMap_, false);
 		}
 		return true;
@@ -483,10 +482,10 @@ public class TransitiveIntervalSchemaModule extends
 		}
 
 		if (edge.getNodes()[0].equals(transitiveNode_)) {
-			DAGNode nodeObj = (DAGNode) edge.getNodes()[1];
-			DAGNode nodeSubj = (DAGNode) edge.getNodes()[2];
-			predecessorMap_.removeEdge(nodeObj, nodeSubj, ancestorMap_);
-			ancestorMap_.removeEdge(nodeSubj, nodeObj, predecessorMap_);
+			DAGNode nodeSubj = (DAGNode) edge.getNodes()[1];
+			DAGNode nodeObj = (DAGNode) edge.getNodes()[2];
+			predecessorMap_.removeEdge(nodeSubj, nodeObj, ancestorMap_);
+			ancestorMap_.removeEdge(nodeObj, nodeSubj, predecessorMap_);
 		}
 		return true;
 	}
@@ -755,14 +754,14 @@ public class TransitiveIntervalSchemaModule extends
 		/**
 		 * Adds a new node as a child of another node.
 		 * 
-		 * @param nodeSubj
+		 * @param node
 		 *            The node to add.
 		 * @param objKey
 		 *            The key of the parent to add to.
 		 * @return True if the node was added. False if the tree needs to be
 		 *         rebuilt.
 		 */
-		public synchronized boolean addNewLeafNode(DAGNode nodeSubj, int objKey) {
+		public synchronized boolean addNewLeafNode(DAGNode node, int objKey) {
 			SortedMap<Integer, DAGNode> headMap = inverseMap_.headMap(objKey);
 			int prevIndex = (headMap != null && !headMap.isEmpty()) ? headMap
 					.lastKey() : 0;
@@ -772,8 +771,8 @@ public class TransitiveIntervalSchemaModule extends
 			if (inverseMap_.containsKey(childID))
 				return false;
 
-			dag_.addProperty(nodeSubj, intervalIDKey_, childID + "");
-			recordID(nodeSubj, childID, new int[] { prevIndex + 1, childID });
+			dag_.addProperty(node, intervalIDKey_, childID + "");
+			recordID(node, childID, new int[] { prevIndex + 1, childID });
 			return true;
 		}
 
@@ -940,17 +939,17 @@ public class TransitiveIntervalSchemaModule extends
 		/**
 		 * Removes an edge from the tree.
 		 * 
-		 * @param nodeObj
-		 *            The object of the edge.
 		 * @param nodeSubj
 		 *            The subject of the edge.
+		 * @param nodeObj
+		 *            The object of the edge.
 		 * @param mirrorSchema
 		 */
-		public void removeEdge(DAGNode nodeObj, DAGNode nodeSubj,
+		public void removeEdge(DAGNode nodeSubj, DAGNode nodeObj,
 				IntervalSchema mirrorSchema) {
 			// Propagate the intervals
 			Collection<DAGNode> predecessors = mirrorSchema
-					.getTransitivePredecessors(nodeObj, true);
+					.getTransitivePredecessors(nodeSubj, true);
 
 			if (schemaLock_ == null)
 				schemaLock_ = new ReentrantLock();
@@ -958,7 +957,7 @@ public class TransitiveIntervalSchemaModule extends
 				schemaLock_.lock();
 				for (DAGNode predecessor : predecessors) {
 					// Remove the subjIntervals from the obj
-					removeIntervals(predecessor, nodeSubj);
+					removeIntervals(predecessor, nodeObj);
 					Collection<DAGNode> transitives = getTransitiveNodes(
 							predecessor, intervalIDKey_.equals(PREDECESSOR_ID));
 					for (DAGNode n : transitives)
