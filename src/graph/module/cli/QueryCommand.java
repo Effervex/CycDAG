@@ -28,11 +28,14 @@ import java.util.Map;
 public class QueryCommand extends CollectionCommand {
 	@Override
 	public String helpText() {
-		return "{0} (X Y ...) [A,B) : Poses a query to the DAG "
+		return "{0} proveFail? (X Y ...) : Poses a query to the DAG "
 				+ "in the form of a bracketed edge expression "
 				+ "consisting of either nodes (ID or named) "
 				+ "or variables (in the form ?X or ? for "
-				+ "'don't care' variables).\nThe query returns "
+				+ "'don't care' variables). The optional proveFail argument "
+				+ "takes either T/F. When false, the query will not attempt "
+				+ "to prove queries as false. Defaults to always attempt."
+				+ "\nThe query returns "
 				+ "the number of valid substitutions (0 if there "
 				+ "are none), followed by the variable substitutions.";
 	}
@@ -58,14 +61,30 @@ public class QueryCommand extends CollectionCommand {
 			return;
 		}
 
+		boolean proveFail = true;
+		String queryStr = data;
+		if (!data.startsWith("(")) {
+			String character = data.charAt(0) + "";
+			if (character.equalsIgnoreCase("T"))
+				proveFail = true;
+			else if (character.equalsIgnoreCase("F"))
+				proveFail = false;
+			else {
+				print("-1|Could not parse arguments.\n");
+				return;
+			}
+			queryStr = queryStr.substring(2).trim();
+		}
+
 		Node[] args = null;
-		args = dagHandler.getDAG().parseNodes(data, null, false, false);
+		args = dagHandler.getDAG().parseNodes(queryStr, null, false, false);
 		if (args == null) {
 			print("-1|Could not parse arguments.\n");
 			return;
 		}
 
-		QueryObject qo = new QueryObject(true, false, QueryResult.ALL, args);
+		QueryResult qr = (proveFail) ? QueryResult.ALL : QueryResult.TRUE;
+		QueryObject qo = new QueryObject(true, false, qr, args);
 		Collection<Substitution> substitutions = queryModule.executeQuery(qo);
 		// Remove "??" variables
 		if (data.contains("??")) {

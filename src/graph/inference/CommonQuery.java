@@ -277,7 +277,8 @@ public enum CommonQuery {
 		for (int j = 0; j < args.length; j++)
 			sub.addSubstitution(new VariableNode("?" + j), args[j]);
 		Node[] replacedArgs = sub.applySubstitution(queryObject_.getNodes());
-		QueryObject qo = new QueryObject(replacedArgs);
+		QueryObject qo = new QueryObject(false, false, QueryResult.TRUE,
+				replacedArgs);
 
 		QueryModule querier = (QueryModule) dag.getModule(QueryModule.class);
 

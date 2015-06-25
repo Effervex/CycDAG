@@ -392,6 +392,18 @@ public class NLPToStringModule extends DAGModule<String> {
 			concept += " (" + elements[i] + ")";
 		}
 
+		result = camelCaseToNormal(concept);
+		return result;
+	}
+
+	/**
+	 * Converts a camel case string to normal format case.
+	 *
+	 * @param concept The string to convert.
+	 * @return 
+	 */
+	public static String camelCaseToNormal(String concept) {
+		StringBuilder builder = new StringBuilder();
 		// Checking through, char by char
 		for (int i = 0; i < concept.length(); i++) {
 			char c = concept.charAt(i);
@@ -400,7 +412,8 @@ public class NLPToStringModule extends DAGModule<String> {
 			if (Character.isUpperCase(c) || Character.isDigit(c)) {
 				// if yes, is this NOT the start of the string?
 				// or beginning of the bracket expression?
-				if (!result.equals("") && !result.endsWith("(")) {
+				if (builder.length() != 0
+						&& builder.charAt(builder.length() - 1) != '(') {
 					// we are in the middle of a phrase..
 					// Is the previous character not a space?
 					if (concept.charAt(i - 1) != ' ') {
@@ -408,23 +421,24 @@ public class NLPToStringModule extends DAGModule<String> {
 						if ((c == 'A')
 								&& Character.isLowerCase(concept.charAt(i - 1))) {
 
-							result = result + " ";
+							builder.append(' ');
 						} else if (Character.isLowerCase(concept.charAt(i - 1))) {
 							// is the letter before a lower case character?
-							result = result + " ";
+							builder.append(' ');
 						} else if (i < concept.length() - 1
 								&& Character.isLowerCase(concept.charAt(i + 1))
 								&& !Character.isDigit(c)) {
 
 							// is the letter before an upper case character?
-							result = result + " ";
+							builder.append(' ');
 						}
 
 					}
 				}
 			}
-			result = result + c;
+			// TODO Lowercase c?
+			builder.append(c);
 		}
-		return result;
+		return builder.toString();
 	}
 }

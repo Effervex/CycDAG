@@ -19,6 +19,7 @@ import util.AliasedObject;
 import graph.core.DAGNode;
 import graph.core.Node;
 import graph.core.cli.DAGPortHandler;
+import graph.inference.QueryObject;
 import graph.inference.QueryResult;
 import graph.inference.Substitution;
 import graph.module.QueryModule;
@@ -78,7 +79,9 @@ public class QueryFindCycNodeCommand extends FindCycNodeCommand {
 			else if (n instanceof AliasedObject)
 				node = ((AliasedObject<Character, DAGNode>) n).object_;
 			Substitution substitution = new Substitution("?X", node);
-			boolean satisfies = qm.prove(false, substitution.applySubstitution(args)) == QueryResult.TRUE;
+			QueryObject qo = new QueryObject(false, false, QueryResult.TRUE,
+					substitution.applySubstitution(args));
+			boolean satisfies = qm.prove(qo) == QueryResult.TRUE;
 			if (satisfies)
 				filteredNodes.add(n);
 		}

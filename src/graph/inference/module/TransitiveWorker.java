@@ -174,7 +174,8 @@ public class TransitiveWorker extends QueryWorker {
 					return;
 				} else if (!negated && queryObj.addResult(true, e.getNodes()))
 					return;
-				toCheck.add(edgeNode);
+				if (!negated)
+					toCheck.add(edgeNode);
 			}
 		}
 	}

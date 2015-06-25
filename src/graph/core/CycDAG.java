@@ -47,6 +47,7 @@ import java.util.regex.Pattern;
 
 import util.BooleanFlags;
 import util.UtilityMethods;
+import util.collection.ValueComparator;
 
 public class CycDAG extends DirectedAcyclicGraph {
 	private static final Pattern CODE_PATTERN = Pattern
@@ -1187,23 +1188,5 @@ public class CycDAG extends DirectedAcyclicGraph {
 		nodeFlags_.addFlag("allowVariables", false);
 
 		edgeFlags_.addFlag("forceConstraints", false);
-	}
-
-	private class ValueComparator implements Comparator<Object> {
-		private Map<? extends Object, Integer> baseMap_;
-
-		public ValueComparator(Map<? extends Object, Integer> baseMap) {
-			baseMap_ = baseMap;
-		}
-
-		@Override
-		public int compare(Object o1, Object o2) {
-			if (baseMap_.get(o1) < baseMap_.get(o2))
-				return -1;
-			if (baseMap_.get(o1) > baseMap_.get(o2))
-				return 1;
-			return Integer.compare(o1.hashCode(), o2.hashCode());
-		}
-
 	}
 }

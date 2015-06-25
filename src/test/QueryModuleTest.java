@@ -238,7 +238,8 @@ public class QueryModuleTest {
 		DAGNode cat = (DAGNode) dag_.findOrCreateNode("Cat", creator, true);
 		assertTrue(dag_.findOrCreateEdge(new Node[] { disjoint, cat, dog },
 				creator, true) instanceof DAGEdge);
-		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, disjoint, cat, dog);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, disjoint,
+				cat, dog);
 		assertNotNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		List<Node[]> justification = qo.getJustification();
@@ -351,7 +352,8 @@ public class QueryModuleTest {
 				true);
 		dag_.findOrCreateEdge(new Node[] { genls, dog, mammal }, creator, true);
 		dag_.findOrCreateEdge(new Node[] { genls, cat, mammal }, creator, true);
-		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, boxer, mammal);
+		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, boxer,
+				mammal);
 		assertNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 		justification = qo.getJustification();
@@ -413,13 +415,15 @@ public class QueryModuleTest {
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 		// Common genls child
-		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, mammal, fluffy);
+		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, mammal,
+				fluffy);
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 		// Common isa child
 		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, fido, fluffy },
 				creator, true) instanceof DAGEdge);
-		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, mammal, fluffy);
+		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, mammal,
+				fluffy);
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 
@@ -437,7 +441,8 @@ public class QueryModuleTest {
 		assertArrayEquals(justification.get(1),
 				new Node[] { disjoint, cat, dog });
 
-		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, tomcat, boxer);
+		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, tomcat,
+				boxer);
 		assertNotNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		justification = qo.getJustification();
@@ -504,7 +509,8 @@ public class QueryModuleTest {
 		assertArrayEquals(justification.get(4),
 				new Node[] { genls, boxer, dog });
 
-		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, book, mammal);
+		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, book,
+				mammal);
 		assertNotNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		justification = qo.getJustification();
@@ -530,7 +536,8 @@ public class QueryModuleTest {
 		assertArrayEquals(justification.get(3), new Node[] { genls, canis,
 				mammal });
 
-		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, book, nonliving);
+		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, book,
+				nonliving);
 		assertNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 		justification = qo.getJustification();
@@ -545,7 +552,8 @@ public class QueryModuleTest {
 		assertTrue(results.contains(new Substitution(x, dog)));
 		assertTrue(results.contains(new Substitution(x, nonliving)));
 
-		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, tomcat, boxer);
+		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, tomcat,
+				boxer);
 		assertNotNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		justification = qo.getJustification();
@@ -697,7 +705,8 @@ public class QueryModuleTest {
 				.findOrCreateEdge(new Node[] { not,
 						new OntologyFunction(disjoint, mammal, colour) },
 						creator, true) instanceof ErrorEdge);
-		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, mammal, colour);
+		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, mammal,
+				colour);
 		assertNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 		justification = qo.getJustification();
@@ -729,7 +738,8 @@ public class QueryModuleTest {
 		assertTrue(dag_.findOrCreateEdge(new Node[] { genls, dog, canis },
 				creator, true) instanceof DAGEdge);
 		VariableNode x = VariableNode.DEFAULT;
-		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genls, dog, x);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genls,
+				dog, x);
 		Collection<Substitution> results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertEquals(results.size(), 2);
@@ -891,8 +901,8 @@ public class QueryModuleTest {
 				animal });
 
 		DAGNode not = CommonConcepts.NOT.getNode(dag_);
-		qo = new QueryObject(true, true, QueryResult.ALL, not, new OntologyFunction(genls, wolf,
-				animal));
+		qo = new QueryObject(true, true, QueryResult.ALL, not,
+				new OntologyFunction(genls, wolf, animal));
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 		assertNull(results);
@@ -914,7 +924,8 @@ public class QueryModuleTest {
 		dag_.findOrCreateEdge(
 				new Node[] { preserves, maleFn, PrimitiveNode.parseNode("1") },
 				creator, true);
-		qo = new QueryObject(true, true, QueryResult.ALL, genls, maleDog, VariableNode.DEFAULT);
+		qo = new QueryObject(true, true, QueryResult.ALL, genls, maleDog,
+				VariableNode.DEFAULT);
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertEquals(results.size(), 3);
@@ -984,7 +995,8 @@ public class QueryModuleTest {
 		dag_.findOrCreateEdge(new Node[] { genlPreds, capitalCity, geoSub },
 				creator, true);
 		VariableNode x = VariableNode.DEFAULT;
-		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genlPreds, capitalCity, x);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL,
+				genlPreds, capitalCity, x);
 		Collection<Substitution> results = sut_.executeQuery(qo);
 		assertEquals(results.size(), 2);
 		assertTrue(results.contains(new Substitution(x, capitalCity)));
@@ -994,7 +1006,8 @@ public class QueryModuleTest {
 				"capitalCityOfState", creator, true);
 		dag_.findOrCreateEdge(new Node[] { genlPreds, capitalCityState,
 				capitalCity }, creator, true);
-		qo = new QueryObject(true, true, QueryResult.ALL, genlPreds, capitalCityState, x);
+		qo = new QueryObject(true, true, QueryResult.ALL, genlPreds,
+				capitalCityState, x);
 		results = sut_.executeQuery(qo);
 		assertEquals(results.size(), 3);
 		assertTrue(results.contains(new Substitution(x, capitalCityState)));
@@ -1009,7 +1022,8 @@ public class QueryModuleTest {
 		Edge e = dag_.findOrCreateEdge(new Node[] { capitalCityState, texas,
 				austin }, creator, true);
 		assertFalse(e instanceof ErrorEdge);
-		qo = new QueryObject(true, true, QueryResult.ALL, capitalCityState, texas, x);
+		qo = new QueryObject(true, true, QueryResult.ALL, capitalCityState,
+				texas, x);
 		results = sut_.executeQuery(qo);
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(new Substitution(x, austin)));
@@ -1030,17 +1044,20 @@ public class QueryModuleTest {
 		e = dag_.findOrCreateEdge(new Node[] { genls, geoEntity, geoRegion },
 				creator, true);
 		assertFalse(e instanceof ErrorEdge);
-		qo = new QueryObject(true, true, QueryResult.ALL, arg1Isa, capitalCity, x);
+		qo = new QueryObject(true, true, QueryResult.ALL, arg1Isa, capitalCity,
+				x);
 		results = sut_.executeQuery(qo);
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(new Substitution(x, geoEntity)));
 
-		qo = new QueryObject(true, true, QueryResult.ALL, arg1Isa, capitalCityState, x);
+		qo = new QueryObject(true, true, QueryResult.ALL, arg1Isa,
+				capitalCityState, x);
 		results = sut_.executeQuery(qo);
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(new Substitution(x, geoEntity)));
 
-		qo = new QueryObject(true, true, QueryResult.ALL, arg1Isa, capitalCityState, geoRegion);
+		qo = new QueryObject(true, true, QueryResult.ALL, arg1Isa,
+				capitalCityState, geoRegion);
 		results = sut_.executeQuery(qo);
 		assertNotNull(results);
 
@@ -1051,8 +1068,8 @@ public class QueryModuleTest {
 		dag_.findOrCreateEdge(
 				new Node[] { argIsa, capitalCity, PrimitiveNode.parseNode("2"),
 						capCityCol }, creator, true);
-		qo = new QueryObject(true, true, QueryResult.ALL, argIsa,
-				capitalCity, PrimitiveNode.parseNode("2"), x);
+		qo = new QueryObject(true, true, QueryResult.ALL, argIsa, capitalCity,
+				PrimitiveNode.parseNode("2"), x);
 		results = sut_.executeQuery(qo);
 		assertEquals(results.size(), 1);
 		assertTrue(results.contains(new Substitution(x, capCityCol)));
@@ -1066,7 +1083,8 @@ public class QueryModuleTest {
 		DAGNode dog = (DAGNode) dag_.findOrCreateNode("Dog", creator, true);
 		dag_.findOrCreateEdge(new Node[] { isa, fido, dog }, creator, true);
 		VariableNode x = VariableNode.DEFAULT;
-		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, isa, fido, x);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, isa,
+				fido, x);
 		Collection<Substitution> results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertEquals(results.size(), 1);
@@ -1255,7 +1273,8 @@ public class QueryModuleTest {
 		assertArrayEquals(justification.get(1),
 				new Node[] { genls, dog, canis });
 
-		qo = new QueryObject(true, true, QueryResult.ALL, isa, fido, domesticated);
+		qo = new QueryObject(true, true, QueryResult.ALL, isa, fido,
+				domesticated);
 		results = sut_.executeQuery(qo);
 		assertNotNull(results);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
@@ -1267,8 +1286,8 @@ public class QueryModuleTest {
 
 		// Negated isa
 		DAGNode not = CommonConcepts.NOT.getNode(dag_);
-		qo = new QueryObject(true, true, QueryResult.ALL, not, new OntologyFunction(isa, fido,
-				domesticated));
+		qo = new QueryObject(true, true, QueryResult.ALL, not,
+				new OntologyFunction(isa, fido, domesticated));
 		results = sut_.executeQuery(qo);
 		assertNull(results);
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
@@ -1321,7 +1340,8 @@ public class QueryModuleTest {
 		assertArrayEquals(justification.get(1), new Node[] { genls, fruit,
 				plant });
 
-		qo = new QueryObject(true, true, QueryResult.ALL, genls, apple, VariableNode.DEFAULT);
+		qo = new QueryObject(true, true, QueryResult.ALL, genls, apple,
+				VariableNode.DEFAULT);
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertEquals(results.size(), 2);
@@ -1379,7 +1399,8 @@ public class QueryModuleTest {
 		assertArrayEquals(justification.get(1), new Node[] { genls, apple,
 				fruit });
 
-		qo = new QueryObject(true, true, QueryResult.ALL, isa, myApple, VariableNode.DEFAULT);
+		qo = new QueryObject(true, true, QueryResult.ALL, isa, myApple,
+				VariableNode.DEFAULT);
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertEquals(results.size(), 3);
@@ -1414,8 +1435,8 @@ public class QueryModuleTest {
 				creator, true);
 		assertEdge(dag_.findOrCreateEdge(new Node[] { resultGenl, hardcore,
 				hardcorePlant }, creator, true));
-		qo = new QueryObject(true, true, QueryResult.ALL, genls,
-				hardcorePlant, VariableNode.DEFAULT);
+		qo = new QueryObject(true, true, QueryResult.ALL, genls, hardcorePlant,
+				VariableNode.DEFAULT);
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertEquals(results.size(), 1);
@@ -1427,7 +1448,8 @@ public class QueryModuleTest {
 				creator, true));
 		assertEdge(dag_.findOrCreateEdge(new Node[] { genls, redapple, apple },
 				creator, true));
-		qo = new QueryObject(true, true, QueryResult.ALL, genls, redapple, fruit);
+		qo = new QueryObject(true, true, QueryResult.ALL, genls, redapple,
+				fruit);
 		results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertNotNull(results);
@@ -1491,13 +1513,15 @@ public class QueryModuleTest {
 		Node laterThan = CommonConcepts.LATER_PREDICATE.getNode(dag_);
 		Node dateA = dpm.parseDate("2000").iterator().next();
 		Node dateB = dpm.parseDate("1999").iterator().next();
-		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL,
+				laterThan, dateA, dateB);
 		assertNotNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 
 		dateA = dpm.parseDate("2000").iterator().next();
 		dateB = dpm.parseDate("2000").iterator().next();
-		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA,
+				dateB);
 		assertNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 
@@ -1506,56 +1530,65 @@ public class QueryModuleTest {
 		dag_.findOrCreateNode("March", creator, true);
 		dateA = dpm.parseDate("April 2000").iterator().next();
 		dateB = dpm.parseDate("March 2000").iterator().next();
-		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA,
+				dateB);
 		assertNotNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 
 		dag_.findOrCreateNode("May", creator, true);
 		dateB = dpm.parseDate("May 2000").iterator().next();
-		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA,
+				dateB);
 		assertNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 
 		dateA = dpm.parseDate("4 April 2000").iterator().next();
 		dateB = dpm.parseDate("3 April 2000").iterator().next();
-		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA,
+				dateB);
 		assertNotNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 
 		dateA = dpm.parseDate("4 April 2000").iterator().next();
 		dateB = dpm.parseDate("March 2000").iterator().next();
-		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA,
+				dateB);
 		assertNotNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 
 		dateA = dpm.parseDate("4 April 2000").iterator().next();
 		dateB = dpm.parseDate("April 2000").iterator().next();
-		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA,
+				dateB);
 		assertNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 
 		dateA = dpm.parseDate("April 2000").iterator().next();
 		dateB = dpm.parseDate("4 April 2000").iterator().next();
-		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA,
+				dateB);
 		assertNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 
 		dateA = dag_.findOrCreateNode("Today-Indexical", creator, true);
 		dateB = dag_.findOrCreateNode("Yesterday-Indexical", creator, true);
-		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA,
+				dateB);
 		assertNotNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 
 		dateA = dag_.findOrCreateNode("Today-Indexical", creator, true);
 		dateB = dag_.findOrCreateNode("Tomorrow-Indexical", creator, true);
-		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA,
+				dateB);
 		assertNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.FALSE);
 
 		dateA = dag_.findOrCreateNode("Now", creator, true);
 		dag_.findOrCreateNode("November", creator, true);
 		dateB = dpm.parseDate("12 November 2013").iterator().next();
-		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA, dateB);
+		qo = new QueryObject(true, true, QueryResult.ALL, laterThan, dateA,
+				dateB);
 		assertNotNull(sut_.executeQuery(qo));
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 	}
@@ -1582,12 +1615,12 @@ public class QueryModuleTest {
 				new Node[] { CommonConcepts.ISA.getNode(dag_), boxer,
 						CommonConcepts.COLLECTION.getNode(dag_) }, creator,
 				null, true, false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { genls, boxer, dog },
-				creator, null, true, false, false) instanceof DAGEdge);
+		assertEdge(creator, genls, boxer, dog);
 		assertTrue(dag_.findOrCreateEdge(new Node[] { not,
 				new OntologyFunction(genls, dog, cat) }, creator, null, true,
 				false, false) instanceof DAGEdge);
-		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genls, boxer, dog);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genls,
+				boxer, dog);
 		assertEquals(sut_.prove(qo), QueryResult.TRUE);
 		List<Node[]> justification = qo.getJustification();
 		assertEquals(justification.size(), 1);
@@ -1611,13 +1644,15 @@ public class QueryModuleTest {
 				new OntologyFunction(genls, dog, cat) });
 
 		// Query (substitution)
-		qo = new QueryObject(true, true, QueryResult.ALL, genls, boxer, VariableNode.DEFAULT);
+		qo = new QueryObject(true, true, QueryResult.ALL, genls, boxer,
+				VariableNode.DEFAULT);
 		Collection<Substitution> subs = sut_.executeQuery(qo);
 		assertEquals(subs.size(), 2);
 		assertTrue(subs.contains(new Substitution(VariableNode.DEFAULT, boxer)));
 		assertTrue(subs.contains(new Substitution(VariableNode.DEFAULT, dog)));
 
-		qo = new QueryObject(true, true, QueryResult.ALL, genls, dog, VariableNode.DEFAULT);
+		qo = new QueryObject(true, true, QueryResult.ALL, genls, dog,
+				VariableNode.DEFAULT);
 		subs = sut_.executeQuery(qo);
 		assertEquals(subs.size(), 1);
 		assertTrue(subs.contains(new Substitution(VariableNode.DEFAULT, dog)));
@@ -1636,29 +1671,19 @@ public class QueryModuleTest {
 		DAGNode genls = CommonConcepts.GENLS.getNode(dag_);
 		DAGNode isa = CommonConcepts.ISA.getNode(dag_);
 		DAGNode not = CommonConcepts.NOT.getNode(dag_);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, dog,
-				CommonConcepts.COLLECTION.getNode(dag_) }, creator, null, true,
-				false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, rock,
-				CommonConcepts.COLLECTION.getNode(dag_) }, creator, null, true,
-				false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, mammal,
-				CommonConcepts.COLLECTION.getNode(dag_) }, creator, null, true,
-				false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, person,
-				CommonConcepts.COLLECTION.getNode(dag_) }, creator, null, true,
-				false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, fido,
-				CommonConcepts.INDIVIDUAL.getNode(dag_) }, creator, null, true,
-				false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { not,
-				new OntologyFunction(genls, mammal, rock) }, creator, null,
-				true, false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { genls, dog, mammal },
-				creator, null, true, false, false) instanceof DAGEdge);
+		assertEdge(creator, isa, dog, CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, isa, rock, CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, isa, mammal,
+				CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, isa, person,
+				CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, isa, fido, CommonConcepts.INDIVIDUAL.getNode(dag_));
+		assertEdge(creator, not, new OntologyFunction(genls, mammal, rock));
+		assertEdge(creator, genls, dog, mammal);
 
 		// Assert dog as rock, when not allowed to be
-		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genls, dog, rock);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genls,
+				dog, rock);
 		QueryResult result = sut_.prove(qo);
 		assertEquals(result, QueryResult.FALSE);
 		assertTrue(dag_.findOrCreateEdge(qo.getNodes(), creator, null, true,
@@ -1681,9 +1706,7 @@ public class QueryModuleTest {
 		assertArrayEquals(justification.get(0), new Node[] { not,
 				new OntologyFunction(genls, mammal, rock) });
 
-		// Assert Fido
-		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, fido, dog },
-				creator, null, true, false, false) instanceof DAGEdge);
+		assertEdge(creator, isa, fido, dog);
 
 		// Fido is not a person
 		assertTrue(dag_.findOrCreateEdge(new Node[] { not,
@@ -1716,7 +1739,8 @@ public class QueryModuleTest {
 		assertArrayEquals(justification.get(2), new Node[] { not,
 				new OntologyFunction(genls, mammal, rock) });
 
-		qo = new QueryObject(true, true, QueryResult.ALL, isa, fido, VariableNode.DEFAULT);
+		qo = new QueryObject(true, true, QueryResult.ALL, isa, fido,
+				VariableNode.DEFAULT);
 		Collection<Substitution> subs = sut_.executeQuery(qo);
 		assertEquals(subs.toString(), subs.size(), 3);
 		assertTrue(subs.contains(new Substitution(VariableNode.DEFAULT, dog)));
@@ -1737,23 +1761,17 @@ public class QueryModuleTest {
 		DAGNode genls = CommonConcepts.GENLS.getNode(dag_);
 		DAGNode isa = CommonConcepts.ISA.getNode(dag_);
 		DAGNode not = CommonConcepts.NOT.getNode(dag_);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, mammal,
-				CommonConcepts.COLLECTION.getNode(dag_) }, creator, null, true,
-				false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, person,
-				CommonConcepts.COLLECTION.getNode(dag_) }, creator, null, true,
-				false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { isa, actor,
-				CommonConcepts.COLLECTION.getNode(dag_) }, creator, null, true,
-				false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { not,
-				new OntologyFunction(genls, mammal, person) }, creator, null,
-				true, false, false) instanceof DAGEdge);
-		assertTrue(dag_.findOrCreateEdge(new Node[] { genls, actor, person },
-				creator, null, true, false, false) instanceof DAGEdge);
+		assertEdge(creator, isa, mammal,
+				CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, isa, person,
+				CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, isa, actor, CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, not, new OntologyFunction(genls, mammal, person));
+		assertEdge(creator, genls, actor, person);
 
 		// Is mammal a type of person? actor?
-		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genls, mammal, person);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genls,
+				mammal, person);
 		QueryResult result = sut_.prove(qo);
 		assertEquals(result, QueryResult.FALSE);
 
@@ -1761,9 +1779,7 @@ public class QueryModuleTest {
 		result = sut_.prove(qo);
 		assertEquals(result, QueryResult.NIL);
 
-		// What happens when we assert a person as a subtype of mammal?
-		assertTrue(dag_.findOrCreateEdge(new Node[] { genls, person, mammal },
-				creator, null, true, false, false) instanceof DAGEdge);
+		assertEdge(creator, genls, person, mammal);
 		qo = new QueryObject(true, true, QueryResult.ALL, genls, person, mammal);
 		result = sut_.prove(qo);
 		assertEquals(result, QueryResult.TRUE);
@@ -1771,19 +1787,73 @@ public class QueryModuleTest {
 		result = sut_.prove(qo);
 		assertEquals(result, QueryResult.TRUE);
 
-		qo = new QueryObject(true, true, QueryResult.ALL, genls, mammal, VariableNode.DEFAULT);
+		qo = new QueryObject(true, true, QueryResult.ALL, genls, mammal,
+				VariableNode.DEFAULT);
 		Collection<Substitution> subs = sut_.executeQuery(qo);
 		assertEquals(subs.size(), 1);
 		assertTrue(subs.contains(new Substitution(VariableNode.DEFAULT,
 				(DAGNode) mammal)));
 
-		qo = new QueryObject(true, true, QueryResult.ALL, genls, person, VariableNode.DEFAULT);
+		qo = new QueryObject(true, true, QueryResult.ALL, genls, person,
+				VariableNode.DEFAULT);
 		subs = sut_.executeQuery(qo);
 		assertEquals(subs.size(), 2);
 		assertTrue(subs.contains(new Substitution(VariableNode.DEFAULT,
 				(DAGNode) person)));
 		assertTrue(subs.contains(new Substitution(VariableNode.DEFAULT,
 				(DAGNode) mammal)));
+	}
+
+	@Test
+	public void testTransitivitySearchNegation() {
+		Node creator = new StringNode("TestCreator");
+
+		// Fido is a dog, which is a canis, which is not a bird, which is a
+		// flyingcreature
+		Node fido = dag_.findOrCreateNode("Fido", creator, true);
+		Node dog = dag_.findOrCreateNode("Dog", creator, true);
+		Node canis = dag_.findOrCreateNode("Canis", creator, true);
+		Node mammal = dag_.findOrCreateNode("Mammal", creator, true);
+		Node bird = dag_.findOrCreateNode("Bird", creator, true);
+		Node flying = dag_.findOrCreateNode("FlyingCreature", creator, true);
+		DAGNode genls = CommonConcepts.GENLS.getNode(dag_);
+		DAGNode isa = CommonConcepts.ISA.getNode(dag_);
+		DAGNode not = CommonConcepts.NOT.getNode(dag_);
+		assertEdge(creator, isa, dog, CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, isa, fido, dog);
+		assertEdge(creator, isa, canis, CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, genls, dog, canis);
+		assertEdge(creator, isa, mammal,
+				CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, genls, canis, mammal);
+		assertEdge(creator, isa, bird, CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, not, new OntologyFunction(genls, canis, bird));
+		assertEdge(creator, isa, flying,
+				CommonConcepts.COLLECTION.getNode(dag_));
+		assertEdge(creator, genls, bird, flying);
+		
+		// Is fido a mammal?
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, isa,
+				fido, mammal);
+		QueryResult result = sut_.prove(qo);
+		assertEquals(result, QueryResult.TRUE);
+		
+		// Is fido a flying thing?
+		qo = new QueryObject(true, true, QueryResult.ALL, isa,
+				fido, flying);
+		result = sut_.prove(qo);
+		assertEquals(result, QueryResult.NIL);
+		
+		// Is fido a bird?
+		qo = new QueryObject(true, true, QueryResult.ALL, isa,
+				fido, bird);
+		result = sut_.prove(qo);
+		assertEquals(result, QueryResult.FALSE);
+	}
+
+	private void assertEdge(Node creator, Node... args) {
+		assertTrue(dag_.findOrCreateEdge(args, creator, null, true, false,
+				false) instanceof DAGEdge);
 	}
 
 	@Test
@@ -1795,7 +1865,8 @@ public class QueryModuleTest {
 		assertTrue(dag_.findOrCreateEdge(new Node[] { genls, dog, canis },
 				creator, true) instanceof DAGEdge);
 		VariableNode x = VariableNode.DEFAULT;
-		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genls, dog, x);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, genls,
+				dog, x);
 		Collection<Substitution> results = sut_.executeQuery(qo);
 		assertEquals(qo.getResultState(), QueryResult.TRUE);
 		assertEquals(results.size(), 2);
