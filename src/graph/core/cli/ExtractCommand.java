@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
 import core.Command;
 import core.CommandParser;
 
-public class ExtractCommand extends Command {
+public class ExtractCommand extends DAGCommand {
 	public static Pattern ARG_PATTERN = Pattern.compile("(\\?\\S+)\\s(.+)");
 
 	@Override

@@ -19,7 +19,7 @@ import graph.core.Identifiable;
 import graph.module.SubDAGExtractorModule;
 import core.Command;
 
-public class RandomCycNodeCommand extends Command {
+public class RandomCycNodeCommand extends DAGCommand {
 	@Override
 	public String helpText() {
 		return "{0} [T/F] : Returns a random node, with optional "

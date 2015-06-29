@@ -75,6 +75,7 @@ public enum CommonConcepts {
 	PRESERVES_GENLS_IN_ARG("preservesGenlsInArg"),
 	PRESERVES_ISA_IN_ARG("preservesIsaInArg"),
 	QUOTED_ISA("quotedIsa"),
+	REFINABLE_PREDICATE("RefinablePredicate"),
 	REIFIABLE_FUNCTION("ReifiableFunction"),
 	RELATION("Relation"),
 	REMOVED("removed"),
@@ -591,6 +592,31 @@ public enum CommonConcepts {
 										+ "it is treated as non-existent for most purposes, "
 										+ "except indexing operations.") },
 				_COMMON_CONCEPT, true);
+
+		// Refinable predicate
+		dag.findOrCreateEdge(
+				new Node[] { ISA.getNode(dag),
+						REFINABLE_PREDICATE.getNode(dag),
+						COLLECTION.getNode(dag) }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(new Node[] {
+				COMMENT.getNode(dag),
+				REFINABLE_PREDICATE.getNode(dag),
+				new StringNode("A RefinablePredicate is a predicate which "
+						+ "inductively defines its semantic argument "
+						+ "constraints based on the assertions that "
+						+ "employ the predicate. Once a certain number "
+						+ "of assertions are created that use a "
+						+ "refinable predicate, the semantic argument "
+						+ "constraints are inductively calculated and "
+						+ "asserted, rejecting any evidence that no "
+						+ "longer fits the constraints. Refinable "
+						+ "predicates are also transient, in that "
+						+ "they may be completely removed if they are "
+						+ "found to be unused.") }, _COMMON_CONCEPT, true);
+		dag.findOrCreateEdge(
+				new Node[] { GENLS.getNode(dag),
+						REFINABLE_PREDICATE.getNode(dag),
+						BINARY_PREDICATE.getNode(dag) }, _COMMON_CONCEPT, true);
 
 		// $1 /1(is)/(are)/ <text string> $2
 		nlpPredicates(ARGGENL,

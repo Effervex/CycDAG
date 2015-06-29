@@ -14,7 +14,7 @@ import graph.core.CycDAG;
 import graph.core.Identifiable;
 import core.Command;
 
-public class RandomCycEdgeCommand extends Command {
+public class RandomCycEdgeCommand extends DAGCommand {
 	@Override
 	public String helpText() {
 		return "{0} [T/F] : Returns a random edge, with optional "

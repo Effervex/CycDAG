@@ -11,6 +11,7 @@
 package graph.module.cli;
 
 import graph.core.Node;
+import graph.core.cli.DAGCommand;
 import graph.core.cli.DAGPortHandler;
 import graph.inference.QueryObject;
 import graph.inference.QueryResult;
@@ -22,7 +23,7 @@ import java.util.regex.Pattern;
 
 import core.Command;
 
-public class JustifyCommand extends Command {
+public class JustifyCommand extends DAGCommand {
 	private static final Pattern BINDING_PATTERN = Pattern
 			.compile("(\\?\\w+)/([^\\s,]+)");
 	private static final Pattern ARG_PATTERN = Pattern
