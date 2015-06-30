@@ -41,10 +41,15 @@ public class PredicateRefinerModuleTest {
 	@Test
 	public void testInferConstraints() {
 		Node creator = new StringNode("TestCreator");
-		Node refPred = dag_.findOrCreateNode("testRelation", creator, true);
+		Node visualAppearance = dag_.findOrCreateNode("appearance", creator,
+				true);
+		Node owns = dag_.findOrCreateNode("owns", creator, true);
 		DAGNode isa = CommonConcepts.ISA.getNode(dag_);
 		DAGNode genls = CommonConcepts.GENLS.getNode(dag_);
-		dag_.findOrCreateEdge(new Node[] { isa, refPred,
+		dag_.findOrCreateEdge(new Node[] { isa, visualAppearance,
+				CommonConcepts.REFINABLE_PREDICATE.getNode(dag_) }, creator,
+				true);
+		dag_.findOrCreateEdge(new Node[] { isa, owns,
 				CommonConcepts.REFINABLE_PREDICATE.getNode(dag_) }, creator,
 				true);
 
@@ -79,87 +84,91 @@ public class PredicateRefinerModuleTest {
 		Node cute = dag_.findOrCreateNode("Cute", creator, true);
 		dag_.findOrCreateEdge(new Node[] { isa, cute, appearance }, creator,
 				true);
-		dag_.findOrCreateEdge(new Node[] { refPred, fido, cute }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { visualAppearance, fido, cute },
+				creator, true);
 		Node spot = dag_.findOrCreateNode("Spot", creator, true);
 		dag_.findOrCreateEdge(new Node[] { isa, spot, dog }, creator, true);
 		Node ugly = dag_.findOrCreateNode("Ugly", creator, true);
 		dag_.findOrCreateEdge(new Node[] { isa, ugly, appearance }, creator,
 				true);
-		dag_.findOrCreateEdge(new Node[] { refPred, spot, ugly }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { visualAppearance, spot, ugly },
+				creator, true);
 		Node bowser = dag_.findOrCreateNode("Bowser", creator, true);
 		dag_.findOrCreateEdge(new Node[] { isa, bowser, dog }, creator, true);
-		dag_.findOrCreateEdge(new Node[] { refPred, bowser, cute }, creator,
-				true);
+		dag_.findOrCreateEdge(new Node[] { visualAppearance, bowser, cute },
+				creator, true);
+		Node jim = dag_.findOrCreateNode("Jim", creator, true);
+		dag_.findOrCreateEdge(new Node[] { isa, jim, person }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { owns, jim, fido }, creator, true);
 
 		// Infer the constraints
-		Collection<Edge> refEdges = relEdgeModule_.execute(refPred, 1);
-		sut_.inferConstraints(refPred, refEdges, 0.95);
-		Edge e = dag_.findOrCreateEdge(
-				new Node[] { CommonConcepts.ARGISA.getNode(dag_), refPred,
-						PrimitiveNode.parseNode(1 + ""), dog }, null, false);
+		Collection<Edge> refEdges = relEdgeModule_.execute(visualAppearance, 1);
+		sut_.execute(3, 0.95);
+		Edge e = dag_
+				.findOrCreateEdge(
+						new Node[] { CommonConcepts.ARGISA.getNode(dag_),
+								visualAppearance,
+								PrimitiveNode.parseNode(1 + ""), dog }, null,
+						false);
 		assertNotNull(e);
 		dag_.removeEdge(e, true);
 		e = dag_.findOrCreateEdge(
-				new Node[] { CommonConcepts.ARGISA.getNode(dag_), refPred,
-						PrimitiveNode.parseNode(2 + ""), appearance }, null,
-				false);
+				new Node[] { CommonConcepts.ARGISA.getNode(dag_),
+						visualAppearance, PrimitiveNode.parseNode(2 + ""),
+						appearance }, null, false);
+		// Not enough evidence
+		assertNull(e);
+		assertNotNull(dag_
+				.findOrCreateEdge(new Node[] { isa, visualAppearance,
+						CommonConcepts.REFINABLE_PREDICATE.getNode(dag_) },
+						null, false));
+		assertTrue(relEdgeModule_.execute(CommonConcepts.ARG1ISA.getNode(dag_), 1, owns, 2)
+				.isEmpty());
+
+		// General constraint
+		Node uggo = dag_.findOrCreateNode("Uggo", creator, true);
+		dag_.findOrCreateEdge(new Node[] { isa, uggo, person }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { visualAppearance, uggo, ugly },
+				creator, true);
+		refEdges = relEdgeModule_.execute(visualAppearance, 1);
+		sut_.execute(2, 0.95);
+		// Won't exist due to global constraint
+		e = dag_.findOrCreateEdge(
+				new Node[] { CommonConcepts.ARGISA.getNode(dag_),
+						visualAppearance, PrimitiveNode.parseNode(1 + ""),
+						mammal }, null, false);
+		assertNull(e);
+		e = dag_.findOrCreateEdge(
+				new Node[] { CommonConcepts.ARGISA.getNode(dag_),
+						visualAppearance, PrimitiveNode.parseNode(2 + ""),
+						appearance }, null, false);
 		assertNotNull(e);
 		dag_.removeEdge(e, true);
-		assertNull(dag_
-				.findOrCreateEdge(new Node[] { isa, refPred,
+		assertNotNull(dag_
+				.findOrCreateEdge(new Node[] { isa, visualAppearance,
 						CommonConcepts.REFINABLE_PREDICATE.getNode(dag_) },
 						null, false));
 
-		// General constraint
-		dag_.findOrCreateEdge(new Node[] { isa, refPred,
-				CommonConcepts.REFINABLE_PREDICATE.getNode(dag_) }, creator,
-				true);
-		Node uggo = dag_.findOrCreateNode("Uggo", creator, true);
-		dag_.findOrCreateEdge(new Node[] { isa, uggo, person }, creator, true);
-		dag_.findOrCreateEdge(new Node[] { refPred, uggo, ugly }, creator, true);
-		refEdges = relEdgeModule_.execute(refPred, 1);
-		sut_.inferConstraints(refPred, refEdges, 0.95);
-		e = dag_.findOrCreateEdge(
-				new Node[] { CommonConcepts.ARGISA.getNode(dag_), refPred,
-						PrimitiveNode.parseNode(1 + ""), mammal }, null, false);
-		assertNotNull(e);
-		dag_.removeEdge(e, true);
-		e = dag_.findOrCreateEdge(
-				new Node[] { CommonConcepts.ARGISA.getNode(dag_), refPred,
-						PrimitiveNode.parseNode(2 + ""), appearance }, null,
-				false);
-		assertNotNull(e);
-		dag_.removeEdge(e, true);
-		assertNull(dag_
-				.findOrCreateEdge(new Node[] { isa, refPred,
-						CommonConcepts.REFINABLE_PREDICATE.getNode(dag_) },
-						null, false));
-		
 		// Loose threshold
-		dag_.findOrCreateEdge(new Node[] { isa, refPred,
-				CommonConcepts.REFINABLE_PREDICATE.getNode(dag_) }, creator,
-				true);
-		refEdges = relEdgeModule_.execute(refPred, 1);
-		sut_.inferConstraints(refPred, refEdges, 0.75);
+		refEdges = relEdgeModule_.execute(visualAppearance, 1);
+		sut_.execute(3, 0.75);
 		e = dag_.findOrCreateEdge(
-				new Node[] { CommonConcepts.ARGISA.getNode(dag_), refPred,
-						PrimitiveNode.parseNode(1 + ""), dog }, null, false);
+				new Node[] { CommonConcepts.ARGISA.getNode(dag_),
+						visualAppearance, PrimitiveNode.parseNode(1 + ""), dog },
+				null, false);
 		assertNotNull(e);
 		dag_.removeEdge(e, true);
 		e = dag_.findOrCreateEdge(
-				new Node[] { CommonConcepts.ARGISA.getNode(dag_), refPred,
-						PrimitiveNode.parseNode(2 + ""), appearance }, null,
-				false);
-		assertNotNull(e);
-		dag_.removeEdge(e, true);
-		assertNull(dag_
-				.findOrCreateEdge(new Node[] { isa, refPred,
+				new Node[] { CommonConcepts.ARGISA.getNode(dag_),
+						visualAppearance, PrimitiveNode.parseNode(2 + ""),
+						appearance }, null, false);
+		// Won't find appearance due to relaxed global identification
+		assertNull(e);
+		assertNotNull(dag_
+				.findOrCreateEdge(new Node[] { isa, visualAppearance,
 						CommonConcepts.REFINABLE_PREDICATE.getNode(dag_) },
 						null, false));
-		
+
 		// TODO Too loose constraints
-		dag_.findOrCreateEdge(new Node[] { isa, refPred,
-				CommonConcepts.REFINABLE_PREDICATE.getNode(dag_) }, creator,
-				true);
 	}
 }
