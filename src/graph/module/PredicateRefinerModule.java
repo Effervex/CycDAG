@@ -25,8 +25,6 @@ import java.util.Set;
 
 import org.apache.commons.collections4.CollectionUtils;
 
-import com.sun.istack.internal.Nullable;
-
 public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 	private static final StringNode PREDICATE_REFINER_CREATOR = new StringNode(
 			"PredicateRefinerModule");
@@ -250,7 +248,7 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 		 *            The index to record under.
 		 */
 		public void recordCount(Node edgeNode, int argIndex,
-				@Nullable Collection<Node> isas) {
+				Collection<Node> isas) {
 			if (!processedArguments_[argIndex - 1].add(edgeNode))
 				return;
 
