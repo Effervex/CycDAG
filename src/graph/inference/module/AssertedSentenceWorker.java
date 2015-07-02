@@ -46,21 +46,21 @@ public class AssertedSentenceWorker extends QueryWorker {
 	@Override
 	public void queryInternal(QueryObject queryObj)
 			throws IllegalArgumentException {
+		// Modify to remove assertedSentence prefix
 		if (queryObj.getNode(0).equals(
 				CommonConcepts.ASSERTED_SENTENCE.getNode(dag_))) {
 			OntologyFunction assertion = (OntologyFunction) queryObj.getNode(1);
 			queryObj = queryObj.modifyNodes(assertion.getNodes());
 		}
 
+		// Find edges by name and index.
 		Object[] relatedArgs = queryAsIndexedNodes(queryObj.getNodes());
 		if (relatedArgs.length == 0)
 			throw new IllegalArgumentException(
 					"Query must include at least one atomic node.");
-
 		Collection<Edge> edges = relatedModule_.execute(relatedArgs);
-
 		for (Edge edge : edges) {
-			if (queryObj.addResult(!EdgeModifier.isNegated(edge, dag_),
+			if (queryObj.addResult(!EdgeModifier.isSpecial(edge, dag_),
 					edge.getNodes()))
 				return;
 		}

@@ -7,6 +7,7 @@ import graph.core.DirectedAcyclicGraph;
 import graph.core.EdgeModifier;
 import graph.core.Node;
 import graph.core.OntologyFunction;
+import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
 import graph.inference.QueryResult;
 import graph.inference.Substitution;
@@ -21,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -148,23 +150,170 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 	 */
 	private boolean isLegalDisjointEdge(Node[] nodes) {
 		Collection<Substitution> genlQuery = queryModule_
-				.executeQuery(new QueryObject(true, false, QueryResult.TRUE, CommonConcepts.AND
-								.getNode(dag_), new OntologyFunction(
-						CommonConcepts.GENLS.getNode(dag_),
-						VariableNode.DEFAULT, nodes[1]), new OntologyFunction(
-						CommonConcepts.GENLS.getNode(dag_),
-						VariableNode.DEFAULT, nodes[2])));
+				.executeQuery(new QueryObject(true, false, QueryResult.TRUE,
+						CommonConcepts.AND.getNode(dag_), new OntologyFunction(
+								CommonConcepts.GENLS.getNode(dag_),
+								VariableNode.DEFAULT, nodes[1]),
+						new OntologyFunction(
+								CommonConcepts.GENLS.getNode(dag_),
+								VariableNode.DEFAULT, nodes[2])));
 		if (!genlQuery.isEmpty())
 			return false;
 		Collection<Substitution> isaQuery = queryModule_
-				.executeQuery(new QueryObject(true, false, QueryResult.TRUE, CommonConcepts.AND
-								.getNode(dag_),
-						new OntologyFunction(CommonConcepts.ISA
-						.getNode(dag_), VariableNode.DEFAULT, nodes[1]), new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
+				.executeQuery(new QueryObject(true, false, QueryResult.TRUE,
+						CommonConcepts.AND.getNode(dag_), new OntologyFunction(
+								CommonConcepts.ISA.getNode(dag_),
+								VariableNode.DEFAULT, nodes[1]),
+						new OntologyFunction(CommonConcepts.ISA.getNode(dag_),
 								VariableNode.DEFAULT, nodes[2])));
 		if (!isaQuery.isEmpty())
 			return false;
 		return true;
+	}
+
+	/**
+	 * Recursively works down each set of children, adjusting the possible
+	 * disjoints if necessary. Each step examines if the node is still disjoint
+	 * to the other collection. If so, it is removed from the possibles for each
+	 * of its children collections.
+	 *
+	 * @param node
+	 *            The node to examine disjointness for.
+	 * @param possibleDisjLosses
+	 *            The collections to test disjointness.
+	 * @param completed
+	 *            The nodes that have been completed already.
+	 */
+	private void recurseRemoveDisjs(Node node,
+			Collection<Node> possibleDisjLosses, HashSet<Node> completed) {
+		// Stop checks
+		if (completed.contains(node))
+			return;
+		completed.add(node);
+		if (possibleDisjLosses.isEmpty())
+			return;
+
+		// Disjoint checks
+		// Does this node genls the collection?
+		Collection<Node> newDisjLosses = new HashSet<>();
+		for (Node disjParent : possibleDisjLosses) {
+			QueryObject qo = new QueryObject(false, false, QueryResult.TRUE,
+					CommonConcepts.GENLS.getNode(dag_), node, disjParent);
+			if (queryModule_.prove(qo) != QueryResult.TRUE) {
+				// Remove from node's disjoint string
+				removeDisjointParent((DAGNode) node, disjParent.getIdentifier());
+				newDisjLosses.add(disjParent);
+			}
+		}
+
+		// Recursion step
+		Collection<Node> children = CommonQuery.DIRECTSPECS
+				.runQuery(dag_, node);
+		for (Node child : children) {
+			recurseRemoveDisjs(child, newDisjLosses, completed);
+		}
+	}
+
+	/**
+	 * Removes a disjoint parent reference from a node's parent string.
+	 *
+	 * @param node
+	 *            The node to remove the disjoint parent ID from.
+	 * @param parentID
+	 *            The disjoint parent id.
+	 */
+	private void removeDisjointParent(DAGNode node, String parentID) {
+		String parentString = node.getProperty(DISJOINT_ID);
+		if (parentString != null) {
+			ArrayList<String> parents = UtilityMethods.split(parentString, ',');
+			parents.remove(parentID);
+			dag_.addProperty(node, DISJOINT_ID, StringUtils.join(parents, ','));
+		}
+	}
+
+	protected void buildJustification(QueryObject queryObj,
+			Map<DAGNode, DAGNode> disjMap,
+			Collection<DAGNode> disjointCollections, int varIndex,
+			boolean negated) {
+		DAGNode key = disjointCollections.iterator().next();
+		DAGNode genls = CommonConcepts.GENLS.getNode(dag_);
+		List<Node[]> justification = queryObj.getJustification();
+
+		// Add the first genls justification.
+		QueryObject genlsA = new QueryObject(false, true, QueryResult.ALL,
+				genls, queryObj.getAtomic(), disjMap.get(key));
+		queryModule_.prove(genlsA);
+		List<Node[]> justificationA = genlsA.getJustification();
+		if (justificationA.size() != 1
+				|| !Arrays.equals(justificationA.get(0), new Node[] { genls,
+						disjMap.get(key), disjMap.get(key) }))
+			justification.addAll(justificationA);
+
+		// Add the disjoint edge.
+		Node[] disjointEdge = new Node[] {
+				CommonConcepts.DISJOINTWITH.getNode(dag_), disjMap.get(key),
+				key };
+		if (negated)
+			disjointEdge = new Node[] { CommonConcepts.NOT.getNode(dag_),
+					new OntologyFunction(disjointEdge) };
+		if (dag_.findEdge(disjointEdge) == null) {
+			disjointEdge = new Node[] {
+					CommonConcepts.DISJOINTWITH.getNode(dag_), key,
+					disjMap.get(key) };
+			if (negated)
+				disjointEdge = new Node[] { CommonConcepts.NOT.getNode(dag_),
+						new OntologyFunction(disjointEdge) };
+		}
+		justification.add(disjointEdge);
+
+		// Add the last genls justification (reversed).
+		QueryObject genlsB = new QueryObject(false, true, QueryResult.ALL,
+				genls, queryObj.getNode(varIndex), key);
+		queryModule_.prove(genlsB);
+		List<Node[]> justificationB = genlsB.getJustification();
+		if (justificationB.size() != 1
+				|| !Arrays.equals(justificationB.get(0), new Node[] { genls,
+						key, key })) {
+			Collections.reverse(justificationB);
+			justification.addAll(justificationB);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	protected Collection<DAGNode> calculateDisjoint(QueryObject queryObj,
+			Collection<DAGNode> parentCollections,
+			MultiMap<DAGNode, DAGNode> disjointMap, boolean negated)
+			throws IllegalClassFormatException {
+		// Get the disjoint collections for the parents
+		Map<DAGNode, DAGNode> disjMap = getDisjoints(parentCollections,
+				disjointMap);
+		Collection<DAGNode> disjointCollections = disjMap.keySet();
+
+		if (!queryObj.isProof()) {
+			// If variable, add and return results.
+			for (DAGNode n : disjointCollections)
+				queryObj.addResult(!negated,
+						new Substitution(queryObj.getVariable(), n),
+						(Node[]) null);
+			return disjointCollections;
+		} else {
+			// If proof, check if true and add justification.
+			int varIndex = (queryObj.getAtomicIndex() == 1) ? 2 : 1;
+			Collection<DAGNode> otherCollections = getParents((DAGNode) queryObj
+					.getNode(varIndex));
+			// TODO Seems dangerous here to be directly affecting the map set
+			disjointCollections.retainAll(otherCollections);
+			if (!disjointCollections.isEmpty()) {
+				if (queryObj.shouldJustify()) {
+					// Build the justification
+					buildJustification(queryObj, disjMap, disjointCollections,
+							varIndex, negated);
+				}
+				queryObj.addResult(!negated, new Substitution(), (Node[]) null);
+				return Collections.EMPTY_LIST;
+			}
+		}
+		return null;
 	}
 
 	@Override
@@ -275,91 +424,6 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 		return null;
 	}
 
-	@SuppressWarnings("unchecked")
-	protected Collection<DAGNode> calculateDisjoint(QueryObject queryObj,
-			Collection<DAGNode> parentCollections,
-			MultiMap<DAGNode, DAGNode> disjointMap, boolean negated)
-			throws IllegalClassFormatException {
-		// Get the disjoint collections for the parents
-		Map<DAGNode, DAGNode> disjMap = getDisjoints(parentCollections,
-				disjointMap);
-		Collection<DAGNode> disjointCollections = disjMap.keySet();
-
-		if (!queryObj.isProof()) {
-			// If variable, add and return results.
-			for (DAGNode n : disjointCollections)
-				queryObj.addResult(!negated,
-						new Substitution(queryObj.getVariable(), n),
-						(Node[]) null);
-			return disjointCollections;
-		} else {
-			// If proof, check if true and add justification.
-			int varIndex = (queryObj.getAtomicIndex() == 1) ? 2 : 1;
-			Collection<DAGNode> otherCollections = getParents((DAGNode) queryObj
-					.getNode(varIndex));
-			// TODO Seems dangerous here to be directly effecting the map set
-			disjointCollections.retainAll(otherCollections);
-			if (!disjointCollections.isEmpty()) {
-				if (queryObj.shouldJustify()) {
-					// Build the justification
-					buildJustification(queryObj, disjMap, disjointCollections,
-							varIndex, negated);
-				}
-				queryObj.addResult(!negated, new Substitution(), (Node[]) null);
-				return Collections.EMPTY_LIST;
-			}
-		}
-		return null;
-	}
-
-	protected void buildJustification(QueryObject queryObj,
-			Map<DAGNode, DAGNode> disjMap,
-			Collection<DAGNode> disjointCollections, int varIndex,
-			boolean negated) {
-		DAGNode key = disjointCollections.iterator().next();
-		DAGNode genls = CommonConcepts.GENLS.getNode(dag_);
-		List<Node[]> justification = queryObj.getJustification();
-
-		// Add the first genls justification.
-		QueryObject genlsA = new QueryObject(false, true, QueryResult.ALL,
-				genls, queryObj.getAtomic(), disjMap.get(key));
-		queryModule_.prove(genlsA);
-		List<Node[]> justificationA = genlsA.getJustification();
-		if (justificationA.size() != 1
-				|| !Arrays.equals(justificationA.get(0), new Node[] { genls,
-						disjMap.get(key), disjMap.get(key) }))
-			justification.addAll(justificationA);
-
-		// Add the disjoint edge.
-		Node[] disjointEdge = new Node[] {
-				CommonConcepts.DISJOINTWITH.getNode(dag_), disjMap.get(key),
-				key };
-		if (negated)
-			disjointEdge = new Node[] { CommonConcepts.NOT.getNode(dag_),
-					new OntologyFunction(disjointEdge) };
-		if (dag_.findEdge(disjointEdge) == null) {
-			disjointEdge = new Node[] {
-					CommonConcepts.DISJOINTWITH.getNode(dag_), key,
-					disjMap.get(key) };
-			if (negated)
-				disjointEdge = new Node[] { CommonConcepts.NOT.getNode(dag_),
-						new OntologyFunction(disjointEdge) };
-		}
-		justification.add(disjointEdge);
-
-		// Add the last genls justification (reversed).
-		QueryObject genlsB = new QueryObject(false, true, QueryResult.ALL,
-				genls, queryObj.getNode(varIndex), key);
-		queryModule_.prove(genlsB);
-		List<Node[]> justificationB = genlsB.getJustification();
-		if (justificationB.size() != 1
-				|| !Arrays.equals(justificationB.get(0), new Node[] { genls,
-						key, key })) {
-			Collections.reverse(justificationB);
-			justification.addAll(justificationB);
-		}
-	}
-
 	@Override
 	public boolean initialisationComplete(Collection<DAGNode> nodes,
 			Collection<DAGEdge> edges, boolean forceRebuild) {
@@ -374,11 +438,11 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 
 	@Override
 	public boolean removeEdge(DAGEdge edge) {
-		System.err.println("Unsupported operation for DisjointModule!");
 		Node[] nodes = EdgeModifier.getUnmodNodes(edge, dag_);
 		boolean negated = EdgeModifier.isNegated(edge, dag_);
 		if (nodes[0].equals(CommonConcepts.DISJOINTWITH.getNode(dag_))) {
 			// Easy peasy, just remove the element from the map
+			// Kinda messy, but it works.
 			if (negated) {
 				Collection<DAGNode> coll = notDisjointMap_.get(nodes[1]);
 				if (coll != null)
@@ -394,13 +458,29 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 				if (coll != null)
 					coll.remove(nodes[1]);
 			}
-		} else if (nodes[0].equals(CommonConcepts.GENLS.getNode(dag_))) {
-			// TODO For each child of the arg1, recalculate disjoint
-			// Queue<DAGNode> children = new LinkedList<>();
-			// children.add((DAGNode) nodes[1]);
-			// while (!children.isEmpty()) {
-			//
-			// }
+		} else if (nodes[0].equals(CommonConcepts.GENLS.getNode(dag_))
+				&& !negated) {
+			// For each child of the arg1, recalculate disjoints
+			if (nodes[1] instanceof DAGNode && nodes[2] instanceof DAGNode) {
+				// Calculate what is lost from inheritance
+				String parentStr = ((DAGNode) nodes[2])
+						.getProperty(DISJOINT_ID);
+				if (parentStr == null || parentStr.isEmpty())
+					return true;
+				Set<String> parentDisjs = new HashSet<>(UtilityMethods.split(
+						parentStr, ','));
+				String childStr = ((DAGNode) nodes[1]).getProperty(DISJOINT_ID);
+				ArrayList<String> childDisjs = UtilityMethods.split(childStr,
+						',');
+				// The set of possible lost disjoints
+				parentDisjs.retainAll(childDisjs);
+				Collection<Node> possibleDisjs = new HashSet<>();
+				for (String s : parentDisjs)
+					possibleDisjs.add(dag_.findOrCreateNode(s, null, false));
+
+				// Work down one node at a time
+				recurseRemoveDisjs(nodes[1], possibleDisjs, new HashSet<Node>());
+			}
 		}
 		return true;
 	}
@@ -412,13 +492,6 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 	}
 
 	@Override
-	public String toString() {
-		return "DisjointWith Module: " + (disjointMap_.size() / 2)
-				+ " assertions & " + (notDisjointMap_.size() / 2)
-				+ " negated assertions";
-	}
-
-	@Override
 	public boolean supportsEdge(DAGEdge edge) {
 		return !EdgeModifier.isRemoved(edge, dag_);
 	}
@@ -426,5 +499,12 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 	@Override
 	public boolean supportsNode(DAGNode node) {
 		return false;
+	}
+
+	@Override
+	public String toString() {
+		return "DisjointWith Module: " + (disjointMap_.size() / 2)
+				+ " assertions & " + (notDisjointMap_.size() / 2)
+				+ " negated assertions";
 	}
 }

@@ -231,7 +231,7 @@ public class DisjointWithWorker extends QueryWorker {
 		// TODO Inefficient!
 		if (queryObj.isProof() && queryObj.getResultState() == QueryResult.NIL
 				&& queryObj.desiresResult(QueryResult.FALSE)) {
-			// Genls
+			// Genls (and (genls ?X A) (genls ?X B))
 			OntologyFunction genlsA = new OntologyFunction(
 					CommonConcepts.GENLS.getNode(dag_), VariableNode.DEFAULT,
 					queryObj.getNode(1));
@@ -246,7 +246,7 @@ public class DisjointWithWorker extends QueryWorker {
 				return;
 			}
 
-			// Isa
+			// Isa (and (isa ?X A) (isa ?X B))
 			OntologyFunction isaA = new OntologyFunction(
 					CommonConcepts.ISA.getNode(dag_), VariableNode.DEFAULT,
 					queryObj.getNode(1));

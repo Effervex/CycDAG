@@ -59,7 +59,8 @@ public class DisjointModuleTest {
 		Edge disjDogCat = dag_.findOrCreateEdge(
 				new Node[] { disjoint, dog, cat }, null, true, false);
 		assertTrue(disjDogCat instanceof DAGEdge);
-		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, disjoint, dog, cat);
+		QueryObject qo = new QueryObject(true, true, QueryResult.ALL, disjoint,
+				dog, cat);
 		assertEquals(querier_.prove(qo), QueryResult.TRUE);
 		List<Node[]> justification = qo.getJustification();
 		assertEquals(justification.size(), 1);
@@ -70,8 +71,8 @@ public class DisjointModuleTest {
 				true, false);
 
 		// Transitive disjointness
-		dag_.findOrCreateEdge(new Node[] { genls, boxer, dog }, null, true,
-				false);
+		Edge genlsBoxerDog = dag_.findOrCreateEdge(new Node[] { genls, boxer,
+				dog }, null, true, false);
 		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, boxer, dog);
 		assertEquals(querier_.prove(qo), QueryResult.FALSE);
 		justification = qo.getJustification();
@@ -89,17 +90,46 @@ public class DisjointModuleTest {
 				true, false);
 		dag_.findOrCreateEdge(new Node[] { genls, housecat, cat }, null, true,
 				false);
-		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, boxer, housecat);
+		qo = new QueryObject(true, true, QueryResult.ALL, disjoint, boxer,
+				housecat);
 		assertEquals(querier_.prove(qo), QueryResult.TRUE);
 		justification = qo.getJustification();
 		assertEquals(justification.size(), 3);
 
-		// Removable
+		// Removing edges
+		dag_.removeEdge(genlsBoxerDog);
+		assertEquals(querier_.prove(false, disjoint, dog, cat),
+				QueryResult.TRUE);
+		assertEquals(querier_.prove(false, disjoint, boxer, cat),
+				QueryResult.NIL);
+		assertEquals(querier_.prove(false, disjoint, boxer, housecat),
+				QueryResult.NIL);
+
 		assertTrue(dag_.removeEdge(disjDogCat));
 		assertEquals(querier_.prove(false, disjoint, dog, cat), QueryResult.NIL);
-		assertEquals(querier_.prove(false, disjoint, boxer, cat), QueryResult.NIL);
-		assertEquals(querier_.prove(false, disjoint, boxer, housecat), QueryResult.NIL);
-		
-		// Negated disjointness
+		assertEquals(querier_.prove(false, disjoint, boxer, cat),
+				QueryResult.NIL);
+		assertEquals(querier_.prove(false, disjoint, dog, housecat),
+				QueryResult.NIL);
+
+		// Remove genls without compromising disjoint
+		genlsBoxerDog = dag_.findOrCreateEdge(new Node[] { genls, boxer, dog }, null, true,
+				false);
+		disjDogCat = dag_.findOrCreateEdge(
+				new Node[] { disjoint, dog, cat }, null, true, false);
+		assertEquals(querier_.prove(false, disjoint, dog, cat),
+				QueryResult.TRUE);
+		assertEquals(querier_.prove(false, disjoint, boxer, cat),
+				QueryResult.TRUE);
+		assertEquals(querier_.prove(false, disjoint, boxer, housecat),
+				QueryResult.TRUE);
+		dag_.findOrCreateEdge(
+				new Node[] { disjoint, boxer, housecat}, null, true, false);
+		// Remove the genls, lose the disjoint to Cat
+		dag_.removeEdge(genlsBoxerDog);
+		assertEquals(querier_.prove(false, disjoint, boxer, cat),
+				QueryResult.NIL);
+		assertEquals(querier_.prove(false, disjoint, boxer, housecat),
+				QueryResult.TRUE);
 	}
 }

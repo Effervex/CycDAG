@@ -32,33 +32,33 @@ public enum CommonQuery {
 	ARGNGENL("(argGenl ?0 ?1 ?X)", true),
 	ARGNISA("(argIsa ?0 ?1 ?X)", true),
 	COMMENT("(comment ?0 ?X)"),
-	COMMONISA("(and (isa ?0 ?X) (isa ?1 ?X))"),
 	COMMONGENLS("(and (genls ?0 ?X) (genls ?1 ?X))"),
 	COMMONINSTANCES("(and (isa ?X ?0) (isa ?X ?1))"),
+	COMMONISA("(and (isa ?0 ?X) (isa ?1 ?X))"),
 	COMMONSPECS("(and (genls ?X ?0) (genls ?X ?1))"),
 	DIRECTGENLS("(assertedSentence (genls ?0 ?X))", true),
 	DIRECTINSTANCE("(assertedSentence (isa ?X ?0))", true),
 	DIRECTISA("(assertedSentence (isa ?0 ?X))", true),
 	DIRECTSPECS("(assertedSentence (genls ?X ?0))", true),
-	GENLSIBLINGS("(assertedSentence (genls ?0 ?X))", true),
 	GENLPREDS("(genlPreds ?0 ?X)"),
+	GENLSIBLINGS("(assertedSentence (genls ?0 ?X))", true),
 	INSTANCES("(isa ?X ?0)"),
 	ISASIBLINGS("(assertedSentence (isa ?0 ?X))", true),
-	MAXINSTANCES("(isa ?X ?0)", true),
-	MAXSPECS("(assertedSentence (genls ?X ?0))", true),
 	MAXCOMMONINSTANCES("(and (isa ?X ?0) (isa ?X ?1))"),
 	MAXCOMMONSPECS("(and (genls ?X ?0) (genls ?X ?1))"),
+	MAXINSTANCES("(isa ?X ?0)", true),
+	MAXSPECS("(assertedSentence (genls ?X ?0))", true),
 	MINARGNGENL("(argGenl ?0 ?1 ?X)", true),
 	MINARGNISA("(argIsa ?0 ?1 ?X)", true),
+	MINCOMMONGENLS("(and (genls ?0 ?X) (genls ?1 ?X))", true),
+	MINCOMMONISA("(and (isa ?0 ?X) (isa ?1 ?X))", true),
 	MINGENLS("(assertedSentence (genls ?0 ?X))", true),
 	MINISA("(assertedSentence (isa ?0 ?X))", true),
-	MINCOMMONISA("(and (isa ?0 ?X) (isa ?1 ?X))", true),
-	MINCOMMONGENLS("(and (genls ?0 ?X) (genls ?1 ?X))", true),
 	SPECPREDS("(genlPreds ?X ?0)"),
 	SPECS("(genls ?X ?0)");
 
-	private String queryStr_;
 	private QueryObject queryObject_;
+	private String queryStr_;
 
 	private boolean specialQuery_;
 
@@ -69,11 +69,6 @@ public enum CommonQuery {
 	private CommonQuery(String query, boolean specialQuery) {
 		queryStr_ = UtilityMethods.shrinkString(query, 1);
 		specialQuery_ = specialQuery;
-	}
-
-	public static void reset() {
-		for (CommonQuery cq : values())
-			cq.queryObject_ = null;
 	}
 
 	/**
@@ -175,28 +170,59 @@ public enum CommonQuery {
 			maxSpecFilter(results, dag);
 			break;
 		case DIRECTISA:
-			if (args[0] instanceof OntologyFunction)
-				results.addAll(querier.functionResults(
-						(OntologyFunction) args[0], CommonConcepts.RESULT_ISA));
+			if (args[0] instanceof OntologyFunction) {
+				for (Node n : querier.functionResults(
+						(OntologyFunction) args[0], CommonConcepts.RESULT_ISA))
+					if (!results.contains(n))
+						results.add(n);
+			}
 			break;
 		case DIRECTGENLS:
-			if (args[0] instanceof OntologyFunction)
-				results.addAll(querier.functionResults(
-						(OntologyFunction) args[0], CommonConcepts.RESULT_GENL));
+			if (args[0] instanceof OntologyFunction) {
+				for (Node n : querier.functionResults(
+						(OntologyFunction) args[0], CommonConcepts.RESULT_GENL))
+					if (!results.contains(n))
+						results.add(n);
+			}
 			break;
 		case DIRECTINSTANCE:
-			if (args[0] instanceof OntologyFunction)
-				results.addAll(querier.functionResults(
-						(OntologyFunction) args[0], CommonConcepts.RESULT_ISA));
 			break;
 		case DIRECTSPECS:
-			if (args[0] instanceof OntologyFunction)
-				results.addAll(querier.functionResults(
-						(OntologyFunction) args[0], CommonConcepts.RESULT_GENL));
 			break;
 		default:
 			break;
 		}
+		return results;
+	}
+
+	/**
+	 * Runs this quick query with the given arguments. Returns the set of
+	 * matching results, which is empty if no results found.
+	 *
+	 * @param dag
+	 *            The dag access.
+	 * @param args
+	 *            The arguments of the query.
+	 * @return The set of matching results, or empty if NIL.
+	 */
+	public Collection<Node> runQuery(DirectedAcyclicGraph dag, Node... args) {
+		if (queryObject_ == null)
+			initialiseQueryObject(dag);
+
+		// Create a new QueryObject, replacing the placeholder variable
+		Substitution sub = new Substitution();
+		for (int j = 0; j < args.length; j++)
+			sub.addSubstitution(new VariableNode("?" + j), args[j]);
+		Node[] replacedArgs = sub.applySubstitution(queryObject_.getNodes());
+		QueryObject qo = new QueryObject(false, false, QueryResult.TRUE,
+				replacedArgs);
+
+		QueryModule querier = (QueryModule) dag.getModule(QueryModule.class);
+
+		Collection<Node> results = QueryModule.parseResultsFromSubstitutions(
+				"?X", querier.executeQuery(qo));
+		if (specialQuery_)
+			results = runSpecial(results, querier, dag, args);
 		return results;
 	}
 
@@ -258,34 +284,8 @@ public enum CommonQuery {
 		return results;
 	}
 
-	/**
-	 * Runs this quick query with the given arguments. Returns the set of
-	 * matching results, which is empty if no results found.
-	 *
-	 * @param dag
-	 *            The dag access.
-	 * @param args
-	 *            The arguments of the query.
-	 * @return The set of matching results, or empty if NIL.
-	 */
-	public Collection<Node> runQuery(DirectedAcyclicGraph dag, Node... args) {
-		if (queryObject_ == null)
-			initialiseQueryObject(dag);
-
-		// Create a new QueryObject, replacing the placeholder variable
-		Substitution sub = new Substitution();
-		for (int j = 0; j < args.length; j++)
-			sub.addSubstitution(new VariableNode("?" + j), args[j]);
-		Node[] replacedArgs = sub.applySubstitution(queryObject_.getNodes());
-		QueryObject qo = new QueryObject(false, false, QueryResult.TRUE,
-				replacedArgs);
-
-		QueryModule querier = (QueryModule) dag.getModule(QueryModule.class);
-
-		Collection<Node> results = QueryModule.parseResultsFromSubstitutions(
-				"?X", querier.executeQuery(qo));
-		if (specialQuery_)
-			results = runSpecial(results, querier, dag, args);
-		return results;
+	public static void reset() {
+		for (CommonQuery cq : values())
+			cq.queryObject_ = null;
 	}
 }

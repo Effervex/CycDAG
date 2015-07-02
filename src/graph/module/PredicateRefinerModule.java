@@ -54,6 +54,7 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 	 * ReinfinablePedicates with a minimum number of assertions as evidence and
 	 * a threshold of common evidence.
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	public Collection<DAGNode> execute(Object... args)
 			throws IllegalArgumentException, ModuleException {
@@ -87,6 +88,7 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 	 * @param minEvidence
 	 * @return A collection of all nodes receiving constraints.
 	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private Collection<DAGNode> inferConstraints(double threshold,
 			int minEvidence) {
 		// Calculate global constraints first
