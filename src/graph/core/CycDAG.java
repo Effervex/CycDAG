@@ -345,6 +345,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		// If isa
 		else if (relation.equals(isa)) {
 			// First check Indiv/Collection
+			// (and (isa A Collection) (isa B FirstOrderCollection))
 			OntologyFunction isaXCol = new OntologyFunction(isa, edgeNodes[1],
 					CommonConcepts.COLLECTION.getNode(this));
 			OntologyFunction isaYFOC = new OntologyFunction(isa, edgeNodes[2],
@@ -356,6 +357,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 				return new CollectionOrderErrorEdge(edgeNodes);
 
 			// Then check the order is increasing
+			// (and (isa A ?X) (isa B ?Y) (isa ?X CollectionOrder) (isa ?Y
+			// CollectionOrder))
 			VariableNode x = new VariableNode("?X");
 			OntologyFunction isaAX = new OntologyFunction(isa, edgeNodes[1], x);
 			VariableNode y = new VariableNode("?Y");
@@ -541,7 +544,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 		ValueComparator vc = new ValueComparator(functions);
 		SortedMap<OntologyFunction, Integer> sortedFuncs = new TreeMap<>(vc);
 		sortedFuncs.putAll(functions);
-		for (Map.Entry<OntologyFunction, Integer> entry : sortedFuncs.entrySet()) {
+		for (Map.Entry<OntologyFunction, Integer> entry : sortedFuncs
+				.entrySet()) {
 			out.write(CSV_FUNCTION_PREFIX + entry.getValue() + ":");
 			Node[] functionNodes = entry.getKey().getNodes();
 			for (Node n : functionNodes) {

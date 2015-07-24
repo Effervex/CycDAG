@@ -58,258 +58,108 @@ public class CycDAGTest {
 
 	@Test
 	public void testSemanticArgCheck() {
-		// No restrictions
-		Node occupation = sut_.findOrCreateNode("occupation", DEFAULT_CREATOR,
-				true);
-		Node umaT = sut_.findOrCreateNode("UmaThurman", DEFAULT_CREATOR, true);
-		Node actor = sut_.findOrCreateNode("Actor", DEFAULT_CREATOR, true);
-		Edge edge = sut_.findOrCreateEdge(
-				new Node[] { occupation, umaT, actor }, DEFAULT_CREATOR, true);
-		assertFalse(edge instanceof ErrorEdge);
+		Edge edge = createEdge("(occupation UmaThurman Actor)", true, false, sut_);
 		assertTrue(sut_.removeEdge(edge));
 
-		// arg1isa
-		Node argIsa = CommonConcepts.ARGISA.getNode(sut_);
-		Node person = sut_.findOrCreateNode("Person", DEFAULT_CREATOR, true);
-		Edge constraintEdge = sut_.findOrCreateEdge(new Node[] { argIsa,
-				occupation, PrimitiveNode.parseNode("1"), person },
-				DEFAULT_CREATOR, true);
-		assertFalse(constraintEdge instanceof ErrorEdge);
+		createEdge("(argIsa occupation '1 Person)", true, false, sut_);
 
-		edge = sut_.findOrCreateEdge(new Node[] { occupation, umaT, actor },
-				DEFAULT_CREATOR, true);
+		edge = createEdge("(occupation UmaThurman Actor)", false, false, sut_);
 		assertTrue(edge instanceof SemanticArgErrorEdge);
 
-		Node isa = CommonConcepts.ISA.getNode(sut_);
-		Node collection = sut_.findOrCreateNode("Collection", DEFAULT_CREATOR,
-				true);
-		sut_.findOrCreateEdge(new Node[] { isa, person, collection },
-				DEFAULT_CREATOR, true);
-		Edge isaPerson = sut_.findOrCreateEdge(
-				new Node[] { isa, umaT, person }, DEFAULT_CREATOR, true);
-		assertEdge(isaPerson, true);
-		edge = sut_.findOrCreateEdge(new Node[] { occupation, umaT, actor },
-				DEFAULT_CREATOR, true);
-		assertFalse(edge instanceof ErrorEdge);
+		createEdge("(isa Person Collection)", true, false, sut_);
+		createEdge("(isa UmaThurman Person)", true, false, sut_);
+		edge = createEdge("(occupation UmaThurman Actor)", true, false, sut_);
 		assertTrue(sut_.removeEdge(edge));
 
-		Node genls = CommonConcepts.GENLS.getNode(sut_);
-		Node personType = sut_.findOrCreateNode("PersonTypeByOccupation",
-				DEFAULT_CREATOR, true);
-		constraintEdge = sut_.findOrCreateEdge(new Node[] { argIsa, occupation,
-				PrimitiveNode.parseNode("2"), personType }, DEFAULT_CREATOR,
-				true);
-		assertFalse(sut_.findOrCreateEdge(new Node[] { isa, personType,
-				collection }, DEFAULT_CREATOR, true) instanceof ErrorEdge);
-		assertFalse(sut_.findOrCreateEdge(new Node[] { genls, personType,
-				collection }, DEFAULT_CREATOR, true) instanceof ErrorEdge);
-		assertFalse(constraintEdge instanceof ErrorEdge);
-		edge = sut_.findOrCreateEdge(new Node[] { occupation, umaT, actor },
-				DEFAULT_CREATOR, true);
+		createEdge("(argIsa occupation '2 PersonTypeByOccupation)", true, false, sut_);
+		createEdge("(isa PersonTypeByOccupation Collection)", true, false, sut_);
+		createEdge("(genls PersonTypeByOccupation Collection)", true, false, sut_);
+		edge = createEdge("(occupation UmaThurman Actor)", false, false, sut_);
 		assertTrue(edge instanceof SemanticArgErrorEdge);
 
-		Node entertainerType = sut_.findOrCreateNode(
-				"EntertainerTypeByActivity", DEFAULT_CREATOR, true);
-		assertFalse(sut_.findOrCreateEdge(new Node[] { isa, entertainerType,
-				collection }, DEFAULT_CREATOR, true) instanceof ErrorEdge);
-		assertFalse(sut_.findOrCreateEdge(new Node[] { genls, entertainerType,
-				personType }, DEFAULT_CREATOR, true) instanceof ErrorEdge);
-		assertFalse(sut_.findOrCreateEdge(new Node[] { isa, actor,
-				entertainerType }, DEFAULT_CREATOR, true) instanceof ErrorEdge);
-		edge = sut_.findOrCreateEdge(new Node[] { occupation, umaT, actor },
-				DEFAULT_CREATOR, true);
-		assertFalse(edge instanceof ErrorEdge);
+		edge = createEdge("(isa EntertainerTypeByActivity Collection)", true, false, sut_);
+		edge = createEdge("(genls EntertainerTypeByActivity PersonTypeByOccupation)", true, false, sut_);
+		edge = createEdge("(isa Actor EntertainerTypeByActivity)", true, false, sut_);
+		edge = createEdge("(occupation UmaThurman Actor)", true, false, sut_);
 		assertTrue(sut_.removeEdge(edge));
 
-		Node argGenl = CommonConcepts.ARGGENL.getNode(sut_);
-		constraintEdge = sut_.findOrCreateEdge(new Node[] { argGenl,
-				occupation, PrimitiveNode.parseNode("2"), person },
-				DEFAULT_CREATOR, true);
-		assertEdge(constraintEdge, true);
-		edge = sut_.findOrCreateEdge(new Node[] { occupation, umaT, actor },
-				DEFAULT_CREATOR, true);
+		createEdge("(argGenl occupation '2 Person)", true, true, sut_);
+		edge = createEdge("(occupation UmaThurman Actor)", false, false, sut_);
 		assertTrue(edge instanceof SemanticArgErrorEdge);
 
-		assertEdge(sut_.findOrCreateEdge(new Node[] { genls, actor, person },
-				DEFAULT_CREATOR, true), true);
-		edge = sut_.findOrCreateEdge(new Node[] { occupation, umaT, actor },
-				DEFAULT_CREATOR, true);
-		assertFalse(edge instanceof ErrorEdge);
+		edge = createEdge("(genls Actor Person)", true, false, sut_);
+		edge = createEdge("(occupation UmaThurman Actor)", true, false, sut_);
 		assertTrue(sut_.removeEdge(edge));
 
-		// New node
-		constraintEdge = sut_.findOrCreateEdge(new Node[] { argIsa, isa,
-				PrimitiveNode.parseNode("2"), collection }, DEFAULT_CREATOR,
-				true);
-		Node sam = sut_.findOrCreateNode("SamSarjant", DEFAULT_CREATOR, true);
-		Node mammal = sut_.findOrCreateNode("Mammal", DEFAULT_CREATOR, true);
-		constraintEdge = sut_.findOrCreateEdge(new Node[] { isa, mammal,
-				collection }, DEFAULT_CREATOR, true);
-		assertFalse(constraintEdge instanceof ErrorEdge);
-		edge = sut_.findOrCreateEdge(new Node[] { isa, sam, mammal },
-				DEFAULT_CREATOR, true);
-		assertFalse(edge instanceof ErrorEdge);
+		createEdge("(argIsa occupation '2 Collection)", true, false, sut_);
+		edge = createEdge("(isa Mammal Collection)", true, false, sut_);
+		edge = createEdge("(isa SamSarjant Mammal)", true, false, sut_);
 
-		constraintEdge = sut_.findOrCreateEdge(new Node[] { argIsa, genls,
-				PrimitiveNode.parseNode("1"), collection }, DEFAULT_CREATOR,
-				true);
-		constraintEdge = sut_.findOrCreateEdge(new Node[] { argIsa, genls,
-				PrimitiveNode.parseNode("2"), collection }, DEFAULT_CREATOR,
-				true);
-		edge = sut_.findOrCreateEdge(new Node[] { genls, sam, mammal },
-				DEFAULT_CREATOR, true);
+		createEdge("(argIsa genls '1 Collection)", true, false, sut_);
+		createEdge("(argIsa genls '2 Collection)", true, false, sut_);
+		edge = createEdge("(genls SamSarjant Mammal)", false, false, sut_);
 		assertTrue(edge instanceof SemanticArgErrorEdge);
 
 		// Adding text
-		edge = sut_.findOrCreateEdge(new Node[] { genls, new StringNode("cat"),
-				mammal }, DEFAULT_CREATOR, true);
+		edge = createEdge("(genls \"Cat\" Mammal)", false, false, sut_);
 		assertTrue(edge instanceof ErrorEdge);
 
-		edge = sut_.findOrCreateEdge(
-				new Node[] { genls, PrimitiveNode.parseNode("567"), mammal },
-				DEFAULT_CREATOR, true);
+		edge = createEdge("(genls '587 Mammal)", false, false, sut_);
 		assertTrue(edge instanceof ErrorEdge);
 
-		// Genls to an individual
-		Node researcher = sut_.findOrCreateNode("Researcher", DEFAULT_CREATOR,
-				true);
-		edge = sut_.findOrCreateEdge(
-				new Node[] { isa, researcher, collection }, DEFAULT_CREATOR,
-				true);
-		assertFalse(edge instanceof ErrorEdge);
-		edge = sut_.findOrCreateEdge(new Node[] { genls, researcher, sam },
-				DEFAULT_CREATOR, true);
+		edge = createEdge("(isa Researcher Collection)", true, false, sut_);
+		edge = createEdge("(genls Researcher SamSarjant)", false, false, sut_);
 		assertTrue(edge instanceof SemanticArgErrorEdge);
 
-		// Testing Primitive Nodes
-		Node nonNegative = sut_.findOrCreateNode("NonNegativeInteger",
-				DEFAULT_CREATOR, true);
-		edge = sut_.findOrCreateEdge(
-				new Node[] { isa, nonNegative, collection }, DEFAULT_CREATOR,
-				true);
-		assertFalse(edge instanceof ErrorEdge);
-		edge = sut_.findOrCreateEdge(new Node[] { genls,
-				CommonConcepts.POSITIVE_INTEGER.getNode(sut_), nonNegative },
-				DEFAULT_CREATOR, true);
-		assertFalse(edge.toString(), edge instanceof ErrorEdge);
-		constraintEdge = sut_.findOrCreateEdge(new Node[] { argIsa, argIsa,
-				PrimitiveNode.parseNode("2"), nonNegative }, DEFAULT_CREATOR,
-				true);
-		assertFalse(constraintEdge instanceof ErrorEdge);
-		edge = sut_.findOrCreateEdge(
-				new Node[] { argIsa, isa, PrimitiveNode.parseNode("2"),
-						collection }, DEFAULT_CREATOR, true);
-		assertFalse(edge instanceof ErrorEdge);
+		edge = createEdge("(isa NonNegativeInteger Collection)", true, false, sut_);
+		edge = createEdge("(genls PositiveInteger NonNegativeInteger)", true, false, sut_);
+		createEdge("(argIsa argIsa '2 NonNegativeInteger)", true, false, sut_);
+		createEdge("(argIsa isa '2 Collection)", true, false, sut_);
 	}
 
 	@Test
 	public void testSemanticArgCheckFunction() {
-		Node tastiness = sut_.findOrCreateNode("tastiness", DEFAULT_CREATOR,
-				true);
-		Node fruit = sut_.findOrCreateNode("Fruit", DEFAULT_CREATOR, true);
-		assertEdge(sut_.findOrCreateEdge(
-				new Node[] { CommonConcepts.ARGGENL.getNode(sut_), tastiness,
-						PrimitiveNode.parseNode("1"), fruit }, DEFAULT_CREATOR,
-				true), true);
-		Node fruitFn = sut_.findOrCreateNode("FruitFn", DEFAULT_CREATOR, true);
-		Node isa = CommonConcepts.ISA.getNode(sut_);
-		assertEdge(
-				sut_.findOrCreateEdge(new Node[] { isa, fruitFn,
-						CommonConcepts.FUNCTION.getNode(sut_) },
-						DEFAULT_CREATOR, true), true);
-		Node appleTree = sut_.findOrCreateNode("AppleTree", DEFAULT_CREATOR,
-				true);
-		Node plant = sut_.findOrCreateNode("Plant", DEFAULT_CREATOR, true);
-		Node genls = CommonConcepts.GENLS.getNode(sut_);
-		Node collection = CommonConcepts.COLLECTION.getNode(sut_);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, fruit, collection },
-				DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, appleTree,
-				collection }, DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, plant, collection },
-				DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(
-				new Node[] { CommonConcepts.ARGGENL.getNode(sut_), fruitFn,
-						PrimitiveNode.parseNode("1"), plant }, DEFAULT_CREATOR,
-				true), true);
-		assertEdge(sut_.findOrCreateEdge(
-				new Node[] { CommonConcepts.ARITY.getNode(sut_), fruitFn,
-						PrimitiveNode.parseNode("1") }, DEFAULT_CREATOR, true),
-				true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { genls, fruit, plant },
-				DEFAULT_CREATOR, true), true);
-		Node fruitFnNAT = sut_.findOrCreateNode("(FruitFn AppleTree)",
-				DEFAULT_CREATOR, true);
+		createEdge("(argGenl tastiness '1 Fruit)", true, false, sut_);
+		createEdge("(isa FruitFn Function-Denotational)", true, false, sut_);
+		createEdge("(isa Fruit Collection)", true, false, sut_);
+		createEdge("(isa AppleTree Collection)", true, false, sut_);
+		createEdge("(isa Plant Collection)", true, false, sut_);
+		createEdge("(argGenl FruitFn '1 Plant)", true, false, sut_);
+		createEdge("(arity FruitFn '1)", true, false, sut_);
+		createEdge("(genls Fruit Plant)", true, false, sut_);
+		Node fruitFnNAT = sut_.findOrCreateNode("(FruitFn AppleTree)", DEFAULT_CREATOR, true);
 		assertNull(fruitFnNAT);
-		assertEdge(sut_.findOrCreateEdge(
-				new Node[] { genls, appleTree, plant }, DEFAULT_CREATOR, true),
-				true);
-		fruitFnNAT = sut_.findOrCreateNode("(FruitFn AppleTree)",
-				DEFAULT_CREATOR, true);
+		createEdge("(genls AppleTree Plant)", true, false, sut_);
+		fruitFnNAT = sut_.findOrCreateNode("(FruitFn AppleTree)", DEFAULT_CREATOR, true);
 		assertNotNull(fruitFnNAT);
 
-		Node yum = sut_.findOrCreateNode("Yum", DEFAULT_CREATOR, true);
-		Edge edge = sut_.findOrCreateEdge(new Node[] { tastiness, fruitFnNAT,
-				yum }, DEFAULT_CREATOR, true);
+		Edge edge = createEdge("(tastiness (FruitFn AppleTree) Yum)", false, false, sut_);
 		assertTrue(edge instanceof SemanticArgErrorEdge);
-		assertEdge(
-				sut_.findOrCreateEdge(
-						new Node[] { CommonConcepts.RESULT_GENL.getNode(sut_),
-								fruitFn, fruit }, DEFAULT_CREATOR, true), true);
-		edge = sut_.findOrCreateEdge(new Node[] { tastiness, fruitFnNAT, yum },
-				DEFAULT_CREATOR, true);
-		assertEdge(edge, true);
+		createEdge("(resultGenl FruitFn Fruit)", true, false, sut_);
+		edge = createEdge("(tastiness (FruitFn AppleTree) Yum)", true, false, sut_);
 
-		Node theFruit = sut_.findOrCreateNode("(TheFn Fruit)", DEFAULT_CREATOR,
-				true);
+		Node theFruit = sut_.findOrCreateNode("(TheFn Fruit)", DEFAULT_CREATOR, true);
 		assertNotNull(theFruit);
-		Node eat = sut_.findOrCreateNode("Eat", DEFAULT_CREATOR, true);
-		assertEdge(sut_.findOrCreateEdge(
-				new Node[] { CommonConcepts.ARGISA.getNode(sut_), eat,
-						PrimitiveNode.parseNode("1"), fruit }, DEFAULT_CREATOR,
-				true), true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { eat, theFruit },
-				DEFAULT_CREATOR, true), true);
+		createEdge("(argIsa eat '1 Fruit)", true, false, sut_);
+		createEdge("(eat (TheFn Fruit))", true, false, sut_);
 	}
 
 	@Test
 	public void testSemanticEdgeForce() {
-		Node occupation = sut_.findOrCreateNode("occupation", DEFAULT_CREATOR,
-				true);
 		Node sam = sut_.findOrCreateNode("Sam", DEFAULT_CREATOR, true);
-		Node researcher = sut_.findOrCreateNode("Researcher", DEFAULT_CREATOR,
-				true);
-		Node personType = sut_.findOrCreateNode("PersonTypeByOccupation",
-				DEFAULT_CREATOR, true);
+		Node researcher = sut_.findOrCreateNode("Researcher", DEFAULT_CREATOR, true);
+		Node personType = sut_.findOrCreateNode("PersonTypeByOccupation", DEFAULT_CREATOR, true);
 		Node person = sut_.findOrCreateNode("Person", DEFAULT_CREATOR, true);
 		Node genls = CommonConcepts.GENLS.getNode(sut_);
 		Node isa = CommonConcepts.ISA.getNode(sut_);
-		Node collection = CommonConcepts.COLLECTION.getNode(sut_);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, researcher,
-				collection }, DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(
-				new Node[] { isa, person, collection }, DEFAULT_CREATOR, true),
-				true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, personType,
-				collection }, DEFAULT_CREATOR, true), true);
-		assertEdge(
-				sut_.findOrCreateEdge(
-						new Node[] { CommonConcepts.ARGISA.getNode(sut_),
-								occupation, PrimitiveNode.parseNode("1"),
-								person }, DEFAULT_CREATOR, true), true);
-		assertEdge(
-				sut_.findOrCreateEdge(
-						new Node[] { CommonConcepts.ARGISA.getNode(sut_),
-								occupation, PrimitiveNode.parseNode("2"),
-								personType }, DEFAULT_CREATOR, true), true);
-		assertEdge(
-				sut_.findOrCreateEdge(
-						new Node[] { CommonConcepts.ARGGENL.getNode(sut_),
-								occupation, PrimitiveNode.parseNode("2"),
-								person }, DEFAULT_CREATOR, true), true);
+		createEdge("(isa Researcher Collection)", true, false, sut_);
+		createEdge("(isa Person Collection)", true, false, sut_);
+		createEdge("(isa PersonTypeByOccupation Collection)", true, false, sut_);
+		createEdge("(argIsa occupation '1 Person )", true, false, sut_);
+		createEdge("(argIsa occupation '2 PersonTypeByOccupation )", true, false, sut_);
+		createEdge("(argGenl occupation '2 Person )", true, false, sut_);
 
-		assertEdge(sut_.findOrCreateEdge(new Node[] { occupation, sam,
-				researcher }, DEFAULT_CREATOR, true, false, true), true);
+		createEdge("(occupation Sam Researcher)", true, true, sut_);
 		assertNotNull(sut_.findEdge(isa, sam, person));
 		assertNotNull(sut_.findEdge(isa, researcher, personType));
 		assertNotNull(sut_.findEdge(genls, researcher, person));
@@ -317,110 +167,49 @@ public class CycDAGTest {
 
 	@Test
 	public void testDisjointEdges() {
-		Node disjoint = CommonConcepts.DISJOINTWITH.getNode(sut_);
-		Node isa = CommonConcepts.ISA.getNode(sut_);
-		Node genls = CommonConcepts.GENLS.getNode(sut_);
-		Node collection = CommonConcepts.COLLECTION.getNode(sut_);
-		Node dog = sut_.findOrCreateNode("Dog", DEFAULT_CREATOR, true);
-		Node mammal = sut_.findOrCreateNode("Mammal", DEFAULT_CREATOR, true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, dog, collection },
-				DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(
-				new Node[] { isa, mammal, collection }, DEFAULT_CREATOR, true),
-				true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { genls, dog, mammal },
-				DEFAULT_CREATOR, true), true);
-		Node fido = sut_.findOrCreateNode("Fido", DEFAULT_CREATOR, true);
-		Edge edge = sut_.findOrCreateEdge(new Node[] { isa, fido, dog },
-				DEFAULT_CREATOR, true);
-		assertEdge(edge, true);
+		createEdge("(isa Dog Collection)", true, false, sut_);
+		createEdge("(isa Mammal Collection)", true, false, sut_);
+		createEdge("(genls Dog Mammal)", true, false, sut_);
+		Edge edge = createEdge("(isa Fido Dog)", true, false, sut_);
 
-		Node cat = sut_.findOrCreateNode("Cat", DEFAULT_CREATOR, true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, cat, collection },
-				DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { genls, cat, mammal },
-				DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { disjoint, cat, dog },
-				DEFAULT_CREATOR, true), true);
-		edge = sut_.findOrCreateEdge(new Node[] { isa, fido, cat },
-				DEFAULT_CREATOR, true);
+		createEdge("(isa Cat Collection)", true, false, sut_);
+		createEdge("(genls Cat Mammal)", true, false, sut_);
+		createEdge("(disjointWith Cat Dog)", true, false, sut_);
+		edge = createEdge("(isa Fido Cat)", false, false, sut_);
 		assertTrue(edge instanceof ErrorEdge);
 
-		Node donkey = sut_.findOrCreateNode("Donkey", DEFAULT_CREATOR, true);
-		assertEdge(sut_.findOrCreateEdge(
-				new Node[] { isa, donkey, collection }, DEFAULT_CREATOR, true),
-				true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { genls, donkey, mammal },
-				DEFAULT_CREATOR, true), true);
-		Node species = sut_.findOrCreateNode("BiologicalSpecies",
-				DEFAULT_CREATOR, true);
-		assertEdge(
-				sut_.findOrCreateEdge(new Node[] { isa, species, collection },
-						DEFAULT_CREATOR, true), true);
-		Node siblingDisjoint = CommonConcepts.SIBLING_DISJOINT_COLLECTION_TYPE
-				.getNode(sut_);
-		assertEdge(
-				sut_.findOrCreateEdge(new Node[] { isa, siblingDisjoint,
-						collection }, DEFAULT_CREATOR, true), true);
-		assertEdge(
-				sut_.findOrCreateEdge(new Node[] { isa, species,
-						siblingDisjoint }, DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, dog, species },
-				DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, cat, species },
-				DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, donkey, species },
-				DEFAULT_CREATOR, true), true);
-		edge = sut_.findOrCreateEdge(new Node[] { isa, fido, donkey },
-				DEFAULT_CREATOR, true);
+		createEdge("(isa Donkey Collection)", true, false, sut_);
+		createEdge("(genls Donkey Mammal)", true, false, sut_);
+		createEdge("(isa BiologicalSpecies Collection)", true, false, sut_);
+		createEdge("(isa SiblingDisjointCollectionType Collection)", true, false, sut_);
+		createEdge("(isa BiologicalSpecies SiblingDisjointCollectionType)", true, false, sut_);
+		createEdge("(isa Dog BiologicalSpecies)", true, false, sut_);
+		createEdge("(isa Cat BiologicalSpecies)", true, false, sut_);
+		createEdge("(isa Donkey BiologicalSpecies)", true, false, sut_);
+		edge = createEdge("(isa Fido Donkey)", false, false, sut_);
 		assertTrue(edge instanceof ErrorEdge);
 
-		Node tomcat = sut_.findOrCreateNode("Tomcat", DEFAULT_CREATOR, true);
-		assertEdge(sut_.findOrCreateEdge(
-				new Node[] { isa, tomcat, collection }, DEFAULT_CREATOR, true),
-				true);
-		edge = sut_.findOrCreateEdge(new Node[] { genls, tomcat, cat },
-				DEFAULT_CREATOR, true);
-		assertEdge(edge, true);
-		edge = sut_.findOrCreateEdge(new Node[] { isa, fido, tomcat },
-				DEFAULT_CREATOR, true);
+		createEdge("(isa Tomcat Collection)", true, false, sut_);
+		edge = createEdge("(genls Tomcat Cat)", true, false, sut_);
+		edge = createEdge("(isa Fido Tomcat)", false, false, sut_);
 		assertTrue(edge instanceof DisjointErrorEdge);
-		edge = sut_.findOrCreateEdge(new Node[] { genls, tomcat, dog },
-				DEFAULT_CREATOR, true);
+		edge = createEdge("(genls Tomcat Dog)", false, false, sut_);
 		assertTrue(edge instanceof DisjointErrorEdge);
-		edge = sut_.findOrCreateEdge(new Node[] { isa, tomcat, donkey },
-				DEFAULT_CREATOR, true);
-		assertEdge(edge, true);
+		edge = createEdge("(isa Tomcat Donkey)", true, false, sut_);
 		sut_.removeEdge(edge);
 	}
 
 	@Test
 	public void testInvalidDisjointEdge() {
-		Node disjoint = CommonConcepts.DISJOINTWITH.getNode(sut_);
-		Node isa = CommonConcepts.ISA.getNode(sut_);
-		Node genls = CommonConcepts.GENLS.getNode(sut_);
-		Node collection = CommonConcepts.COLLECTION.getNode(sut_);
-		Node dog = sut_.findOrCreateNode("Dog", DEFAULT_CREATOR, true);
-		Node mammal = sut_.findOrCreateNode("Mammal", DEFAULT_CREATOR, true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, dog, collection },
-				DEFAULT_CREATOR, true), true);
-		assertEdge(sut_.findOrCreateEdge(
-				new Node[] { isa, mammal, collection }, DEFAULT_CREATOR, true),
-				true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { genls, dog, mammal },
-				DEFAULT_CREATOR, true), true);
-		Node fido = sut_.findOrCreateNode("Fido", DEFAULT_CREATOR, true);
-		Edge edge = sut_.findOrCreateEdge(new Node[] { isa, fido, dog },
-				DEFAULT_CREATOR, true);
-		assertEdge(edge, true);
+		createEdge("(isa Dog Collection)", true, false, sut_);
+		createEdge("(isa Mammal Collection)", true, false, sut_);
+		createEdge("(genls Dog Mammal)", true, false, sut_);
+		createEdge("(isa Fido Dog)", true, false, sut_);
 
 		// Adding a disjoint edge to a known transitive connection.
-		assertTrue(sut_.findOrCreateEdge(new Node[] { disjoint, dog, mammal },
-				DEFAULT_CREATOR, true) instanceof ErrorEdge);
-		assertFalse(sut_.findOrCreateEdge(new Node[] { disjoint, dog,
-				collection }, DEFAULT_CREATOR, true) instanceof ErrorEdge);
-		assertTrue(sut_.findOrCreateEdge(new Node[] { disjoint, dog, fido },
-				DEFAULT_CREATOR, true) instanceof ErrorEdge);
+		assertTrue(createEdge("(disjointWith Dog Mammal)", false, false, sut_) instanceof ErrorEdge);
+		assertFalse(createEdge("(disjointWith Dog Collection)", true, false, sut_) instanceof ErrorEdge);
+		assertTrue(createEdge("(disjointWith Dog Fido)", false, false, sut_) instanceof ErrorEdge);
 	}
 
 	@Test
@@ -433,87 +222,55 @@ public class CycDAGTest {
 		Node collection = CommonConcepts.COLLECTION.getNode(sut_);
 		Node dog = sut_.findOrCreateNode("Dog", DEFAULT_CREATOR, true);
 		Node fido = sut_.findOrCreateNode("Fido", DEFAULT_CREATOR, true);
-		Node species = sut_.findOrCreateNode("BiologicalSpecies",
-				DEFAULT_CREATOR, true);
+		Node species = sut_.findOrCreateNode("BiologicalSpecies", DEFAULT_CREATOR, true);
 
 		// Check Fido can be a dog
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, dog, foc },
-				DEFAULT_CREATOR, true), true);
-		Edge e = sut_.findOrCreateEdge(new Node[] { isa, fido, dog },
-				DEFAULT_CREATOR, true);
-		assertEdge(e, true);
+		createEdge("(isa Dog FirstOrderCollection)", true, true, sut_);
+		Edge e = createEdge("(isa Fido Dog)", true, true, sut_);
 		sut_.removeEdge(e);
-		e = sut_.findOrCreateEdge(new Node[] { genls, fido, dog },
-				DEFAULT_CREATOR, true);
+		e = createEdge("(genls Fido Dog)", false, false, sut_);
 		// Cannot be true, as Fido is not a collection
-		assertEdge(e, false);
+		assertTrue(e instanceof ErrorEdge);
 		sut_.removeEdge(e);
 
 		// Check Fido the individual can be a dog
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, fido, indiv },
-				DEFAULT_CREATOR, true), true);
-		e = sut_.findOrCreateEdge(new Node[] { isa, fido, dog },
-				DEFAULT_CREATOR, true);
-		assertEdge(e, true);
+		createEdge("(isa Fido Individual)", true, false, sut_);
+		e = createEdge("(isa Fido Dog)", true, false, sut_);
 		sut_.removeEdge(e);
 
 		// Check Foxy the collection cannot be a dog
 		Node foxy = sut_.findOrCreateNode("Foxy", DEFAULT_CREATOR, true);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, foxy, collection },
-				DEFAULT_CREATOR, true), true);
-		e = sut_.findOrCreateEdge(new Node[] { isa, foxy, dog },
-				DEFAULT_CREATOR, true);
-		assertEdge(e, false);
+		createEdge("(isa Foxy Collection)", true, false, sut_);
+		e = createEdge("(isa Foxy Dog)", false, false, sut_);
+		assertTrue(e instanceof ErrorEdge);
 		sut_.removeEdge(e);
-		e = sut_.findOrCreateEdge(new Node[] { genls, foxy, dog },
-				DEFAULT_CREATOR, true);
-		assertEdge(e, true);
+		e = createEdge("(genls Foxy Dog)", true, false, sut_);
 		sut_.removeEdge(e);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, foxy, foc },
-				DEFAULT_CREATOR, true), true);
-		e = sut_.findOrCreateEdge(new Node[] { genls, foxy, dog },
-				DEFAULT_CREATOR, true);
-		assertEdge(e, true);
+		createEdge("(isa Foxy FirstOrderCollection)", true, false, sut_);
+		e = createEdge("(genls Foxy Dog)", true, false, sut_);
 		sut_.removeEdge(e);
 
 		// Check Dog can be an instance of Biological Species
-		assertEdge(
-				sut_.findOrCreateEdge(new Node[] { isa, species, collection },
-						DEFAULT_CREATOR, true), true);
+		createEdge("(isa BiologicalSpecies Collection)", true, false, sut_);
 		// This is fine while species is an underspecified collection
-		e = sut_.findOrCreateEdge(new Node[] { isa, dog, species },
-				DEFAULT_CREATOR, true);
-		assertEdge(e, true);
+		e = createEdge("(isa Dog BiologicalSpecies)", true, false, sut_);
 		sut_.removeEdge(e);
-		assertEdge(sut_.findOrCreateEdge(new Node[] { isa, species, soc },
-				DEFAULT_CREATOR, true), true);
-		e = sut_.findOrCreateEdge(new Node[] { isa, dog, species },
-				DEFAULT_CREATOR, true);
-		assertEdge(e, true);
+		createEdge("(isa BiologicalSpecies SecondOrderCollection)", true, false, sut_);
+		e = createEdge("(isa Dog BiologicalSpecies)", true, false, sut_);
 		sut_.removeEdge(e);
-		e = sut_.findOrCreateEdge(new Node[] { genls, dog, species },
-				DEFAULT_CREATOR, true);
-		assertEdge(e, false);
+		e = createEdge("(genls Dog BiologicalSpecies)", false, false, sut_);
+		assertTrue(e instanceof ErrorEdge);
 		sut_.removeEdge(e);
-		e = sut_.findOrCreateEdge(new Node[] { isa, fido, species },
-				DEFAULT_CREATOR, true);
-		assertEdge(e, false);
+		e = createEdge("(isa Fido BiologicalSpecies)", false, false, sut_);
+		assertTrue(e instanceof ErrorEdge);
 		sut_.removeEdge(e);
-	}
-
-	private void assertEdge(Edge edge, boolean asDAGEdge) {
-		assertEquals(edge.toString(), !asDAGEdge, edge instanceof ErrorEdge);
 	}
 
 	@Test
 	public void testAddFunction() {
 		sut_.noChecks_ = true;
-		Edge edge = sut_.findOrCreateEdge(sut_.parseNodes(
-				"(genls (SomeFn Blah) Person)", DEFAULT_CREATOR, true, true),
-				DEFAULT_CREATOR, true);
-		Edge otherEdge = sut_.findOrCreateEdge(sut_.parseNodes(
-				"(genls (SomeFn Blah) Person)", DEFAULT_CREATOR, true, true),
-				DEFAULT_CREATOR, true);
+		Edge edge = sut_.findOrCreateEdge(sut_.parseNodes("(genls (SomeFn Blah) Person)", DEFAULT_CREATOR, true, true), DEFAULT_CREATOR, true);
+		Edge otherEdge = sut_.findOrCreateEdge(sut_.parseNodes("(genls (SomeFn Blah) Person)", DEFAULT_CREATOR, true, true), DEFAULT_CREATOR, true);
 		for (int i = 0; i < edge.getNodes().length; i++) {
 			DAGNode n1 = (DAGNode) edge.getNodes()[i];
 			DAGNode n2 = (DAGNode) otherEdge.getNodes()[i];
@@ -537,34 +294,32 @@ public class CycDAGTest {
 	@Test
 	public void testHighLevelContradictions() {
 		// Set up basic network
-		createEdge("(isa TestX TestA)", true, sut_);
-		createEdge("(isa TestX TestB)", true, sut_);
-		createEdge("(genls TestA TestC)", true, sut_);
-		createEdge("(genls TestB TestD)", true, sut_);
+		createEdge("(isa TestX TestA)", true, true, sut_);
+		createEdge("(isa TestX TestB)", true, true, sut_);
+		createEdge("(genls TestA TestC)", true, true, sut_);
+		createEdge("(genls TestB TestD)", true, true, sut_);
 
 		// Check immediately contradictory disjoint
-		Edge e = createEdge("(disjointWith TestC TestD)", false, sut_);
+		Edge e = createEdge("(disjointWith TestC TestD)", false, true, sut_);
 		assertTrue(e.toString(), e instanceof ErrorEdge);
 
 		// Check isa disjoint rejection
-		createEdge("(disjointWith TestB TestB2)", true, sut_);
-		e = createEdge("(isa TestX TestB2)", false, sut_);
+		createEdge("(disjointWith TestB TestB2)", true, true, sut_);
+		e = createEdge("(isa TestX TestB2)", false, true, sut_);
 		assertTrue(e.toString(), e instanceof ErrorEdge);
 
 		// Create separate disjoint, then join
-		createEdge("(disjointWith TestE TestD)", true, sut_);
+		createEdge("(disjointWith TestE TestD)", true, true, sut_);
 		// Join
-		e = createEdge("(genls TestC TestE)", false, sut_);
+		e = createEdge("(genls TestC TestE)", false, true, sut_);
 		assertTrue(e.toString(), e instanceof ErrorEdge);
 	}
 
-	public static Edge createEdge(String edgeString, boolean assertExists,
-			CycDAG dag) {
+	public static Edge createEdge(String edgeString, boolean assertExists, boolean forceConstraints, CycDAG dag) {
 		Node[] nodes = dag.parseNodes(edgeString, DEFAULT_CREATOR, true, false);
-		Edge edge = dag.findOrCreateEdge(nodes, DEFAULT_CREATOR, null, true,
-				false, true);
+		Edge edge = dag.findOrCreateEdge(nodes, DEFAULT_CREATOR, null, true, false, forceConstraints);
 		if (assertExists)
-			assertFalse(edge instanceof ErrorEdge);
+			assertFalse(edge.toString(), edge instanceof ErrorEdge);
 		return edge;
 	}
 }

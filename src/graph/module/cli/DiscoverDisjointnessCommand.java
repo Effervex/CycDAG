@@ -8,9 +8,7 @@ import core.Command;
 public class DiscoverDisjointnessCommand extends Command {
 	@Override
 	public String helpText() {
-		return "{0} folder assert? : Given a folder containing ConceptNet5 "
-				+ "data files, this discovers disjointness from the relations "
-				+ "and optionally asserts them immediately.";
+		return "{0} folder : Given a folder containing ConceptNet5 " + "data files, this discovers disjointness from the relations " + "and optionally asserts them immediately.";
 	}
 
 	@Override
@@ -21,8 +19,7 @@ public class DiscoverDisjointnessCommand extends Command {
 	@Override
 	protected void executeImpl() {
 		DAGPortHandler dagHandler = (DAGPortHandler) handler;
-		ConceptNetAnalyserV2Module discoverModule = (ConceptNetAnalyserV2Module) dagHandler
-				.getDAG().getModule(ConceptNetAnalyserV2Module.class);
+		ConceptNetAnalyserV2Module discoverModule = (ConceptNetAnalyserV2Module) dagHandler.getDAG().getModule(ConceptNetAnalyserV2Module.class);
 		if (discoverModule == null) {
 			print("-1|ConceptNet Discovery Module is not in use for this DAG.\n");
 			return;
@@ -35,15 +32,13 @@ public class DiscoverDisjointnessCommand extends Command {
 
 		String[] split = UtilityMethods.splitToArray(data, ' ');
 		if (split.length < 1) {
-			print("-1|Please provide at least a folder path and optional "
-					+ "T/F for asserting.\n");
+			print("-1|Please provide folder path to ConceptNet5 files.\n");
 			return;
 		}
-		
+
 		String folderPath = (split[0].startsWith("\"")) ? UtilityMethods.shrinkString(split[0], 1) : split[0];
-		boolean assertDisj = (split.length >= 2 && split[1].equalsIgnoreCase("T"));
-		
+
 		print("Discovering disjointness...\n");
-		discoverModule.execute(folderPath, assertDisj);
+		discoverModule.execute(folderPath);
 	}
 }

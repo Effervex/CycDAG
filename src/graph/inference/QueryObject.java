@@ -195,7 +195,7 @@ public class QueryObject {
 						&& s.getSubstitution(varStr) != nonNegNodes[i])
 					return false;
 				s.addSubstitution(varStr, nonNegNodes[i]);
-			} else if (!nonNegNodes[i].equals(nodes_[i]))
+			} else if (isProof() && !nonNegNodes[i].equals(nodes_[i]))
 				return false;
 		}
 		return addResult(isTrueResult, s);
