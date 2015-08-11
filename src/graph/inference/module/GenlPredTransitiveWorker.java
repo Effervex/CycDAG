@@ -40,14 +40,15 @@ public class GenlPredTransitiveWorker extends QueryWorker {
 		boolean isSymmetric = querier_.prove(false,
 				CommonConcepts.ISA.getNode(dag_), nodes[0],
 				CommonConcepts.SYMMETRIC_BINARY.getNode(dag_)) == QueryResult.TRUE;
-		
+
 		Object[] nodeArgs = asArgs(nodes, isSymmetric);
-		
+
 		// Sub preds
 		VariableNode varNode = new VariableNode("?SUB_PREDS");
 		Collection<Substitution> subPreds = querier_
-				.executeQuery(new QueryObject(false, false, QueryResult.TRUE, CommonConcepts.GENLPREDS
-								.getNode(dag_), varNode, queryObj.getNode(0)));
+				.executeQuery(new QueryObject(false, false, QueryResult.TRUE,
+						CommonConcepts.GENLPREDS.getNode(dag_), varNode,
+						queryObj.getNode(0)));
 		if (subPreds.isEmpty())
 			subPreds.add(new Substitution(varNode, (DAGNode) queryObj
 					.getNode(0)));
@@ -61,7 +62,9 @@ public class GenlPredTransitiveWorker extends QueryWorker {
 			predArgs[1] = 1;
 			Collection<Edge> intersect = relatedModule_.execute(predArgs);
 			for (Edge interEdge : intersect) {
-				Node[] edgeNodes = interEdge.getNodes();
+				if (EdgeModifier.isRemoved(interEdge, dag_))
+					continue;
+				Node[] edgeNodes = EdgeModifier.getUnmodNodes(interEdge, dag_);
 				if (queryObj.addResult(
 						!EdgeModifier.isNegated(interEdge, dag_), edgeNodes))
 					return;

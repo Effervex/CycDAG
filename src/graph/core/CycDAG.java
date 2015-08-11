@@ -334,12 +334,14 @@ public class CycDAG extends DirectedAcyclicGraph {
 					CommonConcepts.COLLECTION_ORDER.getNode(this));
 			OntologyFunction diffXY = new OntologyFunction(
 					CommonConcepts.DIFFERENT.getNode(this), x, y);
-			QueryObject qo = new QueryObject(false, false, QueryResult.TRUE,
+			QueryObject qo = new QueryObject(false, edgeQuery.shouldJustify(), QueryResult.TRUE,
 					CommonConcepts.AND.getNode(this), isaAX, isaBY, isaXOrder,
 					isaYOrder, diffXY);
 			QueryResult result = querier_.prove(qo);
-			if (result == QueryResult.TRUE)
+			if (result == QueryResult.TRUE) {
+				edgeQuery.addResult(false, null, qo.getJustification());
 				return new CollectionOrderErrorEdge(edgeNodes);
+			}
 		}
 
 		// If isa
@@ -353,8 +355,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 			QueryObject qo = new QueryObject(false, false, QueryResult.TRUE,
 					CommonConcepts.AND.getNode(this), isaXCol, isaYFOC);
 			QueryResult result = querier_.prove(qo);
-			if (result == QueryResult.TRUE)
+			if (result == QueryResult.TRUE) {
+				edgeQuery.addResult(false, null, qo.getJustification());
 				return new CollectionOrderErrorEdge(edgeNodes);
+			}
 
 			// Then check the order is increasing
 			// (and (isa A ?X) (isa B ?Y) (isa ?X CollectionOrder) (isa ?Y
@@ -376,8 +380,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 				Substitution sub = results.iterator().next();
 				if (results.size() != 1
 						|| querier_.prove(false, isa, sub.getSubstitution(x),
-								sub.getSubstitution(y)) != QueryResult.TRUE)
+								sub.getSubstitution(y)) != QueryResult.TRUE) {
+					edgeQuery.addResult(false, null, qo.getJustification());
 					return new CollectionOrderErrorEdge(edgeNodes);
+				}
 			}
 		}
 		return null;

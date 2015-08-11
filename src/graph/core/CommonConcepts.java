@@ -92,6 +92,7 @@ public enum CommonConcepts {
 	STRING("CharacterString"),
 	SYMMETRIC_BINARY("SymmetricBinaryPredicate"),
 	TERM_STRING("termStrings"),
+	TIME_INTERVAL("TimeInterval"),
 	THE_FN("TheFn"),
 	THE_YEAR("TheYear-Indexical"),
 	THING("Thing"),

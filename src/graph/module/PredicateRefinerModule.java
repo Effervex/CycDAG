@@ -225,6 +225,7 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 		 *
 		 * @return The set of all constraints for the given index.
 		 */
+		@SuppressWarnings("unchecked")
 		public Collection<Node> inferConstraints(double threshold, int argIndex) {
 			int minCount = (int) Math.ceil(threshold
 					* numEvidence_[argIndex - 1]);

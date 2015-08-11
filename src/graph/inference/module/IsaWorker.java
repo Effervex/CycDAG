@@ -93,6 +93,7 @@ public class IsaWorker extends QueryWorker {
 					isas.add(new OntologyFunction(CommonConcepts.ISA
 							.getNode(dag_), n, funcNode));
 			}
+
 			for (Edge e : isas) {
 				if (EdgeModifier.isRemoved(e, dag_))
 					continue;
@@ -114,13 +115,20 @@ public class IsaWorker extends QueryWorker {
 							queryObj.getNode(varIndex), queryObj,
 							queryObj.shouldJustify());
 
+					// During isa search, ignore false results
+					if (transitiveQO.getResultState() == QueryResult.FALSE) {
+						// Clear the false result
+						queryObj.setResultState(QueryResult.NIL);
+					}
+
 					// If the proof is met, exit
-					if (queryObj != null && queryObj.isProof()
-							&& queryObj.getResultState() != QueryResult.NIL) {
+					if (transitiveQO.getResultState() == QueryResult.TRUE) {
+						queryObj.addResults(true, transitiveQO.getResults());
 						if (queryObj.shouldJustify())
 							queryObj.getJustification().addAll(
 									transitiveQO.getJustification());
-						return;
+						if (queryObj.isProof())
+							return;
 					}
 				}
 			}
