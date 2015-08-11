@@ -36,10 +36,8 @@ import graph.inference.module.OrWorker;
 import graph.inference.module.TransitiveWorker;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -51,14 +49,6 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	public static final String EVALUATABLE_WORKER = "_EVALUATABLE_";
 
 	private transient Map<String, QueryWorker> inferenceModules_;
-
-	/**
-	 * A threadlocal list for checking for cycles defined by the preserved
-	 * logic.
-	 */
-	private transient ThreadLocal<Collection<Node>> seenPreservedNodes_;
-
-	// private BackwardChainer backwardChainer_;
 
 	public QueryModule() {
 	}
@@ -264,58 +254,6 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 				results.add((DAGNode) n);
 		}
 
-		// Preserves genls in arg
-		// TODO This isn't working - creating infinite loop
-//		CommonConcepts isaGenls = CommonConcepts.GENLS;
-//		CommonConcepts preserves = CommonConcepts.PRESERVES_GENLS_IN_ARG;
-//		if (resultQuery == CommonConcepts.RESULT_ISA) {
-//			isaGenls = CommonConcepts.ISA;
-//			preserves = CommonConcepts.PRESERVES_ISA_IN_ARG;
-//		}
-//
-//		resultEdges = relatedModule.findEdgeByNodes(preserves.getNode(dag_),
-//				funcNodes[0]);
-//		// Cannot handle >1 preserves
-//		if (resultEdges.size() == 1) {
-//			// For every preserved argument
-//			for (Edge e : resultEdges) {
-//				if (EdgeModifier.isSpecial(e, dag_))
-//					continue;
-//				// Find the genls and build as function
-//				PrimitiveNode preserveIndex = (PrimitiveNode) e.getNodes()[2];
-//				int index = ((Number) preserveIndex.getPrimitive()).intValue();
-//				Node preserveNode = funcNodes[index];
-//				if (preserveNode instanceof DAGNode) {
-//					Collection<Node> seenNodes = seenPreservedNodes_.get();
-//					if (seenNodes.contains(preserveNode))
-//						break;
-//					seenNodes.add(preserveNode);
-//
-//					// Get the direct isa/genls
-//					Collection<Edge> preserveParents = relatedModule
-//							.findEdgeByNodes(isaGenls.getNode(dag_),
-//									preserveNode);
-//					for (Edge parent : preserveParents) {
-//						if (EdgeModifier.isSpecial(parent, dag_))
-//							continue;
-//						// Check it is a valid arg
-//						Node[] edgeNodes = parent.getNodes();
-//
-//						// Add as result
-//						Node[] cloneArgs = Arrays.copyOf(funcNodes,
-//								funcNodes.length);
-//						cloneArgs[index] = edgeNodes[2];
-//						OntologyFunction parentFunc = ((CycDAG) dag_)
-//								.findOrCreateFunctionNode(true, false, null,
-//										cloneArgs);
-//						if (parentFunc != null)
-//							results.add(parentFunc);
-//					}
-//				}
-//			}
-//			seenPreservedNodes_.get().clear();
-//		}
-
 		return results;
 	}
 
@@ -353,7 +291,8 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 	}
 
 	public QueryResult prove(boolean checkValidity, Node... nodes) {
-		QueryObject qo = new QueryObject(checkValidity, false, QueryResult.ALL, nodes);
+		QueryObject qo = new QueryObject(checkValidity, false, QueryResult.ALL,
+				nodes);
 		return prove(qo);
 	}
 
@@ -369,11 +308,6 @@ public class QueryModule extends DAGModule<Collection<Substitution>> {
 		initInferenceModules();
 		for (QueryWorker qw : inferenceModules_.values())
 			qw.setDAG(directedAcyclicGraph);
-		seenPreservedNodes_ = new ThreadLocal<Collection<Node>>() {
-			protected Collection<Node> initialValue() {
-				return new HashSet<>();
-			}
-		};
 	}
 
 	@Override

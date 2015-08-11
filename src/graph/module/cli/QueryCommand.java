@@ -10,6 +10,7 @@
  ******************************************************************************/
 package graph.module.cli;
 
+import graph.core.EdgeModifier;
 import graph.core.ErrorEdge;
 import graph.core.Node;
 import graph.core.cli.CollectionCommand;
@@ -82,9 +83,12 @@ public class QueryCommand extends CollectionCommand {
 			print("-1|Could not parse arguments.\n");
 			return;
 		}
+		
+		// Must prove fail if negated
+		proveFail |= EdgeModifier.isNegated(args[0], dagHandler.getDAG());
 
 		QueryResult qr = (proveFail) ? QueryResult.ALL : QueryResult.TRUE;
-		QueryObject qo = new QueryObject(true, false, qr, args);
+		QueryObject qo = new QueryObject(proveFail, false, qr, args);
 		Collection<Substitution> substitutions = queryModule.executeQuery(qo);
 		// Remove "??" variables
 		if (data.contains("??")) {
