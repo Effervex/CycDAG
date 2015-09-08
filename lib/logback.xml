@@ -7,6 +7,25 @@
 			<pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</pattern>
     </encoder>
 	</appender>
+	
+    <!-- Send debug messages to a file at "c:/jcg.log" -->
+    <appender name="ROLLFILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>DAGCommands.log</file>
+            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                    <pattern>%date %level [%thread] %logger{10} [%file:%line] %msg%n</pattern>
+            </encoder>
+
+            <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                    <FileNamePattern>DAGCommands.%i.log.zip</FileNamePattern>
+                    <MinIndex>1</MinIndex>
+                    <MaxIndex>10</MaxIndex>
+            </rollingPolicy>
+
+            <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                    <MaxFileSize>10MB</MaxFileSize>
+            </triggeringPolicy>
+    </appender>
+
 
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
@@ -15,6 +34,6 @@
 	</appender>
 
 	<root level="none">
-		<appender-ref ref="FILE" />
+		<appender-ref ref="ROLLFILE" />
 	</root>
 </configuration>

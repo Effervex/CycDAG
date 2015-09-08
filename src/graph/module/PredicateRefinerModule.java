@@ -7,6 +7,7 @@ import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.Edge;
 import graph.core.EdgeModifier;
+import graph.core.ErrorEdge;
 import graph.core.Node;
 import graph.core.PrimitiveNode;
 import graph.core.StringNode;
@@ -39,6 +40,9 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 	/** The query module access. */
 	private transient QueryModule querier_;
 
+	/** Related edge module access. */
+	private transient RelatedEdgeModule relEdgeModule_;
+
 	public PredicateRefinerModule() {
 		super();
 	}
@@ -70,13 +74,39 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 			return CollectionUtils.EMPTY_COLLECTION;
 
 		// For each refinable predicate, process is sufficient evidence
-		RelatedEdgeModule relEdgeModule = (RelatedEdgeModule) dag_
-				.getModule(RelatedEdgeModule.class);
 		for (Node refPred : refinables) {
-			Collection<Edge> refEdges = relEdgeModule.execute(refPred, 1);
+			Collection<Edge> refEdges = relEdgeModule_.execute(refPred, 1);
 			recordEvidence(refPred, refEdges);
 		}
-		return inferConstraints(threshold, minEvidence);
+		Collection<DAGNode> refined = inferConstraints(threshold, minEvidence);
+
+		// Impose the constraints
+		imposeConstraints(refined);
+
+		return refined;
+	}
+
+	/**
+	 * Imposes the constraints found for each refined predicate such that any
+	 * edges not satisfying the constraints either have their arguments coerced
+	 * into the correct collections, or removed.
+	 *
+	 * @param refined
+	 *            The refined predicates to impose constraints for.
+	 */
+	public void imposeConstraints(Collection<DAGNode> refined) {
+		for (DAGNode predicate : refined) {
+			Collection<Edge> refEdges = relEdgeModule_.execute(predicate, 1);
+			for (Edge e : refEdges) {
+				// Attempt to add the edge coercing arguments if necessary
+				Edge testEdge = dag_.findOrCreateEdge(e.getNodes(), null, true,
+						false, true);
+				if (testEdge instanceof ErrorEdge) {
+					// If the coercion failed, remove the edge
+					dag_.removeEdge(e);
+				}
+			}
+		}
 	}
 
 	/**
@@ -178,6 +208,8 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 	public void setDAG(DirectedAcyclicGraph directedAcyclicGraph) {
 		querier_ = (QueryModule) directedAcyclicGraph
 				.getModule(QueryModule.class);
+		relEdgeModule_ = (RelatedEdgeModule) directedAcyclicGraph
+				.getModule(RelatedEdgeModule.class);
 		super.setDAG(directedAcyclicGraph);
 	}
 
