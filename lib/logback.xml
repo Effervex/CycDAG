@@ -18,11 +18,11 @@
             <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
                     <FileNamePattern>DAGCommands.%i.log.zip</FileNamePattern>
                     <MinIndex>1</MinIndex>
-                    <MaxIndex>10</MaxIndex>
+                    <MaxIndex>5</MaxIndex>
             </rollingPolicy>
 
             <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-                    <MaxFileSize>10MB</MaxFileSize>
+                    <MaxFileSize>20MB</MaxFileSize>
             </triggeringPolicy>
     </appender>
 
@@ -33,7 +33,7 @@
     </encoder>
 	</appender>
 
-	<root level="none">
+	<root level="OFF">
 		<appender-ref ref="ROLLFILE" />
 	</root>
 </configuration>
