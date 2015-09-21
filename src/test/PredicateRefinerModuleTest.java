@@ -58,8 +58,8 @@ public class PredicateRefinerModuleTest {
 		Node person = dag_.findOrCreateNode("Person", creator, true);
 		dag_.findOrCreateEdge(new Node[] { isa, person, collection }, creator,
 				true);
-		Node thing = dag_.findOrCreateNode("Thing", creator, true);
-		dag_.findOrCreateEdge(new Node[] { isa, thing, collection }, creator,
+		Node mammal = dag_.findOrCreateNode("Mammal", creator, true);
+		dag_.findOrCreateEdge(new Node[] { isa, mammal, collection }, creator,
 				true);
 		Node dog = dag_.findOrCreateNode("Dog", creator, true);
 		dag_.findOrCreateEdge(new Node[] { isa, dog, collection }, creator,
@@ -70,10 +70,10 @@ public class PredicateRefinerModuleTest {
 		Node appearance = dag_.findOrCreateNode("Appearance", creator, true);
 		dag_.findOrCreateEdge(new Node[] { isa, appearance, collection },
 				creator, true);
-		dag_.findOrCreateEdge(new Node[] { genls, person, thing }, creator,
+		dag_.findOrCreateEdge(new Node[] { genls, person, mammal }, creator,
 				true);
-		dag_.findOrCreateEdge(new Node[] { genls, dog, thing }, creator, true);
-		dag_.findOrCreateEdge(new Node[] { genls, thing, animal }, creator,
+		dag_.findOrCreateEdge(new Node[] { genls, dog, mammal }, creator, true);
+		dag_.findOrCreateEdge(new Node[] { genls, mammal, animal }, creator,
 				true);
 		dag_.findOrCreateEdge(new Node[] { genls, appearance, animal },
 				creator, true);
@@ -136,7 +136,7 @@ public class PredicateRefinerModuleTest {
 		e = dag_.findOrCreateEdge(
 				new Node[] { CommonConcepts.ARGISA.getNode(dag_),
 						visualAppearance, PrimitiveNode.parseNode(1 + ""),
-						thing }, null, false);
+						mammal }, null, false);
 		assertNull(e);
 		e = dag_.findOrCreateEdge(
 				new Node[] { CommonConcepts.ARGISA.getNode(dag_),

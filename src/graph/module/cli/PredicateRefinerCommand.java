@@ -1,13 +1,12 @@
 package graph.module.cli;
 
-import java.util.Collection;
-
 import graph.core.DAGNode;
 import graph.core.DirectedAcyclicGraph;
 import graph.core.cli.CollectionCommand;
 import graph.core.cli.DAGPortHandler;
 import graph.module.PredicateRefinerModule;
-import core.Command;
+
+import java.util.Collection;
 
 public class PredicateRefinerCommand extends CollectionCommand {
 	@Override
@@ -42,14 +41,19 @@ public class PredicateRefinerCommand extends CollectionCommand {
 		}
 
 		String[] split = data.split("\\s+");
-		if (split.length != 2) {
-			print("-1|Two arguments required: minimum number "
-					+ "of assertions and threshold.\n");
+		if (split.length <= 2) {
+			print("-1|At least two arguments required: minimum number "
+					+ "of assertions, threshold, and optional singlePred.\n");
 			return;
 		}
 
-		Collection<DAGNode> refined = prModule.execute(
-				Integer.parseInt(split[0]), Double.parseDouble(split[1]));
+		Collection<DAGNode> refined = null;
+		if (split.length == 2)
+		refined = prModule.execute(Integer.parseInt(split[0]),
+				Double.parseDouble(split[1]));
+		else if (split.length == 3)
+			refined = prModule.execute(Integer.parseInt(split[0]),
+					Double.parseDouble(split[1]), split[2]);
 		// Apply sorting
 		refined = dagHandler.postProcess(refined, rangeStart_, rangeEnd_, true);
 
@@ -58,5 +62,4 @@ public class PredicateRefinerCommand extends CollectionCommand {
 			print(dagHandler.textIDObject(n) + "|");
 		print("\n");
 	}
-
 }

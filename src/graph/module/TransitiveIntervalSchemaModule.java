@@ -175,7 +175,8 @@ public class TransitiveIntervalSchemaModule extends
 		int tIndex = (isUpwards) ? 2 : 1;
 		for (Edge edge : edges) {
 			// TODO How to deal with negated edges?
-			if (!EdgeModifier.isNegated(edge, dag_))
+			if (!EdgeModifier.isSpecial(edge, dag_)
+					&& tIndex < edge.getNodes().length)
 				transitiveNodes.add((DAGNode) edge.getNodes()[tIndex]);
 		}
 
@@ -351,7 +352,7 @@ public class TransitiveIntervalSchemaModule extends
 	@Override
 	public Collection<DAGNode> execute(Object... args)
 			throws IllegalArgumentException, ModuleException {
-		if (args.length < 2)
+		if (args.length < 2 || args[1] == null)
 			return null;
 
 		boolean upwards = (boolean) args[0];

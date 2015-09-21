@@ -250,6 +250,10 @@ public class NLPToStringModule extends DAGModule<String> {
 					.iterator().next().getSubstitution(VariableNode.DEFAULT)
 					.toString(), 1);
 
+			// Removal
+			if (removed)
+				replaced = "Removed: " + replaced;
+			
 			// Negation
 			if (negated) {
 				replaced = negateString(replaced);

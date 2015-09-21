@@ -142,7 +142,7 @@ public class NLPToStringModuleTest {
 		assertEquals(result, "\"Test node\"");
 		result = sut_.nodeToString(strNode, true);
 		assertEquals(result, "\"Test node\"");
-		
+
 		PrimitiveNode primNode = PrimitiveNode.parseNode("2");
 		result = sut_.nodeToString(primNode, false);
 		assertEquals(result, "2");
@@ -248,6 +248,13 @@ public class NLPToStringModuleTest {
 		result = sut_.edgeToString(qo, false, false, false, true);
 		assertEquals(result,
 				"argument 1 of broader Term is not an instance of comment");
+
+		// Removed
+		DAGNode removed = CommonConcepts.REMOVED.getNode(dag_);
+		qo = new QueryObject(removed, new OntologyFunction(isa2, samuel,
+				actor));
+		result = sut_.edgeToString(qo, false, false, false, false);
+		assertEquals(result, "Removed: Samuel L. Jackson is an instance of Actor");
 	}
 
 	@Test
