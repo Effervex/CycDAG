@@ -18,9 +18,10 @@ public class CycDAGVarHelpCommand extends DAGVarHelpCommand {
 					+ "outputs (using DAGPortHandler's 'sort'). The "
 					+ "different sort orders include: alpha, for "
 					+ "alphabetical; alphaNoCase, for alphabetical "
-					+ "(caseless); id, for ID ordered results; depth, "
-					+ "for depth (from Thing) ordered results; alias "
-					+ "for special string ordering of 'findnodes'.";
+					+ "(caseless); id, for ID ordered results; alias "
+					+ "for special string ordering of 'findnodes'; "
+					+ "numedge, for descending number of edges;"
+					+ "depth, for depth (from Thing) ordered results.";
 		return super.getVarHelp(variable);
 	}
 }
