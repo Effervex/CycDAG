@@ -23,9 +23,10 @@ import core.Command;
 public class ValidArgCommand extends Command {
 	@Override
 	public String helpText() {
-		return "{0} predicate argNum arg : Checks if an argument for an "
-				+ "edge predicate is semantically valid. Note that this DOES "
-				+ "NOT perform any disjointness reasoning.";
+		return "{0} predicate argNum arg forceConstraint? : Checks if an "
+				+ "argument for an edge predicate is semantically valid. "
+				+ "Optionally forces it to be valid. "
+				+ "Note that this DOES NOT perform any disjointness reasoning.";
 	}
 
 	@Override
@@ -43,7 +44,7 @@ public class ValidArgCommand extends Command {
 		}
 
 		ArrayList<String> split = UtilityMethods.split(data, ' ');
-		if (split.size() != 3) {
+		if (split.size() < 3) {
 			print("-1|Wrong number of arguments.\n");
 			return;
 		}
@@ -52,8 +53,10 @@ public class ValidArgCommand extends Command {
 					split.get(0), null, false, false, true, false);
 			Integer argNum = Integer.parseInt(split.get(1).replaceAll("'", ""));
 			Node arg = dagHandler.getDAG().findOrCreateNode(split.get(2), null);
+			boolean forceCreate = split.size() == 4
+					&& split.get(3).equalsIgnoreCase("T");
 
-			if (dag.isValidArgument(predicate, argNum, arg))
+			if (dag.isValidArgument(predicate, argNum, arg, forceCreate))
 				print("1\n");
 			else
 				print("0\n");

@@ -334,9 +334,9 @@ public class CycDAG extends DirectedAcyclicGraph {
 					CommonConcepts.COLLECTION_ORDER.getNode(this));
 			OntologyFunction diffXY = new OntologyFunction(
 					CommonConcepts.DIFFERENT.getNode(this), x, y);
-			QueryObject qo = new QueryObject(false, edgeQuery.shouldJustify(), QueryResult.TRUE,
-					CommonConcepts.AND.getNode(this), isaAX, isaBY, isaXOrder,
-					isaYOrder, diffXY);
+			QueryObject qo = new QueryObject(false, edgeQuery.shouldJustify(),
+					QueryResult.TRUE, CommonConcepts.AND.getNode(this), isaAX,
+					isaBY, isaXOrder, isaYOrder, diffXY);
 			QueryResult result = querier_.prove(qo);
 			if (result == QueryResult.TRUE) {
 				edgeQuery.addResult(false, null, qo.getJustification());
@@ -948,8 +948,12 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return null;
 	}
 
-	public boolean isValidArgument(DAGNode predNode, int i, Node arg) {
-		return singleArgCheck(predNode, i, arg, null, null, false,
+	public boolean isValidArgument(DAGNode predNode, int i, Node arg,
+			boolean forceConstraint) {
+		Collection<Edge> forwardEdges = null;
+		if (forceConstraint)
+			forwardEdges = new ArrayList<>();
+		return singleArgCheck(predNode, i, arg, null, forwardEdges, false,
 				new QueryObject());
 	}
 

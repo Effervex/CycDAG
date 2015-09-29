@@ -83,7 +83,7 @@ public class PredicateResolutionModule extends DAGModule<WeightedSet<DAGNode>> {
 				.getModule(SemanticSimilarityModule.class);
 		float similarity = 0;
 		for (int i = 0; i < args.length; i++) {
-			if (!cycDAG.isValidArgument(pred, (i + 1), args[i]))
+			if (!cycDAG.isValidArgument(pred, (i + 1), args[i], false))
 				return 0;
 			Collection<Node> argIsa = CommonQuery.MINARGNISA.runQuery(dag_,
 					pred, PrimitiveNode.parseNode((i + 1) + ""));

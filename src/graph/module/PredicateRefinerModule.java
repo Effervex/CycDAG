@@ -9,10 +9,12 @@ import graph.core.Edge;
 import graph.core.EdgeModifier;
 import graph.core.ErrorEdge;
 import graph.core.Node;
+import graph.core.OntologyFunction;
 import graph.core.PrimitiveNode;
 import graph.core.StringNode;
-import graph.core.cli.comparator.DepthComparator;
 import graph.inference.CommonQuery;
+import graph.inference.QueryObject;
+import graph.inference.QueryResult;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,14 +23,15 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.LoggerFactory;
 
-public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
+public class PredicateRefinerModule extends DAGModule<Collection<Edge>> {
 	private static final StringNode PREDICATE_REFINER_CREATOR = new StringNode(
 			"PredicateRefinerModule");
 	private static final long serialVersionUID = 1L;
@@ -57,14 +60,25 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 	 * ReinfinablePedicates with a minimum number of assertions as evidence and
 	 * a threshold of common evidence.
 	 */
-	@SuppressWarnings("unchecked")
 	@Override
-	public Collection<DAGNode> execute(Object... args)
+	public Collection<Edge> execute(Object... args)
 			throws IllegalArgumentException, ModuleException {
 		// Identify Refinable Predicates
 		Integer minEvidence = (Integer) args[0];
-		Double threshold = (Double) args[1];
+		Float threshold = (Float) args[1];
+		boolean assertConstraints = (Boolean) args[2];
+		String sourceKey = (String) args[3];
+		String predicate = null;
+		if (args.length == 5)
+			predicate = args[4].toString();
 
+		return refinePredicates(minEvidence, threshold, assertConstraints,
+				sourceKey, predicate);
+	}
+
+	@SuppressWarnings("unchecked")
+	public Collection<Edge> refinePredicates(int minEvidence, float threshold,
+			boolean assertConstraints, String sourceKey, String predicate) {
 		// Calculate globals
 		Collection<Node> refinables = CommonQuery.DIRECTINSTANCE.runQuery(dag_,
 				CommonConcepts.REFINABLE_PREDICATE.getNode(dag_));
@@ -74,21 +88,21 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 		if (globals_ == null)
 			globals_ = calculateGlobal(refinables, threshold);
 
-		Collection<DAGNode> refined = new ArrayList<>();
-		if (args.length >= 3) {
-			DAGNode singlePred = dag_.findDAGNode(args[2].toString());
-			if (countAndInfer(singlePred, threshold, minEvidence))
-				refined.add(singlePred);
-			return refined;
+		if (predicate != null) {
+			DAGNode predNode = dag_.findDAGNode(predicate);
+			return countAndInfer(predNode, threshold, minEvidence,
+					assertConstraints, sourceKey);
 		}
 
 		// For each refinable predicate, process if sufficient evidence
+		Collection<Edge> constraints = new ArrayList<>();
 		for (Node refPred : refinables) {
-			if (countAndInfer((DAGNode) refPred, threshold, minEvidence))
-				refined.add((DAGNode) refPred);
+			constraints.addAll(countAndInfer((DAGNode) refPred, threshold,
+					minEvidence, assertConstraints, sourceKey));
 		}
 
-		return refined;
+		return constraints;
+
 	}
 
 	/**
@@ -114,7 +128,7 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 			samples.add(first);
 		}
 		// Inferring constraints for global edges
-		NodeDetails globalDetails = recordEvidence(samples);
+		NodeDetails globalDetails = recordEvidence(samples, null);
 		for (int i = 0; i < 2; i++)
 			globals[i] = globalDetails
 					.inferConstraints(threshold, i + 1, false);
@@ -137,45 +151,51 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 	 * @return True if the predicate created at least one refined arg
 	 *         constraint.
 	 */
-	private boolean countAndInfer(DAGNode refPred, Double threshold,
-			Integer minEvidence) {
+	private Collection<Edge> countAndInfer(DAGNode refPred, float threshold,
+			int minEvidence, boolean assertConstraints, String sourceKey) {
+		Collection<Edge> constraints = new ArrayList<>();
 		Collection<Edge> refEdges = relEdgeModule_.execute(refPred, 1);
 		// If this is empty - just remove the predicate - it is useless
 		if (refEdges.isEmpty()) {
-			dag_.removeNode(refPred);
-			return false;
+			if (assertConstraints)
+				dag_.removeNode(refPred);
+			return constraints;
 		}
 		// Not enough evidence
 		if (refEdges.size() < minEvidence)
-			return false;
+			return constraints;
 
 		// Count the parents
-		NodeDetails counts = recordEvidence(refEdges);
+		NodeDetails counts = recordEvidence(refEdges, sourceKey);
 		boolean refined = false;
 		// For each argument
 		int bothRefined = 0;
 		for (int i = 1; i <= 2; i++) {
 			if (counts.numEvidence_[i - 1] < minEvidence)
 				continue;
-			Collection<Node> constraints = counts.inferConstraints(threshold,
-					i, true);
+			Collection<Node> nodeConstraints = counts.inferConstraints(
+					threshold, i, true);
 			// Only create constraints not in the global set.
-			for (Node constraint : constraints) {
-				if (!isGeneralConstraint(constraint, globals_[i - 1])) {
-					Edge e = ((CycDAG) dag_).findOrCreateEdge(new Node[] {
-							CommonConcepts.ARGISA.getNode(dag_), refPred,
-							PrimitiveNode.parseNode(i + ""), constraint },
+			for (Node constraint : nodeConstraints) {
+				Node[] nodes = new Node[] {
+						CommonConcepts.ARGISA.getNode(dag_), refPred,
+						PrimitiveNode.parseNode(i + ""), constraint };
+				if (assertConstraints) {
+					Edge e = ((CycDAG) dag_).findOrCreateEdge(nodes,
 							PREDICATE_REFINER_CREATOR, true, false);
-					if (!(e instanceof ErrorEdge))
+					if (!(e instanceof ErrorEdge)) {
 						refined = true;
-				}
+						constraints.add(e);
+					}
+				} else
+					constraints.add(new OntologyFunction(nodes));
 			}
 			if (refined)
 				bothRefined++;
 		}
 
 		// Impose the constraints
-		if (refined) {
+		if (refined && assertConstraints) {
 			int numEdges = imposeConstraints(refPred);
 			LoggerFactory.getLogger(this.getClass()).info(
 					"Refined {} ({} edges)", refPred.getName(), numEdges);
@@ -188,24 +208,7 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 			// Do nothing for now
 		}
 
-		return refined;
-	}
-
-	/**
-	 * Checks if a constraint is contained within the set of global exclusive
-	 * maximum constraints.
-	 *
-	 * @param constraint
-	 *            The constraint to check.
-	 * @param globalConstraints
-	 *            The exclusive global constraints to compare against.
-	 * @return True if the constraint is a global constraints.
-	 */
-	private boolean isGeneralConstraint(Node constraint,
-			Collection<Node> globalConstraints) {
-		if (globalConstraints.contains(constraint))
-			return true;
-		return false;
+		return constraints;
 	}
 
 	/**
@@ -240,18 +243,80 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 	 * @param refEdges
 	 *            The edges corresponding to the refinable predicate
 	 */
-	public NodeDetails recordEvidence(Collection<Edge> refEdges) {
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public NodeDetails recordEvidence(Collection<Edge> refEdges,
+			String sourceKey) {
 		NodeDetails refCounts = new NodeDetails();
 
+		// Sort the edges by source property
+		Collection<Edge> sortedEdges = refEdges;
+		if (sourceKey != null) {
+			sortedEdges = new TreeSet<>(new SourceComparator(sourceKey));
+			sortedEdges.addAll(refEdges);
+		}
+
 		// Record each edge's evidence
-		for (Edge edge : refEdges) {
-			// For every argument
+		String currentSource = null;
+		Collection[] currentIsas = { new HashSet<Node>(), new HashSet<Node>() };
+		Iterator<Edge> iter = sortedEdges.iterator();
+		Edge edge = null;
+		do {
+			edge = (iter.hasNext()) ? iter.next() : null;
+			// Check the edge source first
+			String edgeSource = (edge != null) ? ((DAGEdge) edge)
+					.getProperty(sourceKey) : null;
+			if (edgeSource == null || !edgeSource.equals(currentSource)) {
+				refCounts.incrementCounts(currentIsas);
+				currentIsas[0].clear();
+				currentIsas[1].clear();
+			}
+			currentSource = edgeSource;
+
+			if (edge == null)
+				break;
+
+			// Note the isas for the edge
 			Node[] args = ((DAGEdge) edge).getNodes();
 			for (int i = 1; i < args.length; i++) {
-				refCounts.recordCount(args[i], i, null);
+				currentIsas[i - 1].addAll(CommonQuery.ALLISA.runQuery(dag_,
+						querier_.getExpanded(args[i])));
 			}
-		}
+		} while (edge != null);
 		return refCounts;
+	}
+
+	private class SourceComparator<T> implements Comparator<DAGEdge> {
+		private String sourceKey_;
+
+		public SourceComparator(String sourceKey) {
+			sourceKey_ = sourceKey;
+		}
+
+		@Override
+		public int compare(DAGEdge o1, DAGEdge o2) {
+			if (o1 == null)
+				if (o2 == null)
+					return 0;
+				else
+					return 1;
+			else if (o2 == null)
+				return -1;
+
+			// Compare by sourceKey
+			String prop1 = o1.getProperty(sourceKey_);
+			String prop2 = o2.getProperty(sourceKey_);
+			if (prop1 == null) {
+				if (prop2 != null)
+					return 1;
+			} else if (prop2 == null)
+				return -1;
+			int result = prop1.compareTo(prop2);
+			if (result != 0)
+				return result;
+
+			return o1.getIdentifier().compareTo(o2.getIdentifier());
+		}
+
 	}
 
 	@Override
@@ -282,9 +347,6 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 		/** Isa counts from the evidence. */
 		private Map<Node, Integer>[] isaArgCounts_;
 
-		/** Keeps track of which evidence arguments have already been counted. */
-		private Set<Node>[] processedArguments_;
-
 		/** Evidence counts for each argument of the node. */
 		private int[] numEvidence_;
 
@@ -292,8 +354,6 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 		public NodeDetails() {
 			isaArgCounts_ = new Map[] { new HashMap<Node, Integer>(),
 					new HashMap<Node, Integer>() };
-			processedArguments_ = new Set[] { new HashSet<Node>(),
-					new HashSet<Node>() };
 			numEvidence_ = new int[2];
 		}
 
@@ -351,10 +411,45 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 						return depth1;
 					}
 				});
-				return (Collection<Node>) CommonQuery.minGeneralFilter(
-						possible, dag_);
+				Collection<Node> minConstraints = (Collection<Node>) CommonQuery
+						.minGeneralFilter(possible, dag_);
+				// Need to check disjointness among the constraints
+				return checkDisjointConstraints(minConstraints);
 			} else
 				return possible;
+		}
+
+		/**
+		 * Checks if the inferred constraints are disjoint to one-another. If
+		 * so, <DO SOMETHING>
+		 *
+		 * @param minConstraints
+		 *            The constraints to check for disjointness
+		 * @return A set of constraints that are not disjoint.
+		 */
+		@SuppressWarnings("unchecked")
+		private Collection<Node> checkDisjointConstraints(
+				Collection<Node> minConstraints) {
+			// One constraint is fine
+			if (minConstraints.size() <= 1)
+				return minConstraints;
+
+			Node[] constraintArray = minConstraints
+					.toArray(new Node[minConstraints.size()]);
+			for (int i = 0; i < constraintArray.length - 1; i++) {
+				for (int j = i + 1; j < constraintArray.length; j++) {
+					QueryObject queryObj = new QueryObject(false, false,
+							QueryResult.TRUE,
+							CommonConcepts.DISJOINTWITH.getNode(dag_),
+							constraintArray[i], constraintArray[j]);
+					if (querier_.prove(queryObj) == QueryResult.TRUE) {
+						// Exit with an empty set
+						// TODO Could do something smarter here - somehow...
+						return CollectionUtils.EMPTY_COLLECTION;
+					}
+				}
+			}
+			return minConstraints;
 		}
 
 		/**
@@ -365,35 +460,28 @@ public class PredicateRefinerModule extends DAGModule<Collection<DAGNode>> {
 		 * @param argIndex
 		 *            The index to record under.
 		 */
-		public void recordCount(Node edgeNode, int argIndex,
-				Collection<Node> isas) {
-			if (!processedArguments_[argIndex - 1].add(edgeNode))
-				return;
+		public void incrementCounts(Collection<Node>[] isas) {
+			for (int i = 0; i < isas.length; i++) {
+				if (globals_ != null)
+					isas[i].removeAll(globals_[i]);
+				if (isas[i].isEmpty())
+					return;
 
-			// Get all isas
-			if (isas == null)
-				isas = CommonQuery.ALLISA.runQuery(dag_,
-						querier_.getExpanded(edgeNode));
-			if (isas.isEmpty())
-				return;
+				numEvidence_[i]++;
 
-			numEvidence_[argIndex - 1]++;
+				// Record counts
+				for (Node isa : isas[i]) {
+					if (!(isa instanceof DAGNode))
+						continue;
+					int id = ((DAGNode) isa).getID();
+					if (id == -1)
+						continue;
 
-			// Record counts
-			for (Node isa : isas) {
-				if (!(isa instanceof DAGNode))
-					continue;
-				// If a global, ignore it
-				if (globals_ != null && globals_[argIndex - 1].contains(isa))
-					continue;
-				int id = ((DAGNode) isa).getID();
-				if (id == -1)
-					continue;
-
-				Integer count = isaArgCounts_[argIndex - 1].get(isa);
-				if (count == null)
-					count = 0;
-				isaArgCounts_[argIndex - 1].put(isa, count + 1);
+					Integer count = isaArgCounts_[i].get(isa);
+					if (count == null)
+						count = 0;
+					isaArgCounts_[i].put(isa, count + 1);
+				}
 			}
 		}
 
