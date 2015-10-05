@@ -131,9 +131,10 @@ public class QueryCommand extends CollectionCommand {
 				if (!first)
 					print(",");
 				print(entry.getKey() + "/"
-						+ dagHandler.textIDObject(entry.getValue()) + "|");
+						+ dagHandler.textIDObject(entry.getValue()));
 				first = false;
 			}
+			print("|");
 		}
 		print("\n");
 	}
