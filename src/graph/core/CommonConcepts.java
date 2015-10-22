@@ -91,6 +91,7 @@ public enum CommonConcepts {
 	STRICTLY_FUNCTIONAL_SLOT("StrictlyFunctionalSlot"),
 	STRING("CharacterString"),
 	SYMMETRIC_BINARY("SymmetricBinaryPredicate"),
+	SYNONYMOUS_EXTERNAL_CONCEPT("synonymousExternalConcept"),
 	TERM_STRING("termStrings"),
 	TIME_INTERVAL("TimeInterval"),
 	THE_FN("TheFn"),

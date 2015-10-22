@@ -18,11 +18,16 @@ public class SemanticArgErrorEdge extends DAGErrorEdge implements
 	private Node proposedNode_;
 	private int argNum_;
 	private DAGNode predicate_;
+	private DAGNode argTest_;
+	private Node constraint_;
 
-	public SemanticArgErrorEdge(DAGNode predicate, int argNum, Node proposedNode) {
+	public SemanticArgErrorEdge(DAGNode predicate, int argNum,
+			Node proposedNode, DAGNode argTest, Node constraint) {
 		predicate_ = predicate;
 		proposedNode_ = proposedNode;
 		argNum_ = argNum;
+		argTest_ = argTest;
+		constraint_ = constraint;
 	}
 
 	@Override
@@ -32,12 +37,16 @@ public class SemanticArgErrorEdge extends DAGErrorEdge implements
 					.getModule(NLPToStringModule.class);
 			if (nlpModule != null)
 				return nlpModule.nodeToString(proposedNode_, false)
-						+ " is not a valid argument for arg " + argNum_
-						+ " of " + nlpModule.nodeToString(predicate_, false)
-						+ ".";
+						+ " does not meet "
+						+ nlpModule.nodeToString(argTest_, false)
+						+ " constraint \""
+						+ nlpModule.nodeToString(constraint_, false)
+						+ "\" for arg " + argNum_ + " of "
+						+ nlpModule.nodeToString(predicate_, false) + ".";
 		}
-		return proposedNode_ + " is not a valid argument for arg " + argNum_
-				+ " of " + predicate_ + ".";
+		return proposedNode_ + " does not meet " + argTest_ + " constraint \""
+				+ constraint_ + "\" for arg " + argNum_ + " of " + predicate_
+				+ ".";
 	}
 
 	@Override

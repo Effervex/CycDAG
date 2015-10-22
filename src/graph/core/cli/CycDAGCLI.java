@@ -14,6 +14,7 @@ import graph.core.CycDAG;
 import graph.core.DirectedAcyclicGraph;
 import graph.module.cli.PredsForCommand;
 import graph.module.cli.ValidArgCommand;
+import graph.module.cli.ValidEdgeCommand;
 
 import java.io.IOException;
 import java.net.Socket;
@@ -38,6 +39,7 @@ public class CycDAGCLI extends DAGCommandLineInterface {
 		CommandParser.addCommand("extract", ExtractCommand.class);
 		CommandParser.addCommand("removeAll", RemoveCommand.class);
 		CommandParser.addCommand("validArg", ValidArgCommand.class);
+		CommandParser.addCommand("validEdge", ValidEdgeCommand.class);
 		CommandParser.addCommand("addedge", AddCycEdgeCommand.class);
 		CommandParser.addCommand("varhelp", CycDAGVarHelpCommand.class);
 		CommandParser.addCommand("predsFor", PredsForCommand.class);

@@ -1,0 +1,28 @@
+@relation disjoints-weka.filters.unsupervised.attribute.StringToNominal-Rfirst-weka.filters.unsupervised.instance.Randomize-S42
+
+@attribute relation {Antonym,AtLocation,CapableOf,CausesDesire,Causes,CreatedBy,DefinedAs,DerivedFrom,DesireOf,Desires,EtymologicallyDerivedFrom,HasA,HasFirstSubevent,HasLastSubevent,HasPainCharacter,HasPainIntensity,HasPrerequisite,HasProperty,HasSubevent,InheritsFrom,InstanceOf,IsA,LocatedNear,LocationOfAction,MadeOf,MotivatedByGoal,NotCapableOf,NotDesires,NotHasA,NotHasProperty,NotIsA,NotMadeOf,NotUsedFor,ObstructedBy,PartOf,ReceivesAction,RelatedTo,SimilarSize,SymbolOf,Synonym,TranslationOf,UsedFor}
+@attribute arg1 string
+@attribute arg2 string
+@attribute disamb1 string
+@attribute disamb2 string
+@attribute semantic_similarity numeric
+@attribute depth_1 numeric
+@attribute depth_2 numeric
+@attribute av_depth numeric
+@attribute impact_a numeric
+@attribute impact_b numeric
+@attribute impact_ab numeric
+@attribute common_parent string
+@attribute parent_depth numeric
+@attribute semantic_distance numeric
+@attribute relation_reliability numeric
+@attribute relation_disjoint numeric
+@attribute relation_conjoint numeric
+@attribute relation_unknown numeric
+@attribute intra_relation_reliability numeric
+@attribute intra_relation_disjoint numeric
+@attribute intra_relation_conjoint numeric
+@attribute intra_relation_unknown numeric
+@attribute class {disjoint,conjoint}
+
+@data

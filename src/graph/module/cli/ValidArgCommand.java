@@ -13,6 +13,7 @@ package graph.module.cli;
 import graph.core.CycDAG;
 import graph.core.DAGNode;
 import graph.core.Node;
+import graph.core.SemanticArgErrorEdge;
 import graph.core.cli.DAGPortHandler;
 
 import java.util.ArrayList;
@@ -56,13 +57,14 @@ public class ValidArgCommand extends Command {
 			boolean forceCreate = split.size() == 4
 					&& split.get(3).equalsIgnoreCase("T");
 
-			if (dag.isValidArgument(predicate, argNum, arg, forceCreate))
+			SemanticArgErrorEdge errorEdge = dag.isValidArgument(predicate,
+					argNum, arg, forceCreate);
+			if (errorEdge == null)
 				print("1\n");
 			else
-				print("0\n");
+				print("0|" + errorEdge.getError(true) + "\n");
 		} catch (Exception e) {
 			print("-1|Problem parsing nodes.\n");
 		}
 	}
-
 }

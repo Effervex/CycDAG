@@ -18,6 +18,7 @@ import graph.core.DAGEdge;
 import graph.core.DAGNode;
 import graph.core.Node;
 import graph.core.PrimitiveNode;
+import graph.core.SemanticArgErrorEdge;
 import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
 import graph.inference.Substitution;
@@ -83,7 +84,7 @@ public class PredicateResolutionModule extends DAGModule<WeightedSet<DAGNode>> {
 				.getModule(SemanticSimilarityModule.class);
 		float similarity = 0;
 		for (int i = 0; i < args.length; i++) {
-			if (!cycDAG.isValidArgument(pred, (i + 1), args[i], false))
+			if (cycDAG.isValidArgument(pred, (i + 1), args[i], false) != null)
 				return 0;
 			Collection<Node> argIsa = CommonQuery.MINARGNISA.runQuery(dag_,
 					pred, PrimitiveNode.parseNode((i + 1) + ""));

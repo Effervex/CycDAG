@@ -142,14 +142,15 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 * @return True if the argument meets the predicate constraint (optionally
 	 *         after forcing new edges).
 	 */
-	private boolean checkSingleArg(DAGNode predNode, Node testNode, int i,
-			CommonConcepts argTest, CommonConcepts argQuery,
-			String microtheory, Collection<Edge> forwardEdges,
-			boolean ephemeral, QueryObject edgeQuery) {
+	private SemanticArgErrorEdge checkSingleArg(DAGNode predNode,
+			Node testNode, int i, CommonConcepts argTest,
+			CommonConcepts argQuery, String microtheory,
+			Collection<Edge> forwardEdges, boolean ephemeral,
+			QueryObject edgeQuery) {
+		DAGNode constraintNode = argTest.getNode(this);
 		QueryObject constraintQuery = new QueryObject(false,
-				edgeQuery.shouldJustify(), QueryResult.TRUE,
-				argTest.getNode(this), predNode,
-				PrimitiveNode.parseNode("" + i), VariableNode.DEFAULT);
+				edgeQuery.shouldJustify(), QueryResult.TRUE, constraintNode,
+				predNode, PrimitiveNode.parseNode("" + i), VariableNode.DEFAULT);
 		Collection<Substitution> constraints = querier_
 				.executeQuery(constraintQuery);
 
@@ -166,7 +167,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 			if (testNode instanceof StringNode
 					&& argQuery.getNode(this).equals(
 							CommonConcepts.ISA.getNode(this)))
-				proofQuery = new QueryObject(false, edgeQuery.shouldJustify(),
+				proofQuery = new QueryObject(true, edgeQuery.shouldJustify(),
 						QueryResult.ALL, CommonConcepts.GENLS.getNode(this),
 						constraint, CommonConcepts.STRING.getNode(this));
 			else
@@ -188,15 +189,17 @@ public class CycDAG extends DirectedAcyclicGraph {
 						continue;
 					}
 				}
-				return false;
+				return new SemanticArgErrorEdge(predNode, i, testNode,
+						constraintNode, constraint);
 			} else if (meetsConstraint == QueryResult.FALSE) {
 				edgeQuery.getJustification().addAll(
 						constraintQuery.getJustification());
 				edgeQuery.addResult(false, null, proofQuery.getJustification());
-				return false;
+				return new SemanticArgErrorEdge(predNode, i, testNode,
+						constraintNode, constraint);
 			}
 		}
-		return true;
+		return null;
 	}
 
 	private boolean containsVariables(Node[] edgeNodes) {
@@ -931,15 +934,16 @@ public class CycDAG extends DirectedAcyclicGraph {
 		for (int i = 1; i < edgeNodes.length; i++) {
 			if (edgeNodes[i] instanceof VariableNode)
 				continue;
-			if (!singleArgCheck(predNode, i, edgeNodes[i], microtheory,
-					forwardEdges, ephemeral, edgeQuery)) {
+			SemanticArgErrorEdge semanticArgError = singleArgCheck(predNode, i,
+					edgeNodes[i], microtheory, forwardEdges, ephemeral,
+					edgeQuery);
+			if (semanticArgError != null) {
 				if (forwardChainCreate) {
 					// Unassert the edges
 					for (Edge e : forwardEdges)
 						removeEdge(e, true);
 				}
-				SemanticArgErrorEdge semanticArgError = new SemanticArgErrorEdge(
-						predNode, i, edgeNodes[i]);
+				edgeQuery.addResult(false, null, semanticArgError.getNodes());
 				edgeQuery.setRejectionReason(semanticArgError);
 				return semanticArgError;
 			}
@@ -948,7 +952,7 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return null;
 	}
 
-	public boolean isValidArgument(DAGNode predNode, int i, Node arg,
+	public SemanticArgErrorEdge isValidArgument(DAGNode predNode, int i, Node arg,
 			boolean forceConstraint) {
 		Collection<Edge> forwardEdges = null;
 		if (forceConstraint)
@@ -1127,24 +1131,24 @@ public class CycDAG extends DirectedAcyclicGraph {
 	 *            The original query object.
 	 * @return True if the argument meets the constraint.
 	 */
-	public boolean singleArgCheck(DAGNode predNode, int i, Node arg,
-			String microtheory, Collection<Edge> forwardEdges,
+	public SemanticArgErrorEdge singleArgCheck(DAGNode predNode, int i,
+			Node arg, String microtheory, Collection<Edge> forwardEdges,
 			boolean ephemeral, QueryObject edgeQuery) {
 		if (arg instanceof VariableNode)
-			return true;
+			return null;
 
 		// argNIsa
-		if (!checkSingleArg(predNode, arg, i, CommonConcepts.ARGISA,
-				CommonConcepts.ISA, microtheory, forwardEdges, ephemeral,
-				edgeQuery))
-			return false;
+		SemanticArgErrorEdge errorEdge = checkSingleArg(predNode, arg, i,
+				CommonConcepts.ARGISA, CommonConcepts.ISA, microtheory,
+				forwardEdges, ephemeral, edgeQuery);
+		if (errorEdge != null)
+			return errorEdge;
 
 		// argNGenls
-		if (!checkSingleArg(predNode, arg, i, CommonConcepts.ARGGENL,
+		errorEdge = checkSingleArg(predNode, arg, i, CommonConcepts.ARGGENL,
 				CommonConcepts.GENLS, microtheory, forwardEdges, ephemeral,
-				edgeQuery))
-			return false;
-		return true;
+				edgeQuery);
+		return errorEdge;
 	}
 
 	/**

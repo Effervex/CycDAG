@@ -118,6 +118,8 @@ public class IsaWorker extends QueryWorker {
 					// During isa search, ignore false results
 					if (transitiveQO.getResultState() == QueryResult.FALSE) {
 						// Clear the false result
+						// TODO If a semantic error in the transitive arg, stop
+						// here it cannot succeed
 						queryObj.setResultState(QueryResult.NIL);
 					}
 

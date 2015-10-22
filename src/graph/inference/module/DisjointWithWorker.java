@@ -139,6 +139,15 @@ public class DisjointWithWorker extends QueryWorker {
 		}
 	}
 
+	/**
+	 * Checks if two concepts are disjoint via a disjointness axiom (i.e.
+	 * non-SiblingDisjoint)
+	 *
+	 * @param queryObj
+	 *            The disjointness query being asked.
+	 * @param disjointWithEdges
+	 *            All disjointness axioms.
+	 */
 	private void findDisjoint(QueryObject queryObj,
 			Collection<Edge> disjointWithEdges) {
 		if (queryObj.getAtomic() == null)
