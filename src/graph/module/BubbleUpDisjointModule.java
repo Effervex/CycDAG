@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Random;
 
 import util.Pair;
+import util.collection.trove.TIndexedCollection;
 
 /**
  * The objective of this module is to merge low level disjoint edges to a higher
@@ -77,8 +78,8 @@ public class BubbleUpDisjointModule extends DAGModule<Collection<DAGEdge>> {
 	}
 
 	@Override
-	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges, boolean forceRebuild) {
+	public boolean initialisationComplete(TIndexedCollection<DAGNode> nodes,
+			TIndexedCollection<DAGEdge> edges, boolean forceRebuild) {
 		System.out.print("Starting to bubble up disjoints...");
 		Node creator = new StringNode("BubbleUpDisjointModule");
 

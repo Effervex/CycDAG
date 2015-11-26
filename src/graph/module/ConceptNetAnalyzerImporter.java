@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.collections4.CollectionUtils;
 
 import util.Pair;
+import util.collection.trove.TIndexedCollection;
 
 public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 
@@ -800,8 +801,8 @@ public class ConceptNetAnalyzerImporter extends DAGModule<Collection<DAGEdge>> {
 	}
 
 	@Override
-	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges, boolean forceRebuild) {
+	public boolean initialisationComplete(TIndexedCollection<DAGNode> nodes,
+			TIndexedCollection<DAGEdge> edges, boolean forceRebuild) {
 		queryModule_ = (QueryModule) dag_.getModule(QueryModule.class);
 		semanticSimilarityModule_ = (SemanticSimilarityModule) dag_
 				.getModule(SemanticSimilarityModule.class);

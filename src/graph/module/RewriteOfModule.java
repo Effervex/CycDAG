@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import util.collection.trove.TIndexedCollection;
 import graph.core.CommonConcepts;
 import graph.core.CycDAG;
 import graph.core.DAGEdge;
@@ -54,8 +55,8 @@ public class RewriteOfModule extends DAGModule<DAGNode> {
 	}
 
 	@Override
-	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges, boolean forceRebuild) {
+	public boolean initialisationComplete(TIndexedCollection<DAGNode> nodes,
+			TIndexedCollection<DAGEdge> edges, boolean forceRebuild) {
 		if (forceRebuild) {
 			defaultRebuild(nodes, false, edges, true);
 			return true;

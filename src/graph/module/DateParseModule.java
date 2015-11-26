@@ -21,8 +21,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 
-import org.apache.commons.lang3.ArrayUtils;
-
 import util.AliasedObject;
 
 /**
@@ -140,12 +138,11 @@ public class DateParseModule extends DAGModule<Collection<DAGNode>> implements
 	}
 
 	@Override
-	public Collection<AliasedObject<Character, DAGNode>> findAliasedNodes(
+	public Collection<AliasedObject<DAGNode>> findAliasedNodes(
 			String alias, boolean caseSensitive, boolean exactString) {
-		Collection<AliasedObject<Character, DAGNode>> aliased = new HashSet<>();
+		Collection<AliasedObject<DAGNode>> aliased = new HashSet<>();
 		for (DAGNode n : findNodes(alias, caseSensitive, exactString))
-			aliased.add(new AliasedObject<Character, DAGNode>(n, ArrayUtils
-					.toObject(alias.toCharArray())));
+			aliased.add(new AliasedObject<DAGNode>(alias, n));
 		return aliased;
 	}
 

@@ -21,6 +21,8 @@ import graph.core.Node;
 import java.util.Collection;
 import java.util.HashSet;
 
+import util.collection.trove.TIndexedCollection;
+
 public class StrictlyFunctionalModule extends DAGModule<DAGNode> {
 	private static final long serialVersionUID = 1L;
 	private Collection<DAGNode> strictlyFunctionalPreds_;
@@ -70,8 +72,8 @@ public class StrictlyFunctionalModule extends DAGModule<DAGNode> {
 	}
 
 	@Override
-	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges, boolean forceRebuild) {
+	public boolean initialisationComplete(TIndexedCollection<DAGNode> nodes,
+			TIndexedCollection<DAGEdge> edges, boolean forceRebuild) {
 		if (forceRebuild || strictlyFunctionalPreds_ == null) {
 			defaultRebuild(nodes, false, edges, true);
 			return true;

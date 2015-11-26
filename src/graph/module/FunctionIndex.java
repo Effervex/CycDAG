@@ -21,6 +21,7 @@ import java.util.Collection;
 import org.apache.commons.collections4.CollectionUtils;
 
 import util.collection.Trie;
+import util.collection.trove.TIndexedCollection;
 
 public class FunctionIndex extends DAGModule<OntologyFunction> {
 	private static final long serialVersionUID = -2107172826877208005L;
@@ -62,8 +63,8 @@ public class FunctionIndex extends DAGModule<OntologyFunction> {
 	}
 
 	@Override
-	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges, boolean forceRebuild) {
+	public boolean initialisationComplete(TIndexedCollection<DAGNode> nodes,
+			TIndexedCollection<DAGEdge> edges, boolean forceRebuild) {
 		if (!index_.isEmpty() && !forceRebuild)
 			return false;
 

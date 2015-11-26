@@ -22,8 +22,8 @@ import graph.core.DirectedAcyclicGraph;
 public class DisjointPredictorModule extends DAGModule<Double> {
 	private static final long serialVersionUID = 1L;
 
-	public static final File ARFF_LOCATION = new File("lib/disjointARFF.arff");
-	public static final File CLASSIFIER_FILE = new File("lib/disjoints.model");
+	public static final File ARFF_LOCATION = new File("models/disjointARFF.arff");
+	public static final File CLASSIFIER_FILE = new File("models/disjoints.model");
 
 	/** Instance information. */
 	private transient Instances arffData_;
@@ -33,19 +33,6 @@ public class DisjointPredictorModule extends DAGModule<Double> {
 
 	/** The module containing the relation data. */
 	private transient ConceptNetAnalyserV2Module assertionModule_;
-
-	public DisjointPredictorModule() {
-		try {
-			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(
-					CLASSIFIER_FILE));
-
-			arffData_ = new Instances(new FileReader(ARFF_LOCATION));
-			arffData_.setClassIndex(arffData_.numAttributes() - 1);
-			classifier_ = (Classifier) ois.readObject();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
 
 	@Override
 	public Double execute(Object... args) throws IllegalArgumentException,
@@ -71,6 +58,7 @@ public class DisjointPredictorModule extends DAGModule<Double> {
 	 *         non-collections used.
 	 */
 	public synchronized double classify(DAGNode conceptA, DAGNode conceptB) {
+		// TODO For whatever reason, this isn't working
 		Instance[] instances = parseInstance(conceptA, conceptB);
 		if (instances.length == 0)
 			return -1;
@@ -108,19 +96,19 @@ public class DisjointPredictorModule extends DAGModule<Double> {
 			instances[i].setDataset(arffData_);
 			for (int j = 0; j < data[i].length; j++) {
 				if (!data[i][j].isEmpty()) {
-					if (arffData_.attribute(i).isNumeric())
+					if (arffData_.attribute(j).isNumeric())
 						instances[i]
-								.setValue(i, Double.parseDouble(data[i][j]));
-					else if (arffData_.attribute(i).isNominal()) {
+								.setValue(j, Double.parseDouble(data[i][j]));
+					else if (arffData_.attribute(j).isNominal()) {
 						if (data[i][j].equals("?"))
-							instances[i].setMissing(i);
+							instances[i].setMissing(j);
 						else {
-							int relationIndex = arffData_.attribute(i)
+							int relationIndex = arffData_.attribute(j)
 									.indexOfValue(data[i][j]);
-							instances[i].setValue(i, relationIndex);
+							instances[i].setValue(j, relationIndex);
 						}
 					} else {
-						instances[i].setValue(i, data[i][j]);
+						instances[i].setValue(j, data[i][j]);
 					}
 				}
 			}
@@ -143,5 +131,17 @@ public class DisjointPredictorModule extends DAGModule<Double> {
 		super.setDAG(directedAcyclicGraph);
 		assertionModule_ = (ConceptNetAnalyserV2Module) directedAcyclicGraph
 				.getModule(ConceptNetAnalyserV2Module.class);
+		
+		try {
+			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(
+					CLASSIFIER_FILE));
+
+			arffData_ = new Instances(new FileReader(ARFF_LOCATION));
+			arffData_.setClassIndex(arffData_.numAttributes() - 1);
+			classifier_ = (Classifier) ois.readObject();
+			ois.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }

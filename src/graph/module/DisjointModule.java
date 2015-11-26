@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import util.UtilityMethods;
 import util.collection.MultiMap;
+import util.collection.trove.TIndexedCollection;
 
 public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 	private static final long serialVersionUID = 1L;
@@ -425,8 +426,8 @@ public class DisjointModule extends DAGModule<Collection<DAGNode>> {
 	}
 
 	@Override
-	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges, boolean forceRebuild) {
+	public boolean initialisationComplete(TIndexedCollection<DAGNode> nodes,
+			TIndexedCollection<DAGEdge> edges, boolean forceRebuild) {
 		if (disjointMap_.isKeysEmpty()) {
 			System.out.print("Building Disjoint Module map... ");
 			defaultRebuild(nodes, false, edges, true);

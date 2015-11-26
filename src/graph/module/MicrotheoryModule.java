@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import util.collection.MultiMap;
+import util.collection.trove.TIndexedCollection;
 
 public class MicrotheoryModule extends DAGModule<Collection<DAGEdge>> {
 	private static final long serialVersionUID = -7361095570749061667L;
@@ -60,8 +61,8 @@ public class MicrotheoryModule extends DAGModule<Collection<DAGEdge>> {
 	}
 	
 	@Override
-	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges, boolean forceRebuild) {
+	public boolean initialisationComplete(TIndexedCollection<DAGNode> nodes,
+			TIndexedCollection<DAGEdge> edges, boolean forceRebuild) {
 		if (!microtheoryMap_.isKeysEmpty() && !forceRebuild)
 			return false;
 

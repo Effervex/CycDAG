@@ -77,7 +77,7 @@ public class QueryFindCycNodeCommand extends FindCycNodeCommand {
 			if (n instanceof DAGNode)
 				node = (DAGNode) n;
 			else if (n instanceof AliasedObject)
-				node = ((AliasedObject<Character, DAGNode>) n).object_;
+				node = ((AliasedObject<DAGNode>) n).object_;
 			Substitution substitution = new Substitution("?X", node);
 			QueryObject qo = new QueryObject(false, false, QueryResult.TRUE,
 					substitution.applySubstitution(args));

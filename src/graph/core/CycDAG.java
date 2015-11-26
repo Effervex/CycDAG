@@ -10,6 +10,7 @@
  ******************************************************************************/
 package graph.core;
 
+import gnu.trove.iterator.TIntObjectIterator;
 import graph.inference.CommonQuery;
 import graph.inference.QueryObject;
 import graph.inference.QueryResult;
@@ -525,7 +526,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 	protected void exportRereadable(File file) throws IOException {
 		BufferedWriter out = new BufferedWriter(new FileWriter(file));
 
-		for (DAGEdge e : edges_) {
+		TIntObjectIterator<DAGEdge> iter = edges_.iterator();
+		for (int i = edges_.size(); i-- > 0;) {
+			iter.advance();
+			DAGEdge e = iter.value();
 			String mt = e.getProperty(MICROTHEORY);
 			if (mt == null)
 				mt = "";
@@ -539,8 +543,10 @@ public class CycDAG extends DirectedAcyclicGraph {
 	protected void exportToCSV(BufferedWriter out, DAGExportFormat format)
 			throws IOException {
 		Map<OntologyFunction, Integer> functions = new HashMap<>();
-		for (DAGEdge e : edges_) {
-			Node[] nodes = e.getNodes();
+		TIntObjectIterator<DAGEdge> iter = edges_.iterator();
+		for (int i = edges_.size(); i-- > 0;) {
+			iter.advance();
+			Node[] nodes = iter.value().getNodes();
 			if (format == DAGExportFormat.CSV_ALL
 					|| nodes[0].equals(CommonConcepts.ISA.getNode(this))
 					|| nodes[0].equals(CommonConcepts.GENLS.getNode(this))
@@ -952,8 +958,8 @@ public class CycDAG extends DirectedAcyclicGraph {
 		return null;
 	}
 
-	public SemanticArgErrorEdge isValidArgument(DAGNode predNode, int i, Node arg,
-			boolean forceConstraint) {
+	public SemanticArgErrorEdge isValidArgument(DAGNode predNode, int i,
+			Node arg, boolean forceConstraint) {
 		Collection<Edge> forwardEdges = null;
 		if (forceConstraint)
 			forwardEdges = new ArrayList<>();

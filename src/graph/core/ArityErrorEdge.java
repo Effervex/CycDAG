@@ -19,7 +19,7 @@ public class ArityErrorEdge extends DAGErrorEdge {
 
 	public ArityErrorEdge(DAGNode predicateNode, String numArgs) {
 		predicate_ = predicateNode;
-		numArgs_ = numArgs;
+		numArgs_ = numArgs; 
 	}
 
 	@Override

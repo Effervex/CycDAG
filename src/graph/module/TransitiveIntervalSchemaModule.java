@@ -10,6 +10,7 @@
  ******************************************************************************/
 package graph.module;
 
+import gnu.trove.iterator.TIntObjectIterator;
 import graph.core.CommonConcepts;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
@@ -42,6 +43,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import util.Pair;
+import util.collection.trove.TIndexedCollection;
 
 public class TransitiveIntervalSchemaModule extends
 		DAGModule<Collection<DAGNode>> {
@@ -393,16 +395,19 @@ public class TransitiveIntervalSchemaModule extends
 	 *         cycle.
 	 */
 	public Collection<Pair<DAGEdge, DAGEdge>> identifyCycles(
-			Collection<DAGNode> nodes) {
+			TIndexedCollection<DAGNode> nodes) {
 		topologicalList(nodes);
-		for (DAGNode n : nodes)
-			dag_.removeProperty(n, MARK);
+		TIntObjectIterator<DAGNode> iter = nodes.iterator();
+		for (int i = nodes.size(); i-- > 0;) {
+			iter.advance();
+			dag_.removeProperty(iter.value(), MARK);
+		}
 		return cycles_;
 	}
 
 	@Override
-	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges, boolean forceRebuild) {
+	public boolean initialisationComplete(TIndexedCollection<DAGNode> nodes,
+			TIndexedCollection<DAGEdge> edges, boolean forceRebuild) {
 		if (!requiresRebuild_ && !forceRebuild)
 			return false;
 		virtualRoot_ = null;
@@ -515,12 +520,15 @@ public class TransitiveIntervalSchemaModule extends
 	 *            The nodes to sort.
 	 * @return The topologically sorted list of nodes.
 	 */
-	public List<DAGNode> topologicalList(Collection<DAGNode> nodes) {
+	public List<DAGNode> topologicalList(TIndexedCollection<DAGNode> nodes) {
 		cycles_ = new ArrayList<>();
 		LinkedList<DAGNode> sortedNodes = new LinkedList<>();
 		RewriteOfModule rewriteModule = (RewriteOfModule) dag_
 				.getModule(RewriteOfModule.class);
-		for (DAGNode n : nodes) {
+		TIntObjectIterator<DAGNode> iter = nodes.iterator();
+		for (int i = nodes.size(); i-- > 0;) {
+			iter.advance();
+			DAGNode n = iter.value();
 			if (rewriteModule != null)
 				n = rewriteModule.getRewrite(n);
 			// Ignore non-collections

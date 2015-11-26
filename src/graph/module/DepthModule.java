@@ -10,6 +10,7 @@
  ******************************************************************************/
 package graph.module;
 
+import gnu.trove.iterator.TIntObjectIterator;
 import graph.core.CommonConcepts;
 import graph.core.DAGEdge;
 import graph.core.DAGNode;
@@ -26,6 +27,7 @@ import java.util.HashSet;
 import org.apache.commons.collections4.CollectionUtils;
 
 import util.collection.MultiMap;
+import util.collection.trove.TIndexedCollection;
 
 public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	private static final long serialVersionUID = 7586206693104940128L;
@@ -204,22 +206,23 @@ public class DepthModule extends DAGModule<Collection<DAGNode>> {
 	}
 
 	@Override
-	public boolean initialisationComplete(Collection<DAGNode> nodes,
-			Collection<DAGEdge> edges, boolean forceRebuild) {
+	public boolean initialisationComplete(TIndexedCollection<DAGNode> nodes,
+			TIndexedCollection<DAGEdge> edges, boolean forceRebuild) {
 		if (depthCalculated_ && !forceRebuild)
 			return false;
 
 		// Compute the depths of each node in the graph
 		System.out.print("Calculating node depths... ");
 		depthMap_ = MultiMap.createConcurrentHashSetMultiMap();
-		int count = 0;
 		int tenPercent = nodes.size() / 10;
 		// TODO Embarrassingly parallel.
-		for (DAGNode node : nodes) {
-			count++;
-			processNode(node, new HashSet<Integer>());
-			if (count % tenPercent == 0)
-				System.out.print((count / tenPercent * 10) + "% ");
+		TIntObjectIterator<DAGNode> iter = nodes.iterator();
+		int i = 1;
+		for (; i <= nodes.size(); i++) {
+			iter.advance();
+			processNode(iter.value(), new HashSet<Integer>());
+			if (i % tenPercent == 0)
+				System.out.print((i / tenPercent * 10) + "% ");
 		}
 		System.out.println("Depth calculation complete!");
 		depthCalculated_ = true;

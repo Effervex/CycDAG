@@ -105,8 +105,8 @@ public class OntologyEdgeModule extends RelatedEdgeModule {
 						: getEdges(n, key, createNew);
 				edgeCols.add(new EdgeCol(additive, edgeCol));
 			} else if (canSearchHashedModule(predicate, n)) {
-				Collection<Edge> edgeCol = stringHashedModule_.execute(n
-						.getName());
+				Collection<Edge> edgeCol = stringHashedModule_.execute(
+						createNew, n.getName());
 				edgeCols.add(new EdgeCol(additive, edgeCol));
 			}
 		}
