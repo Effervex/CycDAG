@@ -8,7 +8,7 @@
  * Contributors:
  *     Sam Sarjant - initial API and implementation
  ******************************************************************************/
-package graph.core;
+package graph.core; 
 
 import graph.module.NLPToStringModule;
 
